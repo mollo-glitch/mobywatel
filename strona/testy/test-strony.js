@@ -36,20 +36,24 @@ const czekaj = (p, fn, ms) => p.waitForFunction(fn, null, { timeout: ms || 20000
   { const { ctx, p, log } = await nowa(390); await p.goto(A + '/'); await czekaj(p, () => document.getElementById('film').readyState >= 1);
     const at = await p.evaluate(() => { const v = document.getElementById('film'); const t = v.querySelector('track');
       return { controls: v.controls, poster: v.getAttribute('poster'), preload: v.preload, track: t && [t.kind, t.srclang, t.default], tryb: v.textTracks[0] && v.textTracks[0].mode, info: document.getElementById('film-info').textContent }; });
-    ok('odtwarzacz: widoczne sterowanie, plakat, preload=metadata, napisy PL domyślnie włączone', at.controls && /plakat/.test(at.poster || '') && at.preload === 'metadata' && at.track && at.track.join() === 'subtitles,pl,true' && at.tryb === 'showing', at);
+    ok('odtwarzacz: widoczne sterowanie, plakat, preload=metadata, napisy PL domyślnie włączone', at.controls && /plakat/.test(at.poster || '') && at.preload === 'metadata' && at.track && at.track.join() === 'captions,pl,true' && at.tryb === 'showing', at);
     ok('przed odtworzeniem pasek stoi na zerze (nic nie udaje ładowania)', (await pasek(p)).pasek === 0, await pasek(p));
     await p.evaluate(() => { const v = document.getElementById('film'); v.muted = true; v.play(); });
     await czekaj(p, () => document.getElementById('film').currentTime > 2.2);
-    const graj = await pasek(p); ok('w trakcie odtwarzania pasek = currentTime / duration (±3%)', Math.abs(graj.pasek - graj.czas) < 0.03 && graj.pasek > 0.1, graj);
-    const napis = await p.evaluate(() => { const c = document.getElementById('film').textTracks[0].activeCues; return c && c[0] ? c[0].text : null; });
-    const info = await p.evaluate(() => document.getElementById('film-info').textContent);
-    ok('napisy się wyświetlają (aktywny napis) i opis pod filmem podaje czas i napisy', /Napis testowy 1/.test(napis || '') && info === 'Film o projekcie, 0:12, z napisami', { napis, info });
+    const graj = await pasek(p); ok('w trakcie odtwarzania pasek = currentTime / duration (±3%)', Math.abs(graj.pasek - graj.czas) < 0.03 && graj.pasek > 0, graj);
     await p.evaluate(() => document.getElementById('film').pause()); const p1 = await pasek(p); await p.waitForTimeout(1200); const p2 = await pasek(p);
     ok('pauza: pasek stoi w miejscu i zgadza się z czasem; nie pojawia się panel końca', p1.paused && p1.pasek === p2.pasek && Math.abs(p2.pasek - p2.czas) < 0.005 && await p.locator('#koniec').isHidden(), { p1, p2 });
-    await p.evaluate(() => { document.getElementById('film').currentTime = 6; }); await p.waitForTimeout(500); const p3 = await pasek(p);
+    // Napisy: w środku pierwszego napisu jest on aktywny; opis pod filmem podaje czas filmu i napisy.
+    const nap = await p.evaluate(async () => { const v = document.getElementById('film'); const c = v.textTracks[0].cues[0]; v.currentTime = (c.startTime + c.endTime) / 2;
+      await new Promise((r) => setTimeout(r, 500)); const a = v.textTracks[0].activeCues; const s = Math.floor(v.duration / 60) + ':' + String(Math.round(v.duration % 60)).padStart(2, '0');
+      return { oczekiwany: c.text, aktywny: a && a[0] ? a[0].text : null, info: document.getElementById('film-info').textContent, oczekiwaneInfo: 'Film o projekcie, ' + s + ', z napisami' }; });
+    ok('napisy się wyświetlają (aktywny napis) i opis pod filmem podaje czas i napisy', nap.aktywny === nap.oczekiwany && nap.info === nap.oczekiwaneInfo, nap);
+    const tf = await p.evaluate(() => { const d = document.querySelector('.tekst-filmu'); return d ? { pozycji: d.querySelectorAll('li').length, summary: d.querySelector('summary').textContent } : null; });
+    ok('pod filmem jest rozwijany „Tekst z filmu” (plansze po kolei)', tf && tf.pozycji > 0 && tf.summary === 'Tekst z filmu', tf);
+    await p.evaluate(() => { const v = document.getElementById('film'); v.currentTime = v.duration / 2; }); await p.waitForTimeout(500); const p3 = await pasek(p);
     ok('przewinięcie do połowy: pasek na połowie', Math.abs(p3.pasek - 0.5) < 0.01, p3);
     ok('przed końcem widać „Pomiń film” prowadzące do /aplikacja/', await p.locator('.pomin').isVisible() && await p.evaluate(() => document.querySelector('.pomin').href) === A + '/aplikacja/');
-    await p.evaluate(() => { document.activeElement.blur(); const v = document.getElementById('film'); v.currentTime = 10.8; v.play(); });
+    await p.evaluate(() => { document.activeElement.blur(); const v = document.getElementById('film'); v.currentTime = v.duration - 1.2; v.play(); });
     await czekaj(p, () => document.getElementById('film').ended);
     await p.waitForTimeout(700);
     const k = await p.evaluate(() => { const d = document.getElementById('do-demo'); const r = d.getBoundingClientRect();
@@ -65,7 +69,7 @@ const czekaj = (p, fn, ms) => p.waitForFunction(fn, null, { timeout: ms || 20000
 
   // 3. Ograniczony ruch: panel końca bez animacji, przewijanie bez płynnego ruchu.
   { const { ctx, p } = await nowa(390, { reducedMotion: 'reduce' }); await p.goto(A + '/'); await czekaj(p, () => document.getElementById('film').readyState >= 1);
-    await p.evaluate(() => { const v = document.getElementById('film'); v.muted = true; v.currentTime = 11.2; v.play(); }); await czekaj(p, () => document.getElementById('film').ended); await p.waitForTimeout(300);
+    await p.evaluate(() => { const v = document.getElementById('film'); v.muted = true; v.currentTime = v.duration - 0.8; v.play(); }); await czekaj(p, () => document.getElementById('film').ended); await p.waitForTimeout(300);
     const an = await p.evaluate(() => getComputedStyle(document.getElementById('koniec')).animationName);
     ok('ograniczony ruch: panel końca pojawia się bez animacji', an === 'none', an); await ctx.close(); }
 

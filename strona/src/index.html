@@ -103,6 +103,13 @@ video::cue { font-family: var(--font); background: rgba(19, 26, 42, .86); color:
 .btn-cichy:hover { color: var(--accent-hover); }
 .btn-cichy[hidden] { display: none; }
 
+/* Tekst z filmu: plansze po kolei, opis obrazu przyciszony */
+.tekst-filmu { margin-top: 10px; }
+.tekst-filmu summary { display: inline-flex; align-items: center; min-height: 44px; cursor: pointer; font-weight: 600; color: var(--muted); }
+.tekst-filmu summary:hover { color: var(--ink); }
+.tekst-filmu ol { margin: 4px 0 0; padding-left: 1.5em; display: grid; gap: 6px; max-width: 46rem; }
+.opis-obrazu { color: var(--muted); }
+
 /* Sekcje pod filmem */
 .sekcja { padding: 40px 0; border-top: 1px solid var(--line); scroll-margin-top: 16px; }
 .sekcja h2 { font-size: clamp(1.5rem, 1.3rem + .8vw, 1.875rem); letter-spacing: -.01em; }
@@ -161,6 +168,7 @@ video::cue { font-family: var(--font); background: rgba(19, 26, 42, .86); color:
           <button type="button" class="btn-cichy" id="jeszcze-raz">Obejrzyj jeszcze raz</button>
         </div>
       </div>
+      <!--film:tekst-->
       <p class="sr-only" id="ogloszenie" aria-live="polite"></p>
     </div>
   </section>

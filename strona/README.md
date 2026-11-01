@@ -30,7 +30,8 @@ Strona oczekuje w `film-web/` trzech plików (wersja webowa, nie master):
 |---|---|
 | `spinka-film-v8.mp4` | H.264 + AAC, `faststart`, najwyżej 1920 px szerokości |
 | `spinka-film-v8-plakat.jpg` | plakat (pierwszy obraz przed odtworzeniem) |
-| `spinka-film-v8.pl.vtt` | napisy WebVTT po polsku, domyślnie włączone |
+| `spinka-film-v8.pl.vtt` | napisy WebVTT po polsku, domyślnie włączone; film v8 nie ma lektora, więc napisy opisują dźwięk |
+| `spinka-film-v8.tekst.txt` | tekst z filmu, plansza po planszy (opis obrazu w nawiasach); trafia na stronę jako rozwijany „Tekst z filmu” |
 
 Przygotowanie z zatwierdzonego eksportu (Linux, macOS, Git Bash na Windows; wymaga ffmpeg):
 

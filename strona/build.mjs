@@ -14,6 +14,8 @@ const FILM = path.resolve(ROOT, arg('film', 'film-web'));
 const OUT = path.join(ROOT, 'public');
 const APLIKACJA_MD5 = '61c2912275be841d8bc7c7d7a0767f7f';
 const PLIKI = { mp4: 'spinka-film-v8.mp4', plakat: 'spinka-film-v8-plakat.jpg', vtt: 'spinka-film-v8.pl.vtt' };
+// Tekst z filmu dla osób, które go nie widzą: jedna plansza w linii, opis obrazu w [nawiasach]. Trafia do strony, nie do public/film.
+const TEKST = 'spinka-film-v8.tekst.txt';
 
 const stop = (m) => { console.error('BŁĄD: ' + m); process.exit(1); };
 const md5 = (b) => crypto.createHash('md5').update(b).digest('hex');
@@ -39,7 +41,11 @@ html = html.replace(/<!--znak:([\w-]+):(\d+)-->/g, (_, s, r) => znak(s, +r));
 html = html.replace('<!--film:mp4-->', 'film/' + PLIKI.mp4);
 html = html.replace('<!--film:poster-->', jest('plakat') ? ' poster="film/' + PLIKI.plakat + '"' : '');
 html = html.replace('<!--film:preload-plakatu-->', jest('plakat') ? '<link rel="preload" href="film/' + PLIKI.plakat + '" as="image" fetchpriority="high">' : '');
-html = html.replace('<!--film:track-->', jest('vtt') ? '<track kind="subtitles" srclang="pl" label="Polski" src="film/' + PLIKI.vtt + '" default>' : '');
+html = html.replace('<!--film:track-->', jest('vtt') ? '<track kind="captions" srclang="pl" label="Polski" src="film/' + PLIKI.vtt + '" default>' : '');
+const esc = (t) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const tekst = jest('mp4') && fs.existsSync(path.join(FILM, TEKST)) ? fs.readFileSync(path.join(FILM, TEKST), 'utf8').split('\n').map((l) => l.trim()).filter(Boolean) : [];
+html = html.replace('<!--film:tekst-->', tekst.length ? '<details class="tekst-filmu"><summary>Tekst z filmu</summary><ol>' +
+  tekst.map((l) => '<li>' + esc(l).replace(/^\[(.*?)\]\s*/, '<span class="opis-obrazu">$1</span> ') + '</li>').join('') + '</ol></details>' : '');
 if (/<!--(znak|film):/.test(html)) stop('zostały niezastąpione znaczniki w src/index.html');
 
 fs.rmSync(OUT, { recursive: true, force: true });
@@ -57,5 +63,5 @@ zbierz(OUT); lista.sort();
 fs.writeFileSync(path.join(OUT, 'SHA256SUMS.txt'), lista.map((p) => crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex') + '  ' + path.relative(OUT, p)).join('\n') + '\n');
 
 const kb = (p) => (fs.statSync(p).size / 1024).toFixed(1) + ' KB';
-console.log('public/index.html ' + kb(path.join(OUT, 'index.html')) + ' | aplikacja ' + APLIKACJA_MD5.slice(0, 8) + ' (bez zmian)');
+console.log('public/index.html ' + kb(path.join(OUT, 'index.html')) + ' | aplikacja ' + APLIKACJA_MD5.slice(0, 8) + ' (bez zmian) | tekst z filmu: ' + (tekst.length ? tekst.length + ' plansz' : 'brak'));
 for (const k of Object.keys(PLIKI)) console.log('film/' + PLIKI[k] + ': ' + (jest(k) ? kb(path.join(OUT, 'film', PLIKI[k])) : 'BRAK'));
