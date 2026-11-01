@@ -23,8 +23,13 @@ const czekaj = (p, fn, ms) => p.waitForFunction(fn, null, { timeout: ms || 20000
   for (const w of [320, 390, 1280]) {
     const { ctx, p, log } = await nowa(w); await p.goto(A + '/'); await p.waitForTimeout(800);
     const m = await p.evaluate(() => { const r = (s) => document.querySelector(s).getBoundingClientRect();
-      return { h1: document.querySelector('h1').textContent, haslo: document.querySelector('.haslo').textContent, film: r('#film').bottom, pomin: r('.pomin').bottom, okno: innerHeight, bok: document.documentElement.scrollWidth - innerWidth }; });
-    ok(w + ' px: nazwa, hasło, film i „Pomiń film” na pierwszym ekranie, bez przewijania w bok', m.h1 === 'Spinka' && m.haslo === 'Każda sprawa ma następny krok.' && m.film <= m.okno && m.pomin <= m.okno && m.bok === 0, m);
+      const nazwaWidoczna = [document.querySelector('h1'), document.querySelector('.logo')].some((e) => { const q = e.getBoundingClientRect(); return q.width > 2 && q.height > 2 && /Spinka/.test(e.textContent) && q.bottom <= innerHeight; });
+      return { h1: document.querySelector('h1').textContent, nazwaWidoczna, haslo: document.querySelector('.haslo').textContent, otworz: r('#otworz-demo').bottom, pismo: r('a[href="aplikacja/#pismo"]').bottom, oc: r('a[href="aplikacja/#oc"]').bottom,
+        film: r('#film').bottom, pomin: r('.pomin').bottom, okno: innerHeight, bok: document.documentElement.scrollWidth - innerWidth,
+        male: [...document.querySelectorAll('.top a, .hero a, .hero button')].filter((e) => e.getClientRects().length && !e.closest('video')).map((e) => [e.textContent.trim().slice(0, 24), Math.round(e.getBoundingClientRect().height)]).filter((x) => x[1] < 44) }; });
+    ok(w + ' px: na pierwszym ekranie nazwa, hasło, „Otwórz demo”, skróty „Pismo z urzędu” i „Kończy się OC”, film i „Pomiń film”; bez przewijania w bok',
+      m.h1 === 'Spinka' && m.nazwaWidoczna && m.haslo === 'Każda sprawa ma następny krok.' && [m.otworz, m.pismo, m.oc, m.film, m.pomin].every((y) => y <= m.okno) && m.bok === 0, m);
+    ok(w + ' px: cele dotyku w nagłówku i na pierwszym ekranie mają co najmniej 44 px wysokości', m.male.length === 0, m.male);
     const v = await axe(p); ok(w + ' px: axe bez naruszeń (start)', v.length === 0, v);
     const obce = log.zadania.filter((u) => !u.startsWith(A + '/'));
     ok(w + ' px: strona pobiera tylko własne pliki (bez analityki i zewnętrznych zasobów), bez błędów', obce.length === 0 && log.bledy.length === 0, { obce, bledy: log.bledy });
@@ -45,8 +50,8 @@ const czekaj = (p, fn, ms) => p.waitForFunction(fn, null, { timeout: ms || 20000
     ok('pauza: pasek stoi w miejscu i zgadza się z czasem; nie pojawia się panel końca', p1.paused && p1.pasek === p2.pasek && Math.abs(p2.pasek - p2.czas) < 0.005 && await p.locator('#koniec').isHidden(), { p1, p2 });
     // Napisy: w środku pierwszego napisu jest on aktywny; opis pod filmem podaje czas filmu i napisy.
     const nap = await p.evaluate(async () => { const v = document.getElementById('film'); const c = v.textTracks[0].cues[0]; v.currentTime = (c.startTime + c.endTime) / 2;
-      await new Promise((r) => setTimeout(r, 500)); const a = v.textTracks[0].activeCues; const s = Math.floor(v.duration / 60) + ':' + String(Math.round(v.duration % 60)).padStart(2, '0');
-      return { oczekiwany: c.text, aktywny: a && a[0] ? a[0].text : null, info: document.getElementById('film-info').textContent, oczekiwaneInfo: 'Film o projekcie, ' + s + ', z napisami' }; });
+      await new Promise((r) => setTimeout(r, 500)); const a = v.textTracks[0].activeCues; const s = Math.floor(v.duration / 60) + ':' + String(Math.floor(v.duration % 60)).padStart(2, '0');
+      return { oczekiwany: c.text, aktywny: a && a[0] ? a[0].text : null, info: document.getElementById('film-info').textContent, oczekiwaneInfo: 'Film, ' + s + ', z napisami' }; });
     ok('napisy się wyświetlają (aktywny napis) i opis pod filmem podaje czas i napisy', nap.aktywny === nap.oczekiwany && nap.info === nap.oczekiwaneInfo, nap);
     const tf = await p.evaluate(() => { const d = document.querySelector('.tekst-filmu'); return d ? { pozycji: d.querySelectorAll('li').length, summary: d.querySelector('summary').textContent } : null; });
     ok('pod filmem jest rozwijany „Tekst z filmu” (plansze po kolei)', tf && tf.pozycji > 0 && tf.summary === 'Tekst z filmu', tf);
@@ -76,18 +81,34 @@ const czekaj = (p, fn, ms) => p.waitForFunction(fn, null, { timeout: ms || 20000
   // 4. Klawiatura: link „Przejdź do treści” na początku, widoczny fokus, „Pomiń film” osiągalny Tabem.
   { const { ctx, p } = await nowa(1280); await p.goto(A + '/'); await p.waitForTimeout(500);
     const kroki = [];
-    for (let i = 0; i < 12; i++) { await p.keyboard.press('Tab'); kroki.push(await p.evaluate(() => { const e = document.activeElement; const cs = getComputedStyle(e); const r = e.getBoundingClientRect();
+    for (let i = 0; i < 16; i++) { await p.keyboard.press('Tab'); kroki.push(await p.evaluate(() => { const e = document.activeElement; const cs = getComputedStyle(e); const r = e.getBoundingClientRect();
       return { el: e.tagName.toLowerCase() + (e.id ? '#' + e.id : '') + (e.className ? '.' + String(e.className).split(' ')[0] : ''), tekst: (e.textContent || '').trim().slice(0, 30), obwodka: cs.outlineStyle + ' ' + cs.outlineWidth, widoczny: r.top >= 0 && r.bottom <= innerHeight && r.width > 0 }; })); }
     const linki = kroki.filter((k) => k.el.startsWith('a'));
     ok('klawiatura: pierwszy Tab to „Przejdź do treści”, widoczny', kroki[0].tekst === 'Przejdź do treści' && kroki[0].widoczny, kroki[0]);
     ok('klawiatura: każdy link ma widoczną obwódkę fokusu 3 px', linki.every((k) => k.obwodka === 'solid 3px'), linki);
-    ok('klawiatura: Tab dochodzi do filmu i do „Pomiń film”', kroki.some((k) => k.el.startsWith('video')) && kroki.some((k) => /Pomiń film/.test(k.tekst)), kroki.map((k) => k.el + ' ' + k.tekst));
+    ok('klawiatura: Tab dochodzi kolejno do „Otwórz demo”, obu skrótów, filmu i „Pomiń film”', ['Otwórz demo', 'Pismo z urzędu', 'Kończy się OC'].every((t) => kroki.some((k) => k.tekst === t)) && kroki.some((k) => k.el.startsWith('video')) && kroki.some((k) => /Pomiń film/.test(k.tekst))
+      && kroki.findIndex((k) => k.tekst === 'Otwórz demo') < kroki.findIndex((k) => k.el.startsWith('video')), kroki.map((k) => k.el + ' ' + k.tekst));
     await ctx.close(); }
 
   // 5. „Pomiń film” prowadzi do prawdziwej demonstracji (build 27 bez zmian); bezpośredni adres na telefonie i komputerze.
   { const { ctx, p } = await nowa(390, { hasTouch: true, isMobile: true }); await p.goto(A + '/'); await p.waitForTimeout(500);
     await p.tap('.pomin'); await p.waitForURL(A + '/aplikacja/'); await p.waitForSelector('#entry:not([hidden])', { timeout: 20000 });
     ok('telefon: dotknięcie „Pomiń film” otwiera demonstrację (ekran wejścia aplikacji)', (await p.title()) === 'Co chcesz załatwić?'); await ctx.close(); }
+  // Skróty ze strony prowadzą prosto do scenariuszy (kotwice #pismo i #oc w aplikacji), bez ekranów wejścia; „Otwórz demo” do wejścia demo.
+  for (const [w, h] of [[320, 568], [390, 844]]) {
+    for (const [etykieta, kotwica, tytul] of [['Pismo z urzędu', '#pismo', 'Pismo z urzędu'], ['Kończy się OC', '#oc', 'Koniec polisy OC']]) {
+      const { ctx, p, log } = await nowa(w, { hasTouch: true, isMobile: true }); await p.setViewportSize({ width: w, height: h }); await p.goto(A + '/'); await p.waitForTimeout(500);
+      await p.tap('.skrot >> text=' + etykieta); await p.waitForURL(A + '/aplikacja/' + kotwica);
+      await p.waitForFunction((t) => document.querySelector('.screen.chat') && document.querySelector('#chat-log .msg.bot') && document.body.innerText.includes(t), tytul, { timeout: 20000 }).catch(() => {});
+      await p.waitForTimeout(800);
+      const s = await p.evaluate(() => ({ ekran: (document.querySelector('#main > .screen') || {}).className, h1: (document.querySelector('#chat-h') || {}).textContent, brama: !document.querySelector('#entry').hidden || !document.querySelector('#login').hidden,
+        pasek: document.querySelector('.proto-bar').innerText.replace(/\s+/g, ' '), tekst: document.querySelector('#main').innerText.replace(/\s+/g, ' ').slice(0, 400) }));
+      ok(w + ' px: skrót „' + etykieta + '” otwiera scenariusz „' + tytul + '” w rozmowie ze Spinką, bez ekranów wejścia, z paskiem „dane fikcyjne”',
+        /chat/.test(s.ekran) && s.h1 === 'Zapytaj Spinkę' && !s.brama && s.tekst.includes(tytul) && /dane fikcyjne/.test(s.pasek) && log.bledy.length === 0, { ...s, bledy: log.bledy });
+      await ctx.close(); } }
+  { const { ctx, p } = await nowa(320, { hasTouch: true, isMobile: true }); await p.setViewportSize({ width: 320, height: 568 }); await p.goto(A + '/'); await p.waitForTimeout(500);
+    await p.tap('#otworz-demo'); await p.waitForURL(A + '/aplikacja/'); await p.waitForSelector('#entry:not([hidden])', { timeout: 20000 });
+    ok('320 px: „Otwórz demo” otwiera demonstrację od ekranu wejścia', (await p.title()) === 'Co chcesz załatwić?'); await ctx.close(); }
   { const html = await (await fetch(A + '/aplikacja/')).arrayBuffer();
     ok('/aplikacja/ to build 27 bajt w bajt (MD5 ' + APLIKACJA_MD5.slice(0, 8) + ')', crypto.createHash('md5').update(Buffer.from(html)).digest('hex') === APLIKACJA_MD5); }
   for (const w of [390, 1280]) {

@@ -1,7 +1,9 @@
 # Spinka: strona projektu
 
-Statyczna strona projektu: film jako wprowadzenie, pasek postępu zsynchronizowany z czasem filmu, „Pomiń film”,
-po końcu filmu „Przejdź do demonstracji”, demonstracja pod `/aplikacja/` i krótka informacja o projekcie.
+Statyczna strona projektu: na pierwszym ekranie (także 320 × 568) przycisk „Otwórz demo”, skróty „Pismo z urzędu”
+(`aplikacja/#pismo`) i „Kończy się OC” (`aplikacja/#oc`) prosto do scenariuszy, film z paskiem postępu zsynchronizowanym
+z czasem filmu i „Pomiń film”; po końcu filmu „Przejdź do demonstracji”; demonstracja pod `/aplikacja/` i krótka informacja
+o projekcie. Film niczego nie blokuje: do demo prowadzi jedno dotknięcie.
 Bez frameworka, bez analityki, bez plików cookie, bez zależności w przeglądarce. Działa na dowolnym hostingu plików statycznych.
 
 ## Co jest w środku
