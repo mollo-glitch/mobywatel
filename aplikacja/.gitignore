@@ -1,0 +1,9 @@
+# Sekrety: lokalne ustawienia serwera z kluczem API. Wzór bez sekretu: .env.example
+.env
+.env.*
+!.env.example
+
+# Zależności i pliki systemowe
+node_modules/
+.DS_Store
+*.log

@@ -1,0 +1,540 @@
+[
+ {
+  "nr": 1,
+  "co": "390 px: dokument → wstecz → lista Dokumentów, to samo przewinięcie, fokus na wierszu",
+  "ok": true,
+  "szczegoly": {
+   "app": true,
+   "ekran": "docs",
+   "przew": 432,
+   "fokus": "pojazd",
+   "przewPrzed": 432
+  }
+ },
+ {
+  "nr": 1,
+  "co": "390 px: na liście (korzeń) wstecz opuszcza prototyp jednym naciśnięciem",
+  "ok": true,
+  "szczegoly": "data:text/html,<title>poprzedn"
+ },
+ {
+  "nr": 1,
+  "co": "390 px: dostęp do danych → wstecz → dokument → wstecz → lista → wstecz → poza",
+  "ok": true,
+  "szczegoly": {
+   "d1": "doc",
+   "d2": "docs",
+   "url": "data:text/html,<titl"
+  }
+ },
+ {
+  "nr": 1,
+  "co": "390 px: bez błędów strony",
+  "ok": true,
+  "szczegoly": {
+   "konsola": [],
+   "strona": [],
+   "zadania": [],
+   "odpowiedzi": []
+  }
+ },
+ {
+  "nr": 1,
+  "co": "320 px: dokument → wstecz → lista Dokumentów, to samo przewinięcie, fokus na wierszu",
+  "ok": true,
+  "szczegoly": {
+   "app": true,
+   "ekran": "docs",
+   "przew": 590,
+   "fokus": "pojazd",
+   "przewPrzed": 590
+  }
+ },
+ {
+  "nr": 1,
+  "co": "320 px: na liście (korzeń) wstecz opuszcza prototyp jednym naciśnięciem",
+  "ok": true,
+  "szczegoly": "data:text/html,<title>poprzedn"
+ },
+ {
+  "nr": 1,
+  "co": "320 px: dostęp do danych → wstecz → dokument → wstecz → lista → wstecz → poza",
+  "ok": true,
+  "szczegoly": {
+   "d1": "doc",
+   "d2": "docs",
+   "url": "data:text/html,<titl"
+  }
+ },
+ {
+  "nr": 1,
+  "co": "320 px: bez błędów strony",
+  "ok": true,
+  "szczegoly": {
+   "konsola": [],
+   "strona": [],
+   "zadania": [],
+   "odpowiedzi": []
+  }
+ },
+ {
+  "nr": 1,
+  "co": "potwierdzenie w oknie sprawy: wstecz zamyka potwierdzenie, drugie wstecz zamyka okno",
+  "ok": true,
+  "szczegoly": {
+   "c1": {
+    "potwierdzenie": false,
+    "okno": true,
+    "app": true
+   },
+   "c2": {
+    "okno": false,
+    "ekran": "start",
+    "app": true
+   }
+  }
+ },
+ {
+  "nr": 1,
+  "co": "arkusz głosowy: wstecz zamyka arkusz",
+  "ok": true,
+  "szczegoly": "http://127.0.0.1:8240/index.ht"
+ },
+ {
+  "nr": 1,
+  "co": "panel wiadomości: wstecz zamyka panel",
+  "ok": true,
+  "szczegoly": "http://127.0.0.1:8240/index.ht"
+ },
+ {
+  "nr": 1,
+  "co": "Start bez okien: wstecz opuszcza prototyp",
+  "ok": true,
+  "szczegoly": "data:text/html,<title>poprzedn"
+ },
+ {
+  "nr": 1,
+  "co": "„Wróć” w aplikacji, potem systemowy wstecz: od razu poza (bez pustego naciśnięcia)",
+  "ok": true,
+  "szczegoly": "data:text/html,<title>poprzedn"
+ },
+ {
+  "nr": 1,
+  "co": "zmiana zakładki ze szczegółów, potem wstecz: poza (bez pustego naciśnięcia)",
+  "ok": true,
+  "szczegoly": "data:text/html,<title>poprzedn"
+ },
+ {
+  "nr": 1,
+  "co": "szybko „Wróć” i inny dokument, potem wstecz: wraca na listę",
+  "ok": true,
+  "szczegoly": {
+   "q0": "Karta EKUZ",
+   "ekran": "docs"
+  }
+ },
+ {
+  "nr": 1,
+  "co": "„dalej” po wstecz: aplikacja zostaje na liście, następne wstecz wychodzi",
+  "ok": true,
+  "szczegoly": {
+   "f1": {
+    "app": true,
+    "ekran": "docs"
+   },
+   "url": "data:text/html,<titl"
+  }
+ },
+ {
+  "nr": 1,
+  "co": "bez błędów strony (okna)",
+  "ok": true,
+  "szczegoly": {
+   "konsola": [],
+   "strona": [],
+   "zadania": [],
+   "odpowiedzi": []
+  }
+ },
+ {
+  "nr": 2,
+  "co": "390 px: arkusz głosowy: 25× Tab i 12× Shift+Tab zostają w arkuszu; Escape wraca na mikrofon; tło znów aktywne",
+  "ok": true,
+  "szczegoly": {
+   "v": true,
+   "back1": true,
+   "free": true
+  }
+ },
+ {
+  "nr": 2,
+  "co": "390 px: okno sprawy i potwierdzenie też trzymają fokus (także przewodnik obok telefonu wyłączony)",
+  "ok": true,
+  "szczegoly": {
+   "e": true,
+   "c": true,
+   "przewodnikAktywnyPoZamknieciu": true
+  }
+ },
+ {
+  "nr": 2,
+  "co": "1280 px: arkusz głosowy: 25× Tab i 12× Shift+Tab zostają w arkuszu; Escape wraca na mikrofon; tło znów aktywne",
+  "ok": true,
+  "szczegoly": {
+   "v": true,
+   "back1": true,
+   "free": true
+  }
+ },
+ {
+  "nr": 2,
+  "co": "1280 px: okno sprawy i potwierdzenie też trzymają fokus (także przewodnik obok telefonu wyłączony)",
+  "ok": true,
+  "szczegoly": {
+   "e": true,
+   "c": true,
+   "przewodnikAktywnyPoZamknieciu": true
+  }
+ },
+ {
+  "nr": 3,
+  "co": "320 px: 5 długich ciągów (konto, link, e-mail, sygnatura, 600 znaków): rozmowa nie przewija się w bok, dymek w ekranie",
+  "ok": true,
+  "szczegoly": [
+   {
+    "wBok": 0,
+    "prawa": 304,
+    "ekran": 320
+   },
+   {
+    "wBok": 0,
+    "prawa": 304,
+    "ekran": 320
+   },
+   {
+    "wBok": 0,
+    "prawa": 304,
+    "ekran": 320
+   },
+   {
+    "wBok": 0,
+    "prawa": 304,
+    "ekran": 320
+   },
+   {
+    "wBok": 0,
+    "prawa": 304,
+    "ekran": 320
+   }
+  ]
+ },
+ {
+  "nr": 3,
+  "co": "390 px: 5 długich ciągów (konto, link, e-mail, sygnatura, 600 znaków): rozmowa nie przewija się w bok, dymek w ekranie",
+  "ok": true,
+  "szczegoly": [
+   {
+    "wBok": 0,
+    "prawa": 374,
+    "ekran": 390
+   },
+   {
+    "wBok": 0,
+    "prawa": 374,
+    "ekran": 390
+   },
+   {
+    "wBok": 0,
+    "prawa": 374,
+    "ekran": 390
+   },
+   {
+    "wBok": 0,
+    "prawa": 374,
+    "ekran": 390
+   },
+   {
+    "wBok": 0,
+    "prawa": 374,
+    "ekran": 390
+   }
+  ]
+ },
+ {
+  "nr": 4,
+  "co": "koperta OC: przed ustawieniem przycisk; po ustawieniu stan „ustawione”, bez przycisku i bez ponownego pytania; tak samo po ponownym otwarciu",
+  "ok": true,
+  "szczegoly": {
+   "before": [
+    "Przypomnij 2 dni przed końcem polisy"
+   ],
+   "after": {
+    "przyciski": 0,
+    "stan": "Przypomnienie ustawione na poniedziałek, 2 listopada",
+    "gora": "Przypomnę w poniedziałek, 2 listopada (demo)."
+   },
+   "ponownePytanie": false,
+   "reopen": {
+    "przyciski": 0,
+    "stan": "Przypomnienie ustawione na poniedziałek, 2 listopada"
+   }
+  }
+ },
+ {
+  "nr": 4,
+  "co": "przypomnienie ustawione w rozmowie (scenariusz OC): okno sprawy pokazuje stan „ustawione”",
+  "ok": true,
+  "szczegoly": {
+   "przyciski": 0,
+   "stan": "Przypomnienie ustawione na poniedziałek, 2 listopada"
+  }
+ },
+ {
+  "nr": 5,
+  "co": "zdjęcie do dowodu: .txt odrzucony z komunikatem (role=alert), .pdf odrzucony, .heic bez typu przyjęty, .jpg przyjęty",
+  "ok": true,
+  "szczegoly": {
+   "t1": {
+    "blad": "„nie-obraz.txt” to nie jest zdjęcie. Wybierz plik JPG, PNG albo HEIC.",
+    "rola": "alert",
+    "uzyj": false,
+    "dodano": false
+   },
+   "t2": {
+    "blad": true,
+    "uzyj": false
+   },
+   "t3": {
+    "blad": false,
+    "uzyj": true
+   },
+   "t4": {
+    "blad": false,
+    "uzyj": true
+   }
+  }
+ },
+ {
+  "nr": 5,
+  "co": "faktura do pisma (zdjęcie albo PDF): .txt odrzucony, .pdf przyjęty",
+  "ok": true,
+  "szczegoly": {
+   "a1": true,
+   "a2": true
+  }
+ },
+ {
+  "nr": 6,
+  "co": "320 px: „Tomaszu” mieści się w powitaniu; przyciski nagłówka ≥ 44 px",
+  "ok": true,
+  "szczegoly": {
+   "tekst": "Tomaszu",
+   "potrzebne": 79,
+   "widoczne": 79,
+   "przyciski": [
+    44,
+    44,
+    44
+   ]
+  }
+ },
+ {
+  "nr": 6,
+  "co": "320 px, większy tekst: „Tomaszu” mieści się w powitaniu; przyciski nagłówka ≥ 44 px",
+  "ok": true,
+  "szczegoly": {
+   "tekst": "Tomaszu",
+   "potrzebne": 93,
+   "widoczne": 93,
+   "przyciski": [
+    44,
+    44,
+    44
+   ]
+  }
+ },
+ {
+  "nr": 6,
+  "co": "360 px: „Tomaszu” mieści się w powitaniu; przyciski nagłówka ≥ 44 px",
+  "ok": true,
+  "szczegoly": {
+   "tekst": "Tomaszu",
+   "potrzebne": 79,
+   "widoczne": 79,
+   "przyciski": [
+    48,
+    48,
+    44
+   ]
+  }
+ },
+ {
+  "nr": 6,
+  "co": "360 px, większy tekst: „Tomaszu” mieści się w powitaniu; przyciski nagłówka ≥ 44 px",
+  "ok": true,
+  "szczegoly": {
+   "tekst": "Tomaszu",
+   "potrzebne": 93,
+   "widoczne": 93,
+   "przyciski": [
+    48,
+    48,
+    44
+   ]
+  }
+ },
+ {
+  "nr": 6,
+  "co": "390 px: „Tomaszu” mieści się w powitaniu; przyciski nagłówka ≥ 44 px",
+  "ok": true,
+  "szczegoly": {
+   "tekst": "Tomaszu",
+   "potrzebne": 79,
+   "widoczne": 79,
+   "przyciski": [
+    48,
+    48,
+    44
+   ]
+  }
+ },
+ {
+  "nr": 6,
+  "co": "390 px, większy tekst: „Tomaszu” mieści się w powitaniu; przyciski nagłówka ≥ 44 px",
+  "ok": true,
+  "szczegoly": {
+   "tekst": "Tomaszu",
+   "potrzebne": 93,
+   "widoczne": 93,
+   "przyciski": [
+    48,
+    48,
+    44
+   ]
+  }
+ },
+ {
+  "nr": 7,
+  "co": "390 px: żaden identyfikator się nie powtarza (Start, 4 zakładki, O prototypie, dostęp); data pokazu nadal widoczna",
+  "ok": true,
+  "szczegoly": {
+   "dups": {},
+   "dataWidoczna": [
+    true,
+    true
+   ]
+  }
+ },
+ {
+  "nr": 7,
+  "co": "1280 px: żaden identyfikator się nie powtarza (Start, 4 zakładki, O prototypie, dostęp); data pokazu nadal widoczna",
+  "ok": true,
+  "szczegoly": {
+   "dups": {},
+   "dataWidoczna": [
+    true,
+    true
+   ]
+  }
+ },
+ {
+  "nr": 8,
+  "co": "karuzela Dokumentów: rola group z nazwą wybranego dokumentu; axe bez uwag ARIA",
+  "ok": true,
+  "szczegoly": {
+   "n1": {
+    "rola": "group",
+    "nazwa": "Wybrany dokument: Dowód osobisty, 1 z 6"
+   },
+   "n2": {
+    "rola": "group",
+    "nazwa": "Wybrany dokument: Prawo jazdy, 2 z 6"
+   },
+   "ax": []
+  }
+ },
+ {
+  "nr": 9,
+  "co": "390 px: dokładnie jeden obszar główny na wejściu, wyborze osoby i w aplikacji; axe bez uwag o punktach orientacyjnych",
+  "ok": true,
+  "szczegoly": {
+   "wejscie": [
+    [
+     "Twoje sprawy w jednym miejscu"
+    ],
+    []
+   ],
+   "wybor": [
+    [
+     "Wybierz osobę demonstracyjną"
+    ],
+    []
+   ],
+   "aplikacja": [
+    [
+     ""
+    ],
+    []
+   ]
+  }
+ },
+ {
+  "nr": 9,
+  "co": "1280 px: dokładnie jeden obszar główny na wejściu, wyborze osoby i w aplikacji; axe bez uwag o punktach orientacyjnych",
+  "ok": true,
+  "szczegoly": {
+   "wejscie": [
+    [
+     "Twoje sprawy w jednym miejscu"
+    ],
+    []
+   ],
+   "wybor": [
+    [
+     "Wybierz osobę demonstracyjną"
+    ],
+    []
+   ],
+   "aplikacja": [
+    [
+     ""
+    ],
+    []
+   ]
+  }
+ },
+ {
+  "nr": 10,
+  "co": "wymuszone kolory: karta i sąsiad z obrysem, wybrana karta z zaznaczeniem, kropki widoczne i różne",
+  "ok": true,
+  "szczegoly": {
+   "karta": {
+    "obrys": "solid 2px",
+    "zaznaczenie": "solid 3px",
+    "tlo": "rgba(255, 255, 255, 0)"
+   },
+   "sasiad": {
+    "obrys": "solid 2px",
+    "zaznaczenie": "none 3px",
+    "tlo": "rgba(255, 255, 255, 0)",
+    "widocznyNaEkranie": true
+   },
+   "kropka": {
+    "obrys": "none 0px",
+    "zaznaczenie": "none 3px",
+    "tlo": "rgb(96, 0, 0)"
+   },
+   "kropkaWybrana": {
+    "obrys": "none 0px",
+    "zaznaczenie": "none 3px",
+    "tlo": "rgba(5, 0, 73, 0.8)"
+   }
+  }
+ },
+ {
+  "nr": 10,
+  "co": "wymuszone kolory: karta z przodu karuzeli Dokumentów ma obrys i zaznaczenie",
+  "ok": true,
+  "szczegoly": "solid 3px / solid"
+ }
+]

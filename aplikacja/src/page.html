@@ -1,0 +1,218 @@
+<title>Co chcesz załatwić?</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="color-scheme" content="only light">
+<meta name="description" content="Nieoficjalny, klikalny prototyp koncepcyjny na mObywatel Challenge: koperta powitalna, pas kopert z terminami, asystent spraw i dokumenty. Dane fikcyjne, nic nie jest wysyłane.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:wght@400;500;600;700;800&family=IBM+Plex+Sans:wght@600;700&display=swap">
+<!--STYLE-->
+<!--/HEAD-->
+<!--GODLO-SPRITE-->
+<div class="stage">
+  <div class="device">
+    <div class="app" id="app">
+      <aside class="proto-bar" aria-label="Informacja o prototypie"><p><strong>Prototyp</strong> · dane fikcyjne · nic nie jest wysyłane</p></aside>
+      <header class="topbar" id="topbar"></header>
+      <main class="main" id="main" tabindex="-1"></main>
+      <nav class="tabbar" aria-label="Główna nawigacja">
+        <span class="tab-ind" aria-hidden="true"></span>
+        <button type="button" class="tab" data-tab="start"><span class="tab-ic"><!--tab:home--></span><span>Start</span></button>
+        <button type="button" class="tab" data-tab="docs"><span class="tab-ic"><!--tab:docs--></span><span>Dokumenty</span></button>
+        <button type="button" class="tab tab-main" data-tab="chat"><span class="tab-ic"><!--tab:assistant--></span><span>Asystent</span></button>
+        <button type="button" class="tab" data-tab="cases"><span class="tab-ic"><!--tab:cases--></span><span>Sprawy</span></button>
+        <button type="button" class="tab" data-tab="more"><span class="tab-ic"><!--tab:user--></span><span>Profil</span></button>
+      </nav>
+
+      <div class="sheet-wrap" id="voice" hidden>
+        <div class="sheet-backdrop" data-act="voice-close"></div>
+        <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="voice-h">
+          <h2 id="voice-h" tabindex="-1">Powiedz, co chcesz załatwić</h2>
+          <div id="voice-listen">
+            <div class="mic-orb" aria-hidden="true"><!--ic:mic--></div>
+            <p class="voice-status" id="voice-status">Słucham…</p>
+            <p class="voice-tr" id="voice-tr" aria-live="polite"></p>
+            <div class="q-actions">
+              <button type="button" class="btn primary" data-act="voice-stop">Skończyłem mówić</button>
+            </div>
+          </div>
+          <div id="voice-fallback" hidden>
+            <p class="voice-why"><strong id="voice-why"></strong></p>
+          </div>
+          <div id="voice-examples" hidden>
+            <p class="voice-explain" id="voice-ex-lead">Nie możesz teraz mówić? Wybierz zdanie, które chcesz „powiedzieć”. Zobaczysz, jak aplikacja rozumie zwykłą mowę, także z „yyy” i potocznymi słowami.</p>
+            <div class="opts" id="voice-samples"></div>
+          </div>
+          <div id="voice-confirm" hidden>
+            <p class="voice-label">Zrozumiałem:</p>
+            <p class="voice-heard" id="voice-heard"></p>
+            <p class="voice-sample-note" id="voice-sample-note" hidden>Przykładowa wypowiedź (symulacja mowy w prototypie).</p>
+            <p class="voice-explain">Sprawdź, czy dobrze usłyszałem. Nic się nie stanie, dopóki nie naciśniesz „Wyślij”.</p>
+            <div class="q-actions">
+              <button type="button" class="btn primary" id="voice-send" data-act="voice-send"><!--ic:send-->Wyślij</button>
+              <button type="button" class="btn secondary" data-act="voice-again"><!--ic:mic-->Powiedz jeszcze raz</button>
+              <button type="button" class="btn ghost" data-act="voice-edit">Popraw, pisząc</button>
+            </div>
+          </div>
+          <button type="button" class="sheet-close" data-act="voice-close" aria-label="Zamknij"><!--ic:x--></button>
+        </div>
+      </div>
+
+      <div class="toast" id="toast" role="status" hidden></div>
+
+      <div class="envd-wrap" id="envd" hidden>
+        <div class="envd-backdrop" data-act="envd-close"></div>
+        <div class="envd" id="envd-dialog" role="dialog" aria-modal="true" aria-labelledby="envd-title">
+          <div class="envd-scroll" id="envd-body"></div>
+          <button type="button" class="sheet-close" data-act="envd-close" aria-label="Zamknij"><!--ic:x--></button>
+        </div>
+      </div>
+
+      <!-- Podsumowanie przed każdą zmianą poza rozmową (przypomnienie z koperty, „Zacznij od nowa”). Nic się nie dzieje bez „Potwierdź”. -->
+      <div class="sheet-wrap confirm-wrap" id="confirm" hidden>
+        <div class="sheet-backdrop" data-act="confirm-no"></div>
+        <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="confirm-h">
+          <p class="sum-eyebrow"><!--ic:shieldCheck-->Sprawdź, zanim potwierdzisz</p>
+          <h2 id="confirm-h" tabindex="-1"></h2>
+          <ul class="will" id="confirm-list"></ul>
+          <p class="demo-note"><!--ic:info--><span>Prototyp: dane są fikcyjne i nic nie jest wysyłane.</span></p>
+          <div class="q-actions">
+            <button type="button" class="btn primary" id="confirm-yes" data-act="confirm-yes"></button>
+            <button type="button" class="btn ghost" data-act="confirm-no">Anuluj</button>
+          </div>
+        </div>
+      </div>
+
+      <section class="sp" id="splash" aria-label="Ekran startowy mObywatela" aria-describedby="sp-desc">
+        <p class="sr-only" id="sp-desc">Animacja znaku mObywatela. Prototyp demonstracyjny. Możesz ją pominąć przyciskiem Pomiń albo klawiszem Escape.</p>
+        <div class="sp-red" id="sp-red"></div>
+        <div class="sp-emblem" id="sp-emblem" aria-hidden="true">
+          <!--godlo:godlo-orzel-->
+          <!--godlo:godlo-korona-->
+          <!--godlo:godlo-->
+        </div>
+        <p class="sp-name" id="sp-name">mObywatel</p>
+        <p class="sp-load" id="sp-load" role="status" hidden><span class="spin" aria-hidden="true"></span>Wczytuję czcionki…</p>
+        <p class="sp-proto"><strong>Prototyp demonstracyjny</strong> · niezależny od administracji publicznej · dane fikcyjne</p>
+        <button type="button" class="sp-skip" data-act="skip-splash">Pomiń</button>
+      </section>
+
+      <!-- Ekrany wejścia są głównym obszarem strony, gdy aplikacja pod nimi jest wyłączona (inert): role="main". -->
+      <section class="gate login entry" id="entry" hidden role="main" aria-labelledby="entry-h">
+        <!-- Ten sam nagłówek co w aplikacji: znak w tym samym miejscu, w które „osiada” animacja startowa. -->
+        <header class="topbar gate-top"><span class="brand"><span class="brand-mark" aria-hidden="true"><!--godlo:godlo--></span><span class="brand-name">mObywatel</span><span class="brand-pill">prototyp</span></span></header>
+        <div class="login-in">
+          <!-- Scena powitalna: otwarta koperta z pieczęcią (jak sprawy w aplikacji), z której wysuwają się dokument i termin.
+               Ozdobna; to samo mówią nagłówek i opis pod nią. -->
+          <div class="inv" aria-hidden="true">
+            <div class="inv-back"></div>
+            <svg class="inv-flap" viewBox="0 0 100 40" preserveAspectRatio="none" focusable="false"><path d="M0 40 L50 0 L100 40 Z"/></svg>
+            <div class="inv-doc">
+              <span class="inv-doc-k">Tożsamość</span>
+              <span class="inv-doc-n">Dowód osobisty</span>
+              <span class="inv-doc-ic"><!--ic:id--></span>
+            </div>
+            <div class="inv-case sig">
+              <span class="inv-case-k">Do załatwienia</span>
+              <span class="inv-case-t">Kończy się OC</span>
+              <span class="inv-case-n">za 9 dni</span>
+            </div>
+            <div class="inv-front">
+              <span class="inv-seal"><!--godlo:godlo--></span>
+              <span class="inv-stamp"><b>Prototyp</b><span>dane fikcyjne</span></span>
+            </div>
+          </div>
+          <div class="ent-head">
+            <h1 id="entry-h" tabindex="-1">Twoje sprawy w&nbsp;jednym miejscu</h1>
+            <p class="lead">To demonstracja: wchodzisz jako osoba fikcyjna. Niczego nie wpisujesz i&nbsp;nic nie jest wysyłane.</p>
+          </div>
+          <div class="ent-real">
+            <p class="ent-real-k">Prawdziwe logowanie ma dwa etapy</p>
+            <ol class="ent-two">
+              <li><span class="ent-n" aria-hidden="true">1</span><span><b>Pierwszy raz</b> potwierdzasz tożsamość</span></li>
+              <li><span class="ent-n" aria-hidden="true">2</span><span><b>Potem</b> hasło, odcisk palca lub twarz</span></li>
+            </ol>
+          </div>
+          <details class="gloss entry-how">
+            <summary>Jak wygląda prawdziwe logowanie?</summary>
+            <div class="entry-how-in">
+              <p class="entry-how-lead">Opis uproszczony; szczegóły zależą od usługi, banku i telefonu. Prototyp nie łączy się z żadnym z tych sposobów.</p>
+              <h2>Pierwsze potwierdzenie tożsamości</h2>
+              <ul class="methods">
+                <li><span class="m-ic" aria-hidden="true"><!--ic:card--></span><span><b>Bankowość elektroniczna</b><span>Logujesz się w swoim banku, a bank potwierdza, kim jesteś. Działa w bankach, które to oferują.</span></span></li>
+                <li><span class="m-ic" aria-hidden="true"><!--ic:id--></span><span><b>e-dowód</b><span>Przykładasz dowód osobisty z warstwą elektroniczną do telefonu z NFC. Podajesz numer CAN z dowodu i kod PIN.</span></span></li>
+                <li><span class="m-ic" aria-hidden="true"><!--ic:shieldCheck--></span><span><b>Profil Zaufany</b><span>Logujesz się danymi do swojego Profilu Zaufanego.</span></span></li>
+              </ul>
+              <h2>Gdy aplikacja jest już aktywna</h2>
+              <ul class="methods">
+                <li><span class="m-ic" aria-hidden="true"><!--ic:phone--></span><span><b>Potwierdzenie w aplikacji lub kodem QR</b><span>Logując się do serwisu urzędu, np. na komputerze, skanujesz telefonem kod QR albo potwierdzasz logowanie w aplikacji.</span></span></li>
+              </ul>
+            </div>
+          </details>
+          <p class="foot-note">To nie jest oficjalna aplikacja mObywatel ani usługa administracji publicznej. To koncepcja na mObywatel Challenge z fikcyjnymi danymi.</p>
+        </div>
+        <!-- Stopka z przyciskiem poza przewijaną treścią (jak dolny pasek aplikacji): zawsze pod ręką i niczego nie zasłania. -->
+        <div class="entry-cta">
+          <button type="button" class="btn primary wide" data-act="entry-demo">Wejdź do demonstracji<!--ic:arrowRight--></button>
+        </div>
+      </section>
+
+      <section class="gate login" id="login" hidden role="main" aria-labelledby="login-h">
+        <header class="topbar gate-top"><span class="brand"><span class="brand-mark" aria-hidden="true"><!--godlo:godlo--></span><span class="brand-name">mObywatel</span><span class="brand-pill">prototyp</span></span></header>
+        <div class="login-in">
+          <div class="ent-head">
+            <span class="proto-pill">Prototyp demonstracyjny</span>
+            <h1 id="login-h" tabindex="-1">Wybierz osobę demonstracyjną</h1>
+            <p class="lead">To nie jest logowanie do usług państwowych. Wybierasz fikcyjną osobę, żeby zobaczyć, jak działa aplikacja. Nic nie jest wysyłane i nie podajesz żadnych danych.</p>
+          </div>
+          <button type="button" class="profile" data-act="enter">
+            <span class="avatar" aria-hidden="true">TK</span>
+            <span class="profile-main">
+              <span class="profile-name">Tomasz Kowalczyk</span>
+              <span class="profile-meta">osoba fikcyjna · Warszawa</span>
+              <span class="profile-sum" id="profile-sum"></span>
+            </span>
+            <span class="profile-go">Wejdź<!--ic:chevronRight--></span>
+          </button>
+          <h2>Na początek możesz ustawić</h2>
+          <ul class="group">
+            <li><button type="button" class="row switch" role="switch" data-setting="bigText" aria-checked="false"><span class="row-main"><span class="row-title">Większy tekst</span><span class="row-meta sw-sub">Powiększa napisy w całej aplikacji.</span></span><span class="sw" aria-hidden="true"><i></i></span></button></li>
+            <li><button type="button" class="row switch" role="switch" data-setting="reduceMotion" aria-checked="false"><span class="row-main"><span class="row-title">Ogranicz animacje</span><span class="row-meta sw-sub">Ekrany i karty zmieniają się bez ruchu.</span></span><span class="sw" aria-hidden="true"><i></i></span></button></li>
+          </ul>
+          <p class="foot-note">W prawdziwej aplikacji w tym miejscu jest bezpieczne logowanie. Prototyp go nie udaje i nie prosi o PESEL, hasło ani kod.</p>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <aside class="guide" aria-label="Jak przeklikać prototyp">
+    <div id="guide-content">
+      <p class="eyebrow">Koncepcja na mObywatel Challenge · prototyp</p>
+      <h1 class="guide-h">Zacznij od pytania „Co chcesz załatwić?”</h1>
+      <p class="guide-lead">Nie musisz znać nazwy usługi. Opisujesz sytuację własnymi słowami, tekstem albo głosem. <!--marka:imie-->, asystent spraw, tłumaczy sprawę prosto, pokazuje możliwe działania i ich skutki, a każdą ważną decyzję zostawia Tobie.</p>
+
+      <h2 class="guide-sub">Przeklikaj</h2>
+      <ul class="guide-list">
+        <li><button type="button" data-run="portfel"><b>Zgubiłem portfel</b><span>Pełna ścieżka: pytania, wybór z oznaczeniem „da się cofnąć”, podsumowanie, potwierdzenie, koniec.</span></button></li>
+        <li><button type="button" data-run="pismo"><b>Nie rozumiem pisma z urzędu</b><span>Pismo „po ludzku”, terminy, odpowiedź z załącznikiem.</span></button></li>
+        <li><button type="button" data-run="oc"><b>Kończy mi się OC</b><span>Co się stanie, jeśli nic nie zrobisz, i jak zmienić ubezpieczyciela.</span></button></li>
+        <li><button type="button" data-run="dane"><b>Kto ma dostęp do moich danych</b><span>Kto, po co i kiedy pobierał dane. Cofnięcie dostępu.</span></button></li>
+        <li><button type="button" data-run="nowyDowod" data-preset='{"resume":true}'><b>Dokończ rozpoczętą sprawę</b><span>Wniosek o nowy dowód: wracasz tam, gdzie przerwałeś.</span></button></li>
+        <li><button type="button" data-act="cases" data-which="todo"><b>Koperty „Do załatwienia”</b><span>Nowa sprawa to zamknięta koperta. Po otwarciu: czego dotyczy, do kiedy, dlaczego to ważne i co zrobić.</span></button></li>
+        <li><button type="button" data-tab="docs"><b>Dokumenty na okręgu</b><span>Przeciągnij, użyj kółka myszy albo strzałek. Pod karuzelą jest zwykła lista.</span></button></li>
+        <li><button type="button" data-act="replay-splash"><b>Ekran startowy mObywatela</b><span>Animacja znaku z godłem i wybór osoby demonstracyjnej. Odtwarza się przy każdym wejściu.</span></button></li>
+      </ul>
+
+      <h2 class="guide-sub">Co tu jest inaczej</h2>
+      <ul class="guide-points">
+        <li><b>Ty decydujesz.</b> <!--marka:imie--> pokazuje opcje i ich różnice, podpowiada, ale nie wybiera za Ciebie.</li>
+        <li><b>Przed każdą ważną czynnością podsumowanie:</b> co się stanie, czego <!--marka:imie--> nie zrobi i czy da się to cofnąć. Kroki nieodwracalne wymagają zaznaczenia „Rozumiem”.</li>
+        <li><b>Uczciwy koniec.</b> Prototyp nigdy nie udaje, że coś wysłał. Mówi, co zrobiłaby prawdziwa aplikacja i co musisz załatwić sam.</li>
+        <li><b>Jedno miejsce na sprawy.</b> Pisma i terminy są w „Do załatwienia”, Twoje rozpoczęte sprawy w „W toku”. Żadna sprawa nie pojawia się dwa razy.</li>
+        <li><b>Bez gestów też się da.</b> Przyciski, klawiatura, lista dokumentów, większy tekst i ograniczenie animacji.</li>
+      </ul>
+      <p class="guide-fine">Nazwa mObywatel i wizerunek godła RP są użyte wyłącznie do prezentacji koncepcji na mObywatel Challenge. To nie jest oficjalna aplikacja mObywatel ani usługa administracji publicznej. Osoby, dokumenty, pisma i instytucje są fikcyjne. Prototyp nie łączy się z żadnym rejestrem. Data w prototypie jest stała na czas pokazu: <span id="demo-date"></span>; wszystkie terminy liczą się od niej.</p>
+    </div>
+  </aside>
+</div>
+<div class="sr-only" id="announce" aria-live="polite"></div>
+<!--SCRIPTS-->

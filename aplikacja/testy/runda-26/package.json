@@ -1,0 +1,9 @@
+{
+  "name": "mobywatel-prototyp-testy-runda-26",
+  "private": true,
+  "description": "Testy rundy 26 prototypu (Pola, tryb AI na atrapie Gemini, regresja poprawek rundy 25). Uruchamianie: ./uruchom-testy.sh",
+  "devDependencies": {
+    "axe-core": "4.10.2",
+    "playwright": "1.63.0"
+  }
+}

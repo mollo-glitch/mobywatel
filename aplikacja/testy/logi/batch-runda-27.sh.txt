@@ -1,0 +1,76 @@
+cd /tmp/claude-0/-home-user/24486ad4-283a-5470-aea6-5ed5f510060c/scratchpad
+# Kopia bieżącej wersji dla testów w ramce (8301) i serwery pomocnicze (8300 strona z ramką, 8301 aplikacja).
+(cd /home/user/mobywatel-prototyp-runda-27 && node build.mjs | tail -1)
+cp /home/user/mobywatel-prototyp-runda-27/dist/index.html viewer/app/index.html
+./servers.sh
+echo "build: $(md5sum /home/user/mobywatel-prototyp-runda-27/dist/index.html | cut -c1-32) | ramka: $(md5sum viewer/app/index.html | cut -c1-32)"
+echo "##### FUNKCJE (szerokość × tryb)"
+for w in 320 360 390 1280; do for m in vt novt rm; do printf "%-5s %-5s " $w $m; timeout 150 node r20/func.js $w $m 2>&1 | python3 -c "
+import json,sys
+try: d=json.load(sys.stdin)
+except Exception as e: print('BŁĄD', sys.stdin.read()[:200]); sys.exit()
+r=lambda k: d.get(k,{})
+print('VT='+str(d['vt'])[0], '| dok:', r('dokument').get('fokus','?')[:14], '| powrót', r('powrot').get('przewiniecie'), '| koperta', r('koperta_zamknieta').get('przewiniecie'), r('koperta_zamknieta').get('fokus','')[:18], '| rozmowa', r('rozmowa_po_zamknieciu').get('przewiniecie'), '| dotyk', (r('dotyk_koperta') or {}).get('przewiniecie','-'), '| błędy', d['bledy'])"; done; done
+echo "##### GESTY KARUZELI"
+for g in "320" "360" "390" "1280" "320 rm" "390 rm"; do timeout 150 node r20/gestures.js $g 2>&1 | python3 -c "
+import json,sys; t=sys.stdin.read(); w=t.split(' ')[0]; d=json.loads(t[t.index('{'):]); bad=[k for k,v in d.items() if isinstance(v,str) and '(oczekiwane' in v and v.split(' ')[0]!=v.split('oczekiwane ')[1].split(' ')[0].rstrip(')')]
+print(w,'px: zgodne', sum(1 for v in d.values() if isinstance(v,str) and '(oczekiwane' in v)-len(bad), '/', sum(1 for v in d.values() if isinstance(v,str) and '(oczekiwane' in v), '| niezgodne', bad, '| pion przewija', d['gest pionowy przewija stronę'], '| błędy', d['błędy'])"; done
+echo "##### ROZMOWA 320 px: kliknięcie widocznej części przycisku (jak użytkownik)"
+for a in "320 okno x tap" "320 okno rm tap" "360 okno x tap" "390 okno x tap"; do timeout 60 node r21/chat42.js $a 2>&1 | grep -E "px ·|przycisk przed"; done
+echo "##### WSKAŹNIK ZAKŁADEK"
+for cfg in "320" "390" "1280" "390 rm"; do printf "%-8s " "$cfg"; timeout 200 node r19/motion.js po $cfg 2>/dev/null | python3 -c "
+import json,sys; d=json.load(sys.stdin); t=d['zakładka start→dokumenty']; k=d['karuzela: krok strzałką']
+print('wskaźnik', t['wskaźnik'][0], '→', t['wskaźnik'][-1], '(klatek', str(len(t['wskaźnik']))+')', '| ekranów naraz', t['ekranów_naraz_max'], '| karuzela przestrzelenie', k['przestrzelenie_px'], 'px, osiada', k['osiada_po_ms'], 'ms | błędy', d['bledy'])"; done
+echo "##### REGRESJA"
+S=/tmp/claude-0/-home-user/24486ad4-283a-5470-aea6-5ed5f510060c/scratchpad
+node $S/r26/mock-gemini2.mjs 8599 >$S/r26/mock-batch.log 2>&1 & MOCKPID=$!
+(cd /home/user/mobywatel-prototyp-runda-27 && GEMINI_API_KEY=test-klucz-atrapa-0000 GEMINI_API_BASE=http://127.0.0.1:8599/v1beta GEMINI_TIMEOUT_MS=5000 PORT=8498 exec node server/gemini-adapter.mjs >$S/r26/adapter-batch.log 2>&1) & ADPID=$!
+sleep 1.5
+for t in regress chat-test rm-kb qa-matrix e2e viewer-test viewer-chat r9/verify r10/tabs r13/peek-test r13/ec-test r13/swipe r15/dates r15/debt r15/control r15/later r18/unit r19/states r20/states; do r=$(timeout 300 node $t.js 2>&1); c=$?; bad=$(echo "$r" | grep -iE 'BŁĘD|NIE OK|FAIL|Error|is not a function|ŹLE' | grep -viE 'no errors|SecurityError|błędy: brak' | head -2); echo "=== $t (kod $c) ${bad:-ok}"; done
+echo "=== a11y"; (node a11y.js; node a11y2.js) 2>&1 | grep -v " OK$" | head -6; (node a11y.js; node a11y2.js) 2>&1 | grep -c " OK$"
+echo "=== fit"; node r12/fit.js 2>&1 | grep -vc ": ok"; node r12/fit.js 2>&1 | grep -c ": ok"; node r13/fit-peek.js 2>&1 | grep -c "nadPaskiem\":true"
+echo "=== parity"; timeout 900 node r16/parity.js 390,320 2>&1 | tail -4
+kill $ADPID $MOCKPID 2>/dev/null; wait $ADPID $MOCKPID 2>/dev/null
+echo "##### KARUZELA: MACHNIĘCIE (przestrzelenie po puszczeniu)"
+for w in 320 360 390; do timeout 90 node r21/flick-metrics.js $w; done
+echo "##### ODPOWIEDZI ASYSTENTA (porównanie z poprzednią rundą)"
+timeout 300 node r18/intents.js r27a > r27/intents-a.txt 2>&1; tail -1 r27/intents-a.txt
+python3 -c "
+import json
+b=json.load(open('r18/r27a.json')); c=json.load(open('r18/r26a.json')); t=json.load(open('r18/teraz.json'))
+key=lambda conv: tuple(x['q'] for x in conv)
+C={key(x):x for x in c}; T={key(x):x for x in t}
+print('identyczne z poprzednią rundą:', sum(1 for x in b if C.get(key(x))==x), '/', sum(1 for x in b if key(x) in C), '| nowe pytania identyczne z wcześniejszym przebiegiem tej rundy:', [key(x)[0] for x in b if key(x) not in C and T.get(key(x))==x])"
+echo "##### RUNDA 22: PROFIL (podgląd → pełny profil → Wróć)"
+for a in "320" "390" "1280" "390 8200 rm"; do timeout 120 node r22/profile-probe.js $a | python3 -c "
+import json,sys; d=json.load(sys.stdin); print('$a', '| profil:', d['profil']['ekran'], 'Wróć', d['profil']['wrocBtn'], 'fokus', d['profil']['fokus'][:22], '| po Wróć: przewinięcie', d['start']['przewiniecie'], '→', d['poPowrocie']['przewiniecie'], 'fokus', d['poPowrocie']['fokus'][:20], '| klawiatura po Wróć:', d.get('klawiaturaPoWroc',{}).get('fokus','-')[:20], '| błędy', d['bledy'])"; done
+echo "##### RUNDA 22: WIADOMOŚCI"
+for a in "320" "390" "1280" "390 rm"; do timeout 120 node r22/msgs-probe.js $a | python3 -c "
+import json,sys; d=json.load(sys.stdin); print('$a', '| otwarte:', d['otwarcie']['widoczne'], 'z', d['otwarcie']['wszystkich'], d['otwarcie']['przycisk'], 'licznik', d['otwarcie']['licznik'], '| rozwinięte:', d['rozwiniecie']['widoczne'], 'fokus', d['rozwiniecie']['fokus'][:22], '| Esc fokus', d['escFokus'][:10], '| poza panelem zamyka', not d['pozaPanelem']['otwarty'], 'bez kliknięcia pod spodem', d['pozaPanelem']['ekranBezZmian'], '| po otwarciu pisma licznik', d['poZamknieciu']['licznik'], 'fokus', d['poZamknieciu']['fokus'][:10], '| animacje przy rm', d['animacjePrzyRm'], '| błędy', d['bledy'])"; done
+timeout 120 node r22/msgs-rule.js
+timeout 200 node r22/msgs-fit.js
+echo "##### RUNDA 22: KOPERTA ZE STARTU I KARTA ASYSTENTA (mysz, klawiatura, dotyk, podwójne kliknięcie)"
+for w in 320 390; do for m in vt novt rm; do timeout 200 node r21/start-env.js $w $m | python3 -c "
+import json,sys; d=json.loads(sys.stdin.read()); a=d['asystent']
+print(d['W'], d['mode'], '| mysz→fokus', d['mysz']['poZamknieciu']['fokus'][:24], '| Enter', d['klawiatura']['otwarte'], 'Esc→', d['klawiatura']['poEscape']['fokus'][:14], '| dotyk', d['dotyk']['otwarte'], '| podwójne: 1 okno', d['podwojne']['okienWDrzewie']==1, 'kopie', d['podwojne']['poZamknieciu']['kopie'], '| asystent', a['przed'], '→', a['po'], 'nad nagłówkiem', a['klatkiNaNaglowku_otwarcie'], '/', a['klatkiNaNaglowku_zamkniecie'], '| błędy', d['bledy'])"; done; done
+echo "##### RUNDA 22: NIEBIESKIE ELEMENTY W DOKUMENTACH (bez tekstu rgb(19,26,42))"
+timeout 120 node r22/blue.js 8200 | grep -v "rgb(19, 26, 42)$" | grep -v "tekst rgb(19, 26, 42)$"
+echo "##### RUNDA 23: DOKUMENTY (karuzela, Enter, Otwórz, lista, gesty przewijania) — 320/390/1280 × vt/novt/rm oraz duży tekst"
+for w in 320 390 1280; do for m in vt novt rm; do timeout 150 node r23/flow.js $w $m; done; done | python3 r23/flow-sum.py
+for w in 320 390; do for m in vt rm; do timeout 150 node r23/flow.js $w $m 8200 duzy; done; done | python3 r23/flow-sum.py
+echo "##### RUNDA 24: WEJŚCIA DO DOKUMENTÓW I KARUZELA W SZCZEGÓŁACH"
+./r24/matrix.sh
+echo "##### RUNDA 25: TESTY REGRESYJNE POPRAWEK 1–10"
+(cd r25 && timeout 1200 node regresja.js 8200 | tail -3 && node plik-widoczny.js 8200)
+echo "##### RUNDA 27: NAZWA I ZNAK ASYSTENTA (Spinka)"
+(cd r27 && node znak-test.js 8200)
+echo "##### RUNDA 27: ZMIANA NAZWY I USUNIĘCIE ZNAKU TYLKO W src/marka.js (kopia z nazwą testową)"
+./r27/zamiana.sh
+echo "##### RUNDA 26/27: TRYB AI (serwer prototypu + atrapa Gemini API)"
+node $S/r26/mock-gemini2.mjs 8599 >$S/r27/mock-ai.log 2>&1 & MOCKPID=$!
+sleep 0.8; (cd r27 && timeout 900 node ai-test.js /home/user/mobywatel-prototyp-runda-27 8200)
+(cd r27 && NODE_PATH=$S/axe/node_modules${NODE_PATH:+:$NODE_PATH} timeout 300 node ai-a11y.js /home/user/mobywatel-prototyp-runda-27 | grep -E "^✗|RAZEM" -A1)
+kill $MOCKPID 2>/dev/null; wait $MOCKPID 2>/dev/null
+echo "##### SKRYPTY AUDYTU (ekrany, kliknięcia, klawiatura, axe, scenariusze, formularze, kontrast)"
+(cd r25/audyt && ./po-audycie.sh)
+echo "##### KONIEC"

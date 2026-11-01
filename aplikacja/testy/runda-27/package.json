@@ -1,0 +1,9 @@
+{
+  "name": "mobywatel-prototyp-testy-runda-27",
+  "private": true,
+  "description": "Testy rundy 27 prototypu (znak i nazwa asystenta z src/marka.js, zmiana nazwy, tryb AI na atrapie Gemini, regresja poprawek rundy 25). Uruchamianie: ./uruchom-testy.sh",
+  "devDependencies": {
+    "axe-core": "4.10.2",
+    "playwright": "1.63.0"
+  }
+}
