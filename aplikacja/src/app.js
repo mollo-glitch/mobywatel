@@ -1552,11 +1552,11 @@
             '<p class="me-ai-status" data-ai-status>' + esc(ai ? ai.statusText() : 'Niepodłączony.') + '</p>' +
             (aiOn ? '<ul class="group quiet">' + sw('aiSend', 'Wysyłaj pytania do modelu AI', 'Bez tego Spinka nie odpowiada na pytania własnymi słowami; scenariusze działają dalej.', ai.sending()) + '</ul>' +
               (ai.consented() ? '<button type="button" class="btn-text" data-act="ai-revoke">' + ic('undo', 20) + 'Cofnij zgodę na wysyłanie</button>' : '')
-              : '<p class="me-ai-how">Żeby asystent odpowiadał na pytania, potrzebny jest serwer projektu z modelem językowym i kluczem API. Klucz nigdy nie trafia do aplikacji w przeglądarce.</p>') +
+              : '<p class="me-ai-how">Żeby asystent odpowiadał na pytania, potrzebny jest serwer projektu z modelem językowym (np. funkcja Cloudflare z Workers AI). Dostęp do modelu jest tylko na serwerze: żaden klucz ani token nie trafia do aplikacji w przeglądarce.</p>') +
             '<details class="me-preview"><summary>Co trafiłoby do modelu: podgląd</summary>' +
-              '<p class="sub">Razem z pytaniem: data w prototypie i ' + ctx.zrodla.length + ' pozycji z aplikacji, każda z tytułem i krótkim opisem. To ta sama lista, którą asystent wysyła.</p>' +
+              '<p class="sub">Razem z pytaniem: data w prototypie i ' + ctx.zrodla.length + ' fikcyjnych pozycji, każda z tytułem i krótkim opisem; terminy i „za … dni” liczy aplikacja, nie model. Tę listę składa serwer projektu z własnej kopii danych; przeglądarka wysyła mu tylko pytanie i stan demonstracji (co załatwiłeś, przypomnienia).</p>' +
               '<ul class="pv-list">' + preview + '</ul>' +
-              '<p class="sub"><b>Nie trafiają:</b> imię, nazwisko, PESEL, adres, numery dokumentów, tablice rejestracyjne, numer polisy, pełna treść pism (oryginały) ani historia rozmowy.</p>' +
+              '<p class="sub"><b>Nie trafiają:</b> imię, nazwisko, PESEL, adres, numery dokumentów, tablice rejestracyjne, numer polisy, pełna treść pism (oryginały) ani wcześniejsza rozmowa (poza poprzednim pytaniem, gdy asystent dopytuje). Pytanie: najwyżej 300 znaków.</p>' +
             '</details>') +
           '<ul class="group">' +
             link('data-go="access"', 'shieldCheck', 'Kto ma dostęp do moich danych', A.consents.filter((c) => c.active).length + ' aktywne dostępy (przykładowe)') +
@@ -2035,8 +2035,8 @@
   }
 
   /*
-   * Sekwencja: 1) cały ekran czerwony, 2) orzeł wznosi się z dołu i zatrzymuje na środku,
-   * 3) korona opada z góry i osiada na głowie, 4) czerwień kurczy się do kwadratowej ikony na białym tle,
+   * Sekwencja: 1) cały ekran czerwony, 2) orzeł z koroną wznosi się z dołu i zatrzymuje na środku,
+   * 3) korona lekko osiada na głowie (nie odrywa się od niej), 4) czerwień kurczy się do kwadratowej ikony na białym tle,
    * 5) ikona przesuwa się w lewo, a po prawej odsłania się napis „mObywatel”, 6) gotowy znak chwilę stoi,
    * 7) znak i napis „osiadają” w nagłówku następnego ekranu, dokładnie tam, gdzie logo stoi w aplikacji, a białe tło znika.
    * Krok 7 zastępuje dawne wygaszanie (krótsza chwila w kroku 6), więc całość nie jest dłuższa.
@@ -2104,7 +2104,7 @@
       emblem.style.background = '';
       emblem.style.borderRadius = '';
       emblem.style.overflow = '';
-      layers.forEach((l) => { l.style.opacity = ''; l.style.transform = ''; });
+      layers.forEach((l) => { l.style.opacity = ''; l.style.transform = ''; l.style.transformOrigin = ''; });
       name.style.clipPath = '';
       name.style.opacity = '';
     }
@@ -2149,19 +2149,30 @@
         finalState(g, red, emblem, layers, name);
         await wait(900);
       } else {
-        // 2) orzeł wznosi się z dołu ekranu i zatrzymuje na środku
+        // 2) orzeł wznosi się z dołu ekranu razem z koroną i zatrzymuje na środku. Ruch dostaje cały element znaku,
+        // więc orzeł i korona mają w każdej klatce to samo przesunięcie (także przy wolnym renderowaniu).
+        // Dawniej korona spadała osobno z góry ekranu (ok. 550 px lotu), co wyglądało, jakby odpadła od orła.
         const rise = g.H - (g.cy - g.E / 2);
         layers[0].style.opacity = '1';
-        const p1 = play(layers[0], [{ transform: 'translateY(' + rise + 'px)' }, { transform: 'translateY(0)' }], { duration: 700, delay: 120, easing: 'cubic-bezier(.16,.84,.3,1)' });
-        // 3) korona opada z góry i delikatnie osiada na głowie
         layers[1].style.opacity = '1';
-        const drop = g.cy + g.E / 2;
+        const p1 = play(emblem, [{ transform: 'translateY(' + rise + 'px)' }, { transform: 'translateY(0)' }], { duration: 700, delay: 120, easing: 'cubic-bezier(.16,.84,.3,1)' });
+        // 3) korona osiada: gdy orzeł hamuje, korona przez bezwładność unosi się o ok. 1% wysokości znaku i lekko
+        // rośnie od podstawy, a potem osiada. Podstawa zostaje na głowie: w spoczynku korona zachodzi na głowę
+        // o ok. 1,2% wysokości znaku, a uniesienie jest mniejsze, więc między nimi nie pojawia się przerwa.
+        const crown = layers[1].querySelector('use');
+        const cb = crown ? crown.getBoundingClientRect() : null;
+        const lb = layers[1].getBoundingClientRect();
+        if (cb && cb.width) layers[1].style.transformOrigin = (cb.left + cb.width / 2 - lb.left) + 'px ' + (cb.bottom - lb.top) + 'px';
+        const lift = Math.max(1, g.E * 0.009);
         const p2 = play(layers[1], [
-          { transform: 'translateY(' + (-drop) + 'px)', easing: 'cubic-bezier(.3,.75,.35,1)' },
-          { transform: 'translateY(' + Math.max(2, g.E * 0.008) + 'px)', offset: 0.86, easing: 'ease-in-out' },
-          { transform: 'translateY(0)' }
-        ], { duration: 560, delay: 720 });
+          { transform: 'translateY(0) scale(1)', easing: 'cubic-bezier(.3,0,.2,1)' },
+          { transform: 'translateY(' + (-lift) + 'px) scale(1.035)', offset: 0.42, easing: 'cubic-bezier(.4,0,.2,1)' },
+          { transform: 'translateY(0) scale(1)' }
+        ], { duration: 560, delay: 380 });
         await Promise.all([p1, p2]);
+        if (my !== token) return;
+        // chwila na złożony znak przed zmianą w ikonę (łącznie krócej niż dawny opad korony)
+        if (!fast) await wait(140);
         if (my !== token) return;
         // złożony znak: podmieniamy warstwy na całe godło (ten sam kształt, oryginalna kolejność)
         layers[2].style.opacity = '1';

@@ -1693,6 +1693,35 @@ window.APP = window.APP || {};
     }
   ];
 
+  /*
+   * Rekordy dla modelu AI: ograniczony, fikcyjny zestaw spraw, dokumentów i terminów z tej demonstracji.
+   * Wszystkie daty i liczby dni są tu policzone kodem od zegara pokazowego (model ich nie liczy, tylko objaśnia).
+   * build.mjs wywołuje tę funkcję na danych początkowych i zapisuje wynik w server/dane-demo.mjs: serwer odpowiada
+   * tylko z tych rekordów, a z przeglądarki przyjmuje jedynie krótki, sprawdzalny stan demonstracji (server/kontekst.mjs).
+   * Bez osoby, numerów dokumentów, tablic, numeru polisy i pełnej treści pism.
+   */
+  const SAFE_ROWS = ['Ważny do', 'Ważne do', 'Ważna do', 'Data wydania', 'Wydał', 'Kategorie', 'Punkty karne', 'Marka i model', 'Ubezpieczenie OC', 'OC ważne do', 'Badanie techniczne do'];
+  const two = (n) => (n < 10 ? '0' : '') + n;
+  const iso = (d) => d.getFullYear() + '-' + two(d.getMonth() + 1) + '-' + two(d.getDate());
+  const when = (d) => { const n = inDays(d); return fmt(d) + ' (' + fmtLong(d) + ', ' + (n >= 0 ? 'za ' + dni(n) : dni(-n) + ' temu') + ')'; };
+  A.kontekstZDanych = (todo, cases, docs) => {
+    const z = [];
+    (todo || []).forEach((t) => {
+      const f = [t.kind === 'Pismo' ? 'Od: ' + t.from : null, t.what, t.due ? (t.dueLabel || 'Termin') + ': ' + when(t.due) : null, t.dueNote,
+        t.amount ? 'Możliwa kwota: ' + t.amount.text + ', ' + t.amount.when : null, t.why, t.next];
+      z.push({ id: 'todo:' + t.id, rodzaj: t.group === 'info' ? 'informacja' : t.kind === 'Pismo' ? 'pismo' : 'termin', tytul: t.title, fakty: f.filter(Boolean), termin: t.due ? iso(t.due) : null });
+    });
+    (docs || []).forEach((d) => {
+      const rows = (d.rows || []).filter((r) => SAFE_ROWS.indexOf(r[0]) >= 0).map((r) => r[0] + ': ' + r[1]);
+      z.push({ id: 'doc:' + d.id, rodzaj: 'dokument', tytul: d.name, fakty: [d.status ? 'Status: ' + d.status.text : null].concat(rows, [d.note]).filter(Boolean) });
+    });
+    (cases || []).forEach((c) => {
+      z.push({ id: 'case:' + c.id, rodzaj: 'sprawa', tytul: c.title, fakty: ['Status: ' + c.statusText, c.steps ? 'Etap ' + c.step + ' z ' + c.steps : null,
+        c.due ? (c.dueWhat ? c.dueWhat.charAt(0).toUpperCase() + c.dueWhat.slice(1) : 'Termin') + ': ' + when(c.due) : null, c.note, c.next].filter(Boolean) });
+    });
+    return { dzis: iso(today), dzis_slownie: fmtLong(today) + ' ' + today.getFullYear(), zrodla: z };
+  };
+
   A.suggestions = ['Zgubiłem portfel', 'Pismo z urzędu', 'Kończy się OC', 'Kto widzi moje dane?'];
 
   A.voiceSamples = [
@@ -1701,6 +1730,90 @@ window.APP = window.APP || {};
     'Chyba kończy mi się ubezpieczenie auta',
     'Kto ma dostęp do moich danych?'
   ];
+})(window.APP);
+
+/* server/kontekst.mjs + server/dane-demo.mjs */
+(function (A) {
+/*
+ * Kontekst dla modelu AI z ograniczonego, fikcyjnego zestawu rekordów (server/dane-demo.mjs, generowany przez build.mjs
+ * z src/data.js) i krótkiego stanu demonstracji z przeglądarki. Ten sam plik działa na serwerze i w przeglądarce
+ * (build.mjs wkleja go do aplikacji bez słów „export”), więc podgląd w Profilu pokazuje dokładnie to, co wysyła serwer.
+ *
+ * Z przeglądarki serwer przyjmuje tylko:
+ *   bez:           identyfikatory pozycji „Do załatwienia” załatwionych w demonstracji (tylko znane id),
+ *   przypomnienia: { id pozycji: 'RRRR-MM-DD' } (tylko znane pozycje z terminem, data między dziś a terminem),
+ *   sprawy:        [{ id, status }] sprawy z demonstracji (id z listy wzorców, status z zamkniętej listy).
+ * Tytuły i opisy spraw pochodzą z serwera, nie z przeglądarki. Dowolny tekst z przeglądarki nie trafia do modelu
+ * (poza pytaniem), więc endpointu nie da się użyć jako ogólnego czatu z własnymi „danymi”.
+ */
+
+const STATUSY = ['Do dokończenia', 'Zakończona w demonstracji', 'Przypomnę jutro', 'Anulowana przed wysłaniem', 'Przerwana rozmowa'];
+const SCEN = ['oc', 'pismo', 'nowyDowod', 'portfel', 'dane'];
+const TYTULY = {
+  pismo: 'Pismo z urzędu skarbowego',
+  oc: 'Zmiana ubezpieczyciela OC',
+  'nowy-dowod': 'Wniosek o nowy dowód osobisty',
+  portfel: 'Zgubiony portfel'
+};
+const NOTA = 'To wynik demonstracji w tej aplikacji: nic nie zostało naprawdę wysłane do urzędu ani firmy.';
+const ISO = /^\d{4}-\d{2}-\d{2}$/;
+const dzien = (s) => { const [y, m, d] = s.split('-').map(Number); return Date.UTC(y, m - 1, d) / 864e5; };
+const fmtIso = (s) => s.slice(8, 10) + '.' + s.slice(5, 7) + '.' + s.slice(0, 4);
+
+function tytulSprawy(id) {
+  if (TYTULY[id]) return TYTULY[id];
+  if (/^dane-[a-z0-9-]{1,24}$/.test(id)) return 'Cofnięcie dostępu do danych';
+  const m = id.match(/^int-(\w{1,12})$/);
+  if (m && SCEN.indexOf(m[1]) >= 0) return 'Rozmowa przerwana w demonstracji';
+  return null;
+}
+
+// Stan z przeglądarki → tylko pola i wartości, które serwer zna. Wszystko inne jest pomijane bez błędu.
+function stanCzysty(stan, dane) {
+  const out = { bez: [], przypomnienia: {}, sprawy: [] };
+  if (!stan || typeof stan !== 'object' || !dane) return out;
+  const byId = {};
+  dane.zrodla.forEach((z) => { byId[z.id] = z; });
+  (Array.isArray(stan.bez) ? stan.bez.slice(0, 10) : []).forEach((id) => {
+    if (typeof id === 'string' && /^todo:/.test(id) && byId[id] && out.bez.indexOf(id) < 0) out.bez.push(id);
+  });
+  const p = stan.przypomnienia && typeof stan.przypomnienia === 'object' ? stan.przypomnienia : {};
+  Object.keys(p).slice(0, 5).forEach((id) => {
+    const z = byId[id]; const d = p[id];
+    if (!z || !z.termin || typeof d !== 'string' || !ISO.test(d)) return;
+    if (dzien(d) < dzien(dane.dzis) || dzien(d) > dzien(z.termin)) return;
+    out.przypomnienia[id] = d;
+  });
+  (Array.isArray(stan.sprawy) ? stan.sprawy.slice(0, 8) : []).forEach((s) => {
+    if (!s || typeof s.id !== 'string' || typeof s.status !== 'string' || STATUSY.indexOf(s.status) < 0) return;
+    const id = s.id.slice(0, 40);
+    if ((byId['case:' + id] || tytulSprawy(id)) && !out.sprawy.some((x) => x.id === id)) out.sprawy.push({ id: id, status: s.status });
+  });
+  return out;
+}
+
+// Rekordy dla modelu: dane serwera + oczyszczony stan. Najwyżej 16 źródeł.
+function zastosujStan(dane, stan) {
+  const s = stanCzysty(stan, dane);
+  const zrodla = dane.zrodla
+    .filter((z) => s.bez.indexOf(z.id) < 0)
+    .map((z) => {
+      const r = { id: z.id, rodzaj: z.rodzaj, tytul: z.tytul, fakty: z.fakty.slice() };
+      const id = z.id.slice(5);
+      if (z.id.indexOf('todo:') === 0 && s.przypomnienia[z.id]) r.fakty.push('Przypomnienie ustawione na ' + fmtIso(s.przypomnienia[z.id]));
+      const sp = z.id.indexOf('case:') === 0 ? s.sprawy.find((x) => x.id === id) : null;
+      if (sp) r.fakty = ['Status: ' + sp.status].concat(sp.status === 'Do dokończenia' ? r.fakty.filter((f) => f.indexOf('Status:') !== 0) : [NOTA]);
+      return r;
+    });
+  s.sprawy.forEach((sp) => {
+    if (dane.zrodla.some((z) => z.id === 'case:' + sp.id)) return;
+    zrodla.push({ id: 'case:' + sp.id, rodzaj: 'sprawa', tytul: tytulSprawy(sp.id), fakty: ['Status: ' + sp.status, NOTA] });
+  });
+  return { dzis: dane.dzis, dzis_slownie: dane.dzis_slownie, zrodla: zrodla.slice(0, 16) };
+}
+
+A.kontekst = { stanCzysty: stanCzysty, zastosujStan: zastosujStan, STATUSY: STATUSY };
+A.kontekstSeed = {"dzis":"2026-10-26","dzis_slownie":"poniedziałek, 26 października 2026","zrodla":[{"id":"todo:pismo-us","rodzaj":"pismo","tytul":"Wezwanie do złożenia wyjaśnień","fakty":["Od: Urząd Skarbowy w Przykładowie","Urząd prosi o wyjaśnienie ulgi na internet (760 zł), którą odliczyłeś w PIT za 2025 rok.","Termin: 07.11.2026 (sobota, 7 listopada, za 12 dni)","Termin liczy się od dnia, w którym odebrałeś pismo.","Możliwa kwota: około 91 zł, tylko jeśli urząd nie uzna ulgi","Jeśli nie odpowiesz, urząd może nie uznać ulgi. Dopłacisz wtedy około 91 zł podatku z odsetkami. To nie jest kara ani kontrola.","Wyślij fakturę za internet. Pomogę napisać krótką odpowiedź, a przed wysłaniem zobaczysz podsumowanie."],"termin":"2026-11-07"},{"id":"todo:oc","rodzaj":"termin","tytul":"Kończy się OC: Toyota Yaris","fakty":["Polisa OC Twojej Toyoty Yaris kończy się 04.11.2026.","Polisa OC kończy się: 04.11.2026 (środa, 4 listopada, za 9 dni)","Jeśli chcesz zmienić ubezpieczyciela, wypowiedz umowę najpóźniej dzień wcześniej.","OC musisz mieć bez przerwy, dopóki auto jest zarejestrowane. Za przerwę Ubezpieczeniowy Fundusz Gwarancyjny nalicza karę, nawet kilka tysięcy złotych.","Zdecyduj, czy zostajesz u obecnego ubezpieczyciela, czy zmieniasz. Pokażę skutki obu wyborów."],"termin":"2026-11-04"},{"id":"todo:gmina","rodzaj":"informacja","tytul":"Harmonogram odbioru odpadów na 2027 rok","fakty":["Od: Urząd Gminy Przykładowo","Nowy kalendarz wywozu śmieci na 2027 rok.","To tylko informacja. Nie musisz nic robić.","Przeczytaj, jeśli chcesz sprawdzić terminy wywozu."],"termin":null},{"id":"doc:dowod","rodzaj":"dokument","tytul":"Dowód osobisty","fakty":["Status: Ważny jeszcze 50 dni","Data wydania: 15.12.2016","Ważny do: 15.12.2026","Wydał: Prezydent m.st. Warszawy","Dowód traci ważność za 50 dni. Wniosek o nowy zacząłeś 13 października i nie został jeszcze dokończony."]},{"id":"doc:prawko","rodzaj":"dokument","tytul":"Prawo jazdy","fakty":["Status: Ważne, 0 punktów karnych","Kategorie: B (od 12.06.2004)","Punkty karne: 0","Ważne do: 04.10.2034","W Polsce nie musisz wozić prawa jazdy przy sobie. Policja sprawdza uprawnienia w systemie."]},{"id":"doc:pojazd","rodzaj":"dokument","tytul":"Toyota Yaris","fakty":["Status: OC kończy się za 9 dni","Marka i model: Toyota Yaris 1.5, 2019","Ubezpieczenie OC: TU Przykład S.A.","OC ważne do: 04.11.2026","Badanie techniczne do: 04.04.2027","Dane pojazdu i polisy są przykładowe."]},{"id":"doc:kdr","rodzaj":"dokument","tytul":"Karta Dużej Rodziny","fakty":["Status: Ważna","Ważna do: 30.09.2031","Z kartą masz zniżki u partnerów programu, np. na przejazdy i bilety do muzeów."]},{"id":"doc:paszport","rodzaj":"dokument","tytul":"Paszport","fakty":["Status: Tylko podgląd danych","Ważny do: 07.06.2030","Paszportu nie pokażesz z telefonu na granicy. Tutaj widzisz jego dane i datę ważności, a przypomnienie dostaniesz pół roku przed jej końcem."]},{"id":"doc:ekuz","rodzaj":"dokument","tytul":"Karta EKUZ","fakty":["Status: Ważna","Ważna do: 18.02.2028","Z kartą EKUZ w innych krajach Unii leczysz się na takich samych zasadach jak ich mieszkańcy."]},{"id":"case:nowy-dowod","rodzaj":"sprawa","tytul":"Wniosek o nowy dowód osobisty","fakty":["Status: Do dokończenia","Etap 1 z 4","Obecny dowód ważny do: 15.12.2026 (wtorek, 15 grudnia, za 50 dni)","Zacząłeś 13 października. Zostało: sprawdzenie danych, zdjęcie i termin wizyty.","Sprawdź dane, dodaj zdjęcie i wybierz termin wizyty."]},{"id":"case:adres","rodzaj":"sprawa","tytul":"Zmiana adresu zameldowania","fakty":["Status: Urząd rozpatruje","Etap 3 z 4","Wysłane 20 października. Urząd ma czas do 19 listopada. Dostaniesz powiadomienie."]}]};
 })(window.APP);
 
 /* icons.js */
@@ -3361,7 +3474,7 @@ window.APP = window.APP || {};
     const why = AI.reasonText();
     const ids = detect(q).slice(0, 2);
     botState('off', (AI.available() ? '<b>Nie wysłałem tego pytania do modelu AI</b> (' + esc(why) + '). ' : '<b>Nie odpowiem na to pytanie: model AI nie jest podłączony</b> (' + esc(why || 'brak serwera z modelem') + '). ') +
-      'Nie podaję gotowych odpowiedzi zamiast AI. ' + (AI.available() ? 'Wysyłanie włączysz przełącznikiem pod moim imieniem albo w Profilu.' : 'Do odpowiedzi potrzebny jest serwer projektu z modelem językowym; szczegóły są w Profilu, w części „Twoje dane”.') +
+      'Nie podaję gotowych odpowiedzi zamiast AI. ' + (!AI.available() ? 'Do odpowiedzi potrzebny jest serwer projektu z modelem językowym; szczegóły są w Profilu, w części „Twoje dane”.' : !AI.sending() ? 'Wysyłanie włączysz przełącznikiem pod moim imieniem albo w Profilu.' : 'Po tej godzinie możesz zapytać jeszcze raz.') +
       '<span class="st-next">Możesz sam sprawdzić dane w aplikacji albo przejść ' + (ids.length ? 'pasujący ' : '') + 'scenariusz demonstracyjny (bez AI):</span>');
     placeChips(ids.length ? ids : ['pismo', 'oc']);
   }
@@ -3389,11 +3502,12 @@ window.APP = window.APP || {};
   }
 
   /*
-   * Model AI (Gemini) przez serwer projektu: lokalny server/gemini-adapter.mjs albo funkcja serwerowa
-   * (server/funkcja-serwerowa.mjs) pod adresem wpisanym przy budowaniu. Bez serwera asystent nie odpowiada
+   * Model AI przez serwer projektu: lokalny server/serwer-lokalny.mjs albo funkcja serwerowa Cloudflare
+   * (server/funkcja-serwerowa.mjs, Workers AI) pod adresem wpisanym przy budowaniu. Bez serwera asystent nie odpowiada
    * na pytania własnymi słowami i mówi to wprost; scenariusze demonstracyjne działają lokalnie.
-   * Do serwera trafiają tylko: pytanie, po dopytaniu poprzednie pytanie, i fikcyjny kontekst demo (tytuły, krótkie opisy,
-   * terminy, statusy, możliwe kwoty) — bez imienia, PESEL-u, adresu, numerów dokumentów, tablic rejestracyjnych, polis i pełnej treści pism.
+   * Do serwera trafiają tylko: pytanie (do 300 znaków), po dopytaniu poprzednie pytanie, i stan demonstracji
+   * (które pozycje załatwiono, ustawione przypomnienia, statusy spraw z listy). Rekordy dla modelu ma serwer
+   * (server/dane-demo.mjs, ta sama kopia co A.kontekstSeed), więc z przeglądarki nie da się podsunąć modelowi innych „danych”.
    * Pierwsze wysłanie wymaga zgody (do zamknięcia karty). Odpowiedź jest sprawdzana na serwerze i tutaj: źródła tylko
    * z kontekstu, a każda liczba i nazwa miesiąca tylko z tego rekordu, na który odpowiedź się powołuje.
    */
@@ -3402,9 +3516,10 @@ window.APP = window.APP || {};
     const raw = m ? String(m.content || '').trim() : '';
     const base = /^\/[\w\/-]+$/.test(raw) || /^https:\/\/[\w.-]+(:\d+)?(\/[\w\/-]*)?$/.test(raw) ? raw.replace(/\/+$/, '') : null;
     const cred = base && /^https:/.test(base) ? 'omit' : 'same-origin';
-    const REASON = { static: 'ta wersja nie ma serwera z modelem AI', no_key: 'serwer projektu nie ma klucza API', bad_key: 'serwer odrzucił klucz API', model_unavailable: 'model jest niedostępny', region: 'model jest niedostępny w tym regionie', server: 'brak połączenia z serwerem projektu', origin: 'serwer nie przyjmuje pytań z tej strony', off: 'wysyłanie pytań do modelu AI jest wyłączone' };
-    const SOON = { timeout: 'Model AI nie odpowiedział w wyznaczonym czasie', network: 'Serwer projektu nie połączył się z modelem AI (brak sieci)', server: 'Brak połączenia z serwerem projektu', provider: 'Dostawca modelu AI zwrócił błąd', invalid: 'Odpowiedź modelu AI nie zgadzała się z danymi aplikacji, więc jej nie pokazuję' };
-    const st = { status: base ? 'checking' : 'static', reason: base ? null : 'static', on: true, pausedUntil: 0, why: '', fails: 0, consent: false, clarify: null, timer: 0, provider: 'Google Gemini', plan: 'free', model: '' };
+    const REASON = { static: 'ta wersja nie ma serwera z modelem AI', no_key: 'serwer projektu nie ma dostępu do modelu AI', bad_key: 'serwer odrzucił klucz API', model_unavailable: 'model jest niedostępny', region: 'model jest niedostępny w tym regionie', server: 'brak połączenia z serwerem projektu', origin: 'serwer nie przyjmuje pytań z tej strony', off: 'wysyłanie pytań do modelu AI jest wyłączone' };
+    const SOON = { timeout: 'Model AI nie odpowiedział w wyznaczonym czasie', network: 'Serwer projektu nie połączył się z modelem AI (brak sieci)', server: 'Brak połączenia z serwerem projektu', provider: 'Dostawca modelu AI zwrócił błąd', invalid: 'Odpowiedź modelu AI nie zgadzała się z danymi aplikacji, więc jej nie pokazuję', too_long: 'Pytanie jest za długie' };
+    const MAXQ = 300;
+    const st = { status: base ? 'checking' : 'static', reason: base ? null : 'static', on: true, pausedUntil: 0, why: '', fails: 0, consent: false, clarify: null, timer: 0, provider: 'model AI', plan: 'free', model: '' };
     try { if (sessionStorage.getItem('asystent-ai') === 'off') st.on = false; if (sessionStorage.getItem('asystent-ai-zgoda') === 'tak') st.consent = true; } catch (e) { /* bez pamięci sesji */ }
     const remember = (k, v) => { try { sessionStorage.setItem(k, v); } catch (e) { /* bez pamięci sesji */ } };
 
@@ -3445,10 +3560,14 @@ window.APP = window.APP || {};
       paint();
     }
 
+    // Co i dokąd trafia. Zdanie o dostawcy zależy od tego, kto obsługuje model (dane z /status serwera).
     function disclosure() {
-      return 'Pytanie i fikcyjne dane z tej aplikacji (tytuły spraw i dokumentów, krótkie opisy, terminy, statusy, możliwe kwoty) trafią przez serwer projektu do ' + esc(st.provider) + '. ' +
-        'Nie trafiają: imię, nazwisko, PESEL, adres, numery dokumentów, tablice rejestracyjne, numer polisy, pełna treść pism ani historia rozmowy. ' +
-        'Jak dostawca przetwarza te dane, określają jego warunki' + (st.plan === 'free' ? ' (bezpłatny poziom)' : '') + '. Nie wpisuj prawdziwych danych osobowych.';
+      const cf = /cloudflare/i.test(st.provider);
+      const g = /gemini|google/i.test(st.provider);
+      return 'Pytanie (do ' + MAXQ + ' znaków) trafi do serwera projektu, a stamtąd do ' + esc(st.provider) + ' razem z fikcyjnymi rekordami tej demonstracji: tytułami spraw i dokumentów, krótkimi opisami, terminami policzonymi przez aplikację, statusami i możliwymi kwotami. ' +
+        'Z rozmowy trafia tylko bieżące pytanie, a gdy dopytuję, także poprzednie. Nie trafiają: imię, nazwisko, PESEL, adres, numery dokumentów, tablice rejestracyjne, numer polisy ani pełna treść pism. ' +
+        (cf ? 'Cloudflare zastrzega w zasadach Workers AI, że nie używa tych treści do trenowania modeli. ' : g && st.plan === 'free' ? 'Na bezpłatnym poziomie Google może wykorzystywać te treści do ulepszania swoich usług. ' : 'Jak dostawca przetwarza te dane, określają jego warunki. ') +
+        'Nie wpisuj prawdziwych danych osobowych.';
     }
     // Zgoda przed pierwszym pytaniem do modelu. „Nie wysyłaj” wyłącza wysyłanie do zamknięcia karty.
     function askConsent(q, go) {
@@ -3488,34 +3607,28 @@ window.APP = window.APP || {};
           if (j && typeof j.provider === 'string') st.provider = j.provider.slice(0, 40);
           if (j && typeof j.model === 'string') st.model = j.model.slice(0, 40);
           if (j && (j.plan === 'free' || j.plan === 'paid')) st.plan = j.plan;
-          if (j && j.pausedFor > 0) pause(j.pausedFor, 'limit zapytań');
+          if (j && j.pausedFor > 0) pause(j.pausedFor, j.pauseKind === 'limit_dzienny' ? 'wyczerpana dzienna pula modelu' : 'limit zapytań');
         })
         .catch(() => { st.status = 'off'; st.reason = 'server'; })
         .then(() => { clearTimeout(timer); paint(); });
     })();
 
-    // Fikcyjny kontekst demo: tylko pola z listy. Bez osoby, numerów dokumentów, tablic, polis i treści pism.
-    const SAFE_ROWS = ['Ważny do', 'Ważne do', 'Ważna do', 'Data wydania', 'Wydał', 'Kategorie', 'Punkty karne', 'Marka i model', 'Ubezpieczenie OC', 'OC ważne do', 'Badanie techniczne do'];
+    // Stan demonstracji: jedyna zmienna część kontekstu, którą przeglądarka wysyła (serwer sprawdza id, daty i statusy).
     const two = (n) => (n < 10 ? '0' : '') + n;
     const iso = (d) => d.getFullYear() + '-' + two(d.getMonth() + 1) + '-' + two(d.getDate());
-    const when = (d) => { const n = T.inDays(d); return T.fmt(d) + ' (' + T.fmtLong(d) + ', ' + (n >= 0 ? 'za ' + T.dni(n) : T.dni(-n) + ' temu') + ')'; };
-    function demoContext() {
-      const z = [];
-      (A.todo || []).forEach((t) => {
-        const f = [t.kind === 'Pismo' ? 'Od: ' + t.from : null, t.what, t.due ? (t.dueLabel || 'Termin') + ': ' + when(t.due) : null, t.dueNote,
-          t.amount ? 'Możliwa kwota: ' + t.amount.text + ', ' + t.amount.when : null, t.why, t.next, t.reminder ? 'Przypomnienie ustawione na ' + T.fmt(t.reminder) : null];
-        z.push({ id: 'todo:' + t.id, rodzaj: t.group === 'info' ? 'informacja' : t.kind === 'Pismo' ? 'pismo' : 'termin', tytul: t.title, fakty: f.filter(Boolean) });
-      });
-      (A.docs || []).forEach((d) => {
-        const rows = (d.rows || []).filter((r) => SAFE_ROWS.indexOf(r[0]) >= 0).map((r) => r[0] + ': ' + r[1]);
-        z.push({ id: 'doc:' + d.id, rodzaj: 'dokument', tytul: d.name, fakty: [d.status ? 'Status: ' + d.status.text : null].concat(rows, [d.note]).filter(Boolean) });
-      });
-      (A.cases || []).forEach((c) => {
-        z.push({ id: 'case:' + c.id, rodzaj: 'sprawa', tytul: c.title, fakty: ['Status: ' + c.statusText, c.steps ? 'Etap ' + c.step + ' z ' + c.steps : null,
-          c.due ? (c.dueWhat ? c.dueWhat.charAt(0).toUpperCase() + c.dueWhat.slice(1) : 'Termin') + ': ' + when(c.due) : null, c.note, c.next].filter(Boolean) });
-      });
-      return { dzis: iso(T.today), dzis_slownie: T.fmtLong(T.today) + ' ' + T.today.getFullYear(), zrodla: z.slice(0, 16) };
+    function stanDemo() {
+      const seed = (A.kontekstSeed && A.kontekstSeed.zrodla) || [];
+      const live = (A.todo || []).map((t) => 'todo:' + t.id);
+      const przypomnienia = {};
+      (A.todo || []).forEach((t) => { if (t.reminder) przypomnienia['todo:' + t.id] = iso(t.reminder); });
+      return {
+        bez: seed.filter((z) => z.id.indexOf('todo:') === 0 && live.indexOf(z.id) < 0).map((z) => z.id),
+        przypomnienia: przypomnienia,
+        sprawy: (A.cases || []).filter((c) => A.kontekst.STATUSY.indexOf(c.statusText) >= 0).map((c) => ({ id: c.id, status: c.statusText }))
+      };
     }
+    // Ten sam kod i te same rekordy co na serwerze (server/kontekst.mjs + server/dane-demo.mjs, wklejone przy budowaniu).
+    function demoContext() { return A.kontekst.zastosujStan(A.kontekstSeed, stanDemo()); }
 
     // Drugie sprawdzenie w przeglądarce (pierwsze robi serwer): kształt, źródła z kontekstu i — najważniejsze —
     // każda liczba (data, kwota, liczba dni) i nazwa miesiąca tylko z tego rekordu, na który odpowiedź się powołuje.
@@ -3554,11 +3667,12 @@ window.APP = window.APP || {};
     }
 
     async function answer(text, bubble) {
+      if (String(text).trim().length > MAXQ) return { ok: false, error: 'too_long' };
       if (bubble) bubble.querySelector('.bubble').insertAdjacentHTML('beforeend', '<span class="said remote">' + ic('info', 20) + 'wysłane do modelu AI (' + esc(st.provider) + ')</span>');
       const ctx = demoContext();
       const earlier = st.clarify;
       st.clarify = null;
-      const body = { pytanie: String(text).slice(0, 400), kontekst: ctx };
+      const body = { pytanie: String(text).trim(), stan: stanDemo() };
       if (earlier) body.poprzednio = earlier;
       const ctl = new AbortController();
       const timer = setTimeout(() => ctl.abort(), 20000);
@@ -3588,9 +3702,13 @@ window.APP = window.APP || {};
         return;
       }
       let msg;
-      if (e === 'limit' || e === 'local_limit') {
-        pause(r.retryAfter, e === 'limit' ? 'limit dostawcy' : 'limit serwera projektu');
-        msg = (e === 'limit' ? 'Wyczerpał się limit zapytań do modelu AI.' : 'Serwer projektu ogranicza liczbę zapytań do modelu AI.') + ' Do ' + hhmm(st.pausedUntil) + ' nie wysyłam pytań.';
+      if (e === 'too_long') {
+        botState('err', 'Nie wysłałem pytania: ma ' + String(q).trim().length + ' znaków, a model przyjmuje najwyżej ' + MAXQ + '. Skróć je i zapytaj jeszcze raz.');
+        return;
+      }
+      if (e === 'limit' || e === 'local_limit' || e === 'limit_dzienny') {
+        pause(r.retryAfter, e === 'limit_dzienny' ? 'wyczerpana dzienna pula modelu' : e === 'limit' ? 'limit dostawcy' : 'limit serwera projektu');
+        msg = (e === 'limit_dzienny' ? 'AI niedostępne: wyczerpała się dzienna bezpłatna pula modelu (' + st.provider + ').' : e === 'limit' ? 'AI niedostępne: wyczerpał się limit zapytań do modelu.' : 'Serwer projektu ogranicza liczbę zapytań do modelu AI.') + ' Do ' + hhmm(st.pausedUntil) + ' nie wysyłam pytań.';
       } else if (e === 'invalid') {
         // Treść niezgodna z danymi to nie awaria: nie wstrzymujemy AI, można zapytać inaczej.
         msg = SOON.invalid + '. Możesz zapytać inaczej albo sprawdzić dane w aplikacji.';
@@ -5251,11 +5369,11 @@ window.APP = window.APP || {};
             '<p class="me-ai-status" data-ai-status>' + esc(ai ? ai.statusText() : 'Niepodłączony.') + '</p>' +
             (aiOn ? '<ul class="group quiet">' + sw('aiSend', 'Wysyłaj pytania do modelu AI', 'Bez tego Spinka nie odpowiada na pytania własnymi słowami; scenariusze działają dalej.', ai.sending()) + '</ul>' +
               (ai.consented() ? '<button type="button" class="btn-text" data-act="ai-revoke">' + ic('undo', 20) + 'Cofnij zgodę na wysyłanie</button>' : '')
-              : '<p class="me-ai-how">Żeby asystent odpowiadał na pytania, potrzebny jest serwer projektu z modelem językowym i kluczem API. Klucz nigdy nie trafia do aplikacji w przeglądarce.</p>') +
+              : '<p class="me-ai-how">Żeby asystent odpowiadał na pytania, potrzebny jest serwer projektu z modelem językowym (np. funkcja Cloudflare z Workers AI). Dostęp do modelu jest tylko na serwerze: żaden klucz ani token nie trafia do aplikacji w przeglądarce.</p>') +
             '<details class="me-preview"><summary>Co trafiłoby do modelu: podgląd</summary>' +
-              '<p class="sub">Razem z pytaniem: data w prototypie i ' + ctx.zrodla.length + ' pozycji z aplikacji, każda z tytułem i krótkim opisem. To ta sama lista, którą asystent wysyła.</p>' +
+              '<p class="sub">Razem z pytaniem: data w prototypie i ' + ctx.zrodla.length + ' fikcyjnych pozycji, każda z tytułem i krótkim opisem; terminy i „za … dni” liczy aplikacja, nie model. Tę listę składa serwer projektu z własnej kopii danych; przeglądarka wysyła mu tylko pytanie i stan demonstracji (co załatwiłeś, przypomnienia).</p>' +
               '<ul class="pv-list">' + preview + '</ul>' +
-              '<p class="sub"><b>Nie trafiają:</b> imię, nazwisko, PESEL, adres, numery dokumentów, tablice rejestracyjne, numer polisy, pełna treść pism (oryginały) ani historia rozmowy.</p>' +
+              '<p class="sub"><b>Nie trafiają:</b> imię, nazwisko, PESEL, adres, numery dokumentów, tablice rejestracyjne, numer polisy, pełna treść pism (oryginały) ani wcześniejsza rozmowa (poza poprzednim pytaniem, gdy asystent dopytuje). Pytanie: najwyżej 300 znaków.</p>' +
             '</details>') +
           '<ul class="group">' +
             link('data-go="access"', 'shieldCheck', 'Kto ma dostęp do moich danych', A.consents.filter((c) => c.active).length + ' aktywne dostępy (przykładowe)') +
@@ -5734,8 +5852,8 @@ window.APP = window.APP || {};
   }
 
   /*
-   * Sekwencja: 1) cały ekran czerwony, 2) orzeł wznosi się z dołu i zatrzymuje na środku,
-   * 3) korona opada z góry i osiada na głowie, 4) czerwień kurczy się do kwadratowej ikony na białym tle,
+   * Sekwencja: 1) cały ekran czerwony, 2) orzeł z koroną wznosi się z dołu i zatrzymuje na środku,
+   * 3) korona lekko osiada na głowie (nie odrywa się od niej), 4) czerwień kurczy się do kwadratowej ikony na białym tle,
    * 5) ikona przesuwa się w lewo, a po prawej odsłania się napis „mObywatel”, 6) gotowy znak chwilę stoi,
    * 7) znak i napis „osiadają” w nagłówku następnego ekranu, dokładnie tam, gdzie logo stoi w aplikacji, a białe tło znika.
    * Krok 7 zastępuje dawne wygaszanie (krótsza chwila w kroku 6), więc całość nie jest dłuższa.
@@ -5803,7 +5921,7 @@ window.APP = window.APP || {};
       emblem.style.background = '';
       emblem.style.borderRadius = '';
       emblem.style.overflow = '';
-      layers.forEach((l) => { l.style.opacity = ''; l.style.transform = ''; });
+      layers.forEach((l) => { l.style.opacity = ''; l.style.transform = ''; l.style.transformOrigin = ''; });
       name.style.clipPath = '';
       name.style.opacity = '';
     }
@@ -5848,19 +5966,30 @@ window.APP = window.APP || {};
         finalState(g, red, emblem, layers, name);
         await wait(900);
       } else {
-        // 2) orzeł wznosi się z dołu ekranu i zatrzymuje na środku
+        // 2) orzeł wznosi się z dołu ekranu razem z koroną i zatrzymuje na środku. Ruch dostaje cały element znaku,
+        // więc orzeł i korona mają w każdej klatce to samo przesunięcie (także przy wolnym renderowaniu).
+        // Dawniej korona spadała osobno z góry ekranu (ok. 550 px lotu), co wyglądało, jakby odpadła od orła.
         const rise = g.H - (g.cy - g.E / 2);
         layers[0].style.opacity = '1';
-        const p1 = play(layers[0], [{ transform: 'translateY(' + rise + 'px)' }, { transform: 'translateY(0)' }], { duration: 700, delay: 120, easing: 'cubic-bezier(.16,.84,.3,1)' });
-        // 3) korona opada z góry i delikatnie osiada na głowie
         layers[1].style.opacity = '1';
-        const drop = g.cy + g.E / 2;
+        const p1 = play(emblem, [{ transform: 'translateY(' + rise + 'px)' }, { transform: 'translateY(0)' }], { duration: 700, delay: 120, easing: 'cubic-bezier(.16,.84,.3,1)' });
+        // 3) korona osiada: gdy orzeł hamuje, korona przez bezwładność unosi się o ok. 1% wysokości znaku i lekko
+        // rośnie od podstawy, a potem osiada. Podstawa zostaje na głowie: w spoczynku korona zachodzi na głowę
+        // o ok. 1,2% wysokości znaku, a uniesienie jest mniejsze, więc między nimi nie pojawia się przerwa.
+        const crown = layers[1].querySelector('use');
+        const cb = crown ? crown.getBoundingClientRect() : null;
+        const lb = layers[1].getBoundingClientRect();
+        if (cb && cb.width) layers[1].style.transformOrigin = (cb.left + cb.width / 2 - lb.left) + 'px ' + (cb.bottom - lb.top) + 'px';
+        const lift = Math.max(1, g.E * 0.009);
         const p2 = play(layers[1], [
-          { transform: 'translateY(' + (-drop) + 'px)', easing: 'cubic-bezier(.3,.75,.35,1)' },
-          { transform: 'translateY(' + Math.max(2, g.E * 0.008) + 'px)', offset: 0.86, easing: 'ease-in-out' },
-          { transform: 'translateY(0)' }
-        ], { duration: 560, delay: 720 });
+          { transform: 'translateY(0) scale(1)', easing: 'cubic-bezier(.3,0,.2,1)' },
+          { transform: 'translateY(' + (-lift) + 'px) scale(1.035)', offset: 0.42, easing: 'cubic-bezier(.4,0,.2,1)' },
+          { transform: 'translateY(0) scale(1)' }
+        ], { duration: 560, delay: 380 });
         await Promise.all([p1, p2]);
+        if (my !== token) return;
+        // chwila na złożony znak przed zmianą w ikonę (łącznie krócej niż dawny opad korony)
+        if (!fast) await wait(140);
         if (my !== token) return;
         // złożony znak: podmieniamy warstwy na całe godło (ten sam kształt, oryginalna kolejność)
         layers[2].style.opacity = '1';

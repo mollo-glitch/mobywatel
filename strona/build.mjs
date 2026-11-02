@@ -12,7 +12,7 @@ const APLIKACJA = path.resolve(ROOT, arg('aplikacja', '../aplikacja/dist/index.h
 const ZNAK = path.resolve(ROOT, arg('znak', '../aplikacja/docs/znak-spinki'));
 const FILM = path.resolve(ROOT, arg('film', 'film-web'));
 const OUT = path.join(ROOT, 'public');
-const APLIKACJA_MD5 = process.env.APLIKACJA_MD5 || '19104791e46ffa036dbbb307ac1070bf'; // runda 28: asystent AI zamiast reguł, nowy Profil
+const APLIKACJA_MD5 = process.env.APLIKACJA_MD5 || 'aa05f84856717a12399b0bc075fa888e'; // runda 29: rekordy dla AI na serwerze, Workers AI, korona godła
 // Wersja filmu: v9 (prawdziwy ekran aktualnej aplikacji, napisy plansz) domyślnie; v8 zostaje do porównania (--wersja-filmu v8).
 const WERSJA = /^v\d+$/.test(arg('wersja-filmu', 'v9')) ? arg('wersja-filmu', 'v9') : 'v9';
 const PLIKI = { mp4: 'spinka-film-' + WERSJA + '.mp4', plakat: 'spinka-film-' + WERSJA + '-plakat.jpg', vtt: 'spinka-film-' + WERSJA + '.pl.vtt' };
@@ -38,12 +38,17 @@ const znak = (stan, rozmiar) => {
     .replace('width="64" height="64"', 'width="' + rozmiar + '" height="' + rozmiar + '" aria-hidden="true" focusable="false"').trim();
 };
 
+const esc0 = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 let html = fs.readFileSync(path.join(ROOT, 'src/index.html'), 'utf8');
 html = html.replace(/<!--znak:([\w-]+):(\d+)-->/g, (_, s, r) => znak(s, +r));
 // Postać Spinki (rozwinięcie znaku: kartka ze spinką, bez twarzy). Jeden rysunek, stan wybiera klasa, ruch jest w CSS strony.
 const POSTAC = fs.readFileSync(path.join(ROOT, 'src/postac/spinka-postac.svg'), 'utf8').replace(/\n\s*/g, '');
 const STANY = ['spokoj', 'slucha', 'wyjasnia', 'ostrzega', 'krok', 'gotowe'];
 html = html.replace(/<!--postac:([\w-]+):(\d+)-->/g, (_, s, r) => { if (!STANY.includes(s)) stop('nieznany stan postaci: ' + s); return POSTAC.replace('STAN', s).replace('ROZMIAR', r).replace('ROZMIAR', r); });
+// Data w nagłówku otwarcia: zegar pokazowy aplikacji (src/data.js → rekordy asystenta w dist/index.html), żeby strona i aplikacja mówiły to samo.
+const dataPokazu = (String(app).match(/"dzis_slownie":"[^",]+, ([^"]+)"/) || [])[1];
+if (!dataPokazu) stop('nie znalazłem daty pokazu w aplikacji (dzis_slownie w rekordach asystenta)');
+html = html.replace(/<!--data-pokazu-->/g, esc0(dataPokazu) + ' r.');
 html = html.replace('<!--film:mp4-->', 'film/' + PLIKI.mp4);
 html = html.replace('<!--film:poster-->', jest('plakat') ? ' poster="film/' + PLIKI.plakat + '"' : '');
 html = html.replace('<!--film:preload-plakatu-->', jest('plakat') ? '<link rel="preload" href="film/' + PLIKI.plakat + '" as="image" fetchpriority="high">' : '');

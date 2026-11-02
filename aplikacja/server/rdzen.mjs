@@ -1,13 +1,20 @@
 /*
- * Rdzeń asystenta po stronie serwera, wspólny dla lokalnego serwera (gemini-adapter.mjs) i funkcji serwerowej
- * (funkcja-serwerowa.mjs). Bez zależności, bez dostępu do plików i bez zmiennych środowiskowych: klucz i ustawienia
- * przychodzą jako parametry. Tu jest jedyne miejsce, które zna format Gemini API.
+ * Rdzeń asystenta po stronie serwera, wspólny dla lokalnego serwera (serwer-lokalny.mjs) i funkcji serwerowej
+ * Cloudflare (funkcja-serwerowa.mjs). Bez dostępu do plików i bez zmiennych środowiskowych: dostęp do modelu,
+ * rekordy i ustawienia przychodzą jako parametry (cfg).
  *
- * - cleanContext: z kontekstu z przeglądarki zostają tylko znane pola, krótkie teksty, bez numerów osobistych.
+ * - Kontekst dla modelu powstaje WYŁĄCZNIE z rekordów serwera (dane-demo.mjs, fikcyjne, z datami policzonymi kodem)
+ *   i oczyszczonego stanu demonstracji (kontekst.mjs). Z przeglądarki do modelu trafia tylko pytanie (do 300 znaków)
+ *   i, po dopytaniu, poprzednie pytanie. Rekordy wysłane przez przeglądarkę są ignorowane.
  * - check: odpowiedź modelu jest przyjmowana tylko wtedy, gdy źródła i akcje są z listy, a każda liczba (data, kwota,
  *   liczba dni, rat) i nazwa miesiąca pochodzi z rekordu, na który odpowiedź się powołuje. Dzięki temu termin pisma
  *   nie „przejdzie” jako koniec polisy OC, a model nie wymyśli rat, kwot ani statusów.
+ * - Dostawcy: Cloudflare Workers AI (powiązanie AI w funkcji serwerowej albo REST API z tokenem przy teście lokalnym)
+ *   oraz Gemini API (tylko lokalne testy autora; warunki Google dla bezpłatnego poziomu wykluczają publiczne użycie w EOG).
  */
+import { zastosujStan } from './kontekst.mjs';
+
+export const LIMITY = { pytanie: 300, dopytanie: 220, odpowiedzZnakow: 2400, maxTokens: 800 };
 
 export const SCENARIOS = ['oc', 'pismo', 'nowyDowod', 'portfel', 'dane'];
 const SOURCE_RE = /^(todo|doc|case):[\w-]{1,40}$/;
@@ -90,6 +97,7 @@ export function rules(name) {
     'Zasady:',
     '1. Nie zgaduj. Daty, terminy, kwoty, raty, liczby i statusy podawaj tylko wtedy, gdy są w faktach źródła; wpisz je do „wiem” razem z nazwą dokumentu lub sprawy („Polisa OC Toyoty Yaris kończy się …”) i z id tego źródła w „zrodla”.',
     '2. W „krotko” piszesz własne objaśnienie (1–2 zdania). Jeśli podajesz w nim datę lub kwotę, musi to być ta sama wartość co w punkcie „wiem” z tym samym źródłem.',
+    '2a. Daty i liczby dni są już policzone w faktach („za 9 dni”, „dzisiaj” w polu dzis). Przepisuj je dokładnie; sam nic nie licz i nie przeliczaj dat.',
     '3. Czego nie ma w kontekście, wpisz do „nie_wiem”. Brak danych nie oznacza, że czegoś nie ma. Prototyp nie zna kredytów, leasingów, rat, sald ani długów spoza kontekstu.',
     '4. Rozróżniaj podobne rzeczy: polisa OC to ubezpieczenie, a nie kredyt ani leasing; raty składki OC to nie raty kredytu; termin odpowiedzi na pismo to nie koniec polisy; pismo z urzędu to nie rachunek.',
     '5. Gdy pytanie jest niejednoznaczne (np. „raty” bez wskazania czego, „termin” bez wskazania sprawy) i od wyjaśnienia zależy odpowiedź, ustaw rodzaj „dopytanie”, napisz krótko, czego nie wiesz, zadaj jedno pytanie i podaj do 3 krótkich opcji.',
@@ -151,7 +159,7 @@ export async function askGemini(cfg, question, ctx, earlier) {
     body: JSON.stringify({
       systemInstruction: { parts: [{ text: rules(cfg.name || 'Spinka') }] },
       contents: [{ role: 'user', parts: [{ text: JSON.stringify({ pytanie: question, poprzednio: earlier, kontekst: ctx }) }] }],
-      generationConfig: { temperature: 0.2, maxOutputTokens: 1024, responseMimeType: 'application/json', responseJsonSchema: schemaFor(ctx) }
+      generationConfig: { temperature: 0.2, maxOutputTokens: LIMITY.maxTokens, responseMimeType: 'application/json', responseJsonSchema: schemaFor(ctx) }
     })
   });
   let body = null;
@@ -171,13 +179,89 @@ export async function askGemini(cfg, question, ctx, earlier) {
 }
 
 // Wspólna obsługa POST /answer: dane wejściowe → odpowiedź { code, body } (bez I/O, bez logów treści).
+// cfg.dane: rekordy serwera (dane-demo.mjs). input: { pytanie, poprzednio?: { pytanie, dopytanie }, stan? }.
 export async function answer(cfg, input) {
-  const question = str(input && input.pytanie, 400);
-  const ctx = cleanContext(input && input.kontekst);
-  if (!question || !ctx) return { code: 400, body: { error: 'request' } };
+  const raw = input && typeof input.pytanie === 'string' ? input.pytanie.trim() : '';
+  if (raw.length > LIMITY.pytanie) return { code: 413, body: { error: 'too_long', max: LIMITY.pytanie } };
+  const question = str(raw, LIMITY.pytanie);
+  if (!question || !cfg.dane) return { code: 400, body: { error: 'request' } };
+  const ctx = zastosujStan(cfg.dane, input.stan);
   const p = input.poprzednio;
-  const earlier = p && typeof p === 'object' ? { pytanie: str(p.pytanie, 400), dopytanie: str(p.dopytanie, 220) } : null;
-  const v = check(await askGemini(cfg, question, ctx, earlier && earlier.pytanie ? earlier : null), ctx, question + ' ' + (earlier ? earlier.pytanie + ' ' + earlier.dopytanie : ''));
+  const earlier = p && typeof p === 'object' ? { pytanie: str(p.pytanie, LIMITY.pytanie), dopytanie: str(p.dopytanie, LIMITY.dopytanie) } : null;
+  const before = earlier && earlier.pytanie ? earlier : null;
+  const v = check(await askModel(cfg, question, ctx, before), ctx, question + ' ' + (before ? before.pytanie + ' ' + before.dopytanie : ''));
   if (!v.ok) return { code: 502, body: { error: 'invalid' }, why: v.why };
-  return { code: 200, body: { odpowiedz: v.a, model: cfg.model } };
+  return { code: 200, body: { odpowiedz: v.a, model: cfg.model, dostawca: cfg.providerName } };
+}
+
+export function askModel(cfg, question, ctx, earlier) {
+  return cfg.provider === 'workers-ai' ? askWorkersAi(cfg, question, ctx, earlier) : askGemini(cfg, question, ctx, earlier);
+}
+
+/*
+ * Cloudflare Workers AI. W funkcji serwerowej: powiązanie cfg.ai (env.AI), bez klucza w kodzie.
+ * Lokalnie (test autora): REST API z tokenem cfg.token i identyfikatorem konta cfg.accountId.
+ * JSON Mode (response_format json_schema); Workers AI nie gwarantuje zgodności ze schematem, więc i tak sprawdzamy.
+ */
+const SEKUNDY_DO_PÓŁNOCY_UTC = () => { const t = new Date(); return Math.max(60, Math.ceil((Date.UTC(t.getUTCFullYear(), t.getUTCMonth(), t.getUTCDate() + 1) - t.getTime()) / 1000)); };
+function klasyfikujBlad(status, text) {
+  const t = String(text || '');
+  if (/4006|daily free allocation|neurons/i.test(t)) return new AiError('limit_dzienny', SEKUNDY_DO_PÓŁNOCY_UTC());
+  if (/JSON Mode couldn.?t be met/i.test(t)) return new AiError('invalid');
+  // Model tylko dla Workers Paid: sprawdzane przed 401/403, bo dostawca może zwrócić ten komunikat z kodem 403.
+  if (/paid plan|requires.*workers paid|not available.*free|paid access required/i.test(t)) return new AiError('model_unavailable');
+  if (status === 401 || status === 403 || /authentication|unauthorized|10000\b/i.test(t)) return new AiError('bad_key');
+  if (status === 404 || /5007|no such model|model not found/i.test(t)) return new AiError('model_unavailable');
+  if (status === 429 || /3040|capacity|rate limit|too many requests/i.test(t)) return new AiError('limit', 60);
+  return new AiError('provider');
+}
+export function wyjmijJson(out) {
+  let v = out && typeof out === 'object' && 'result' in out && out.result && typeof out.result === 'object' ? out.result : out;
+  if (v && typeof v === 'object' && Array.isArray(v.choices) && v.choices[0] && v.choices[0].message) v = v.choices[0].message.content;
+  else if (v && typeof v === 'object' && 'response' in v) v = v.response;
+  if (v && typeof v === 'object') return v;
+  if (typeof v !== 'string') throw new AiError('invalid');
+  let t = v.replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/```(?:json)?/gi, '').trim();
+  const a = t.indexOf('{'); const b = t.lastIndexOf('}');
+  if (a < 0 || b <= a) throw new AiError('invalid');
+  try { return JSON.parse(t.slice(a, b + 1)); } catch (e) { throw new AiError('invalid'); }
+}
+export async function askWorkersAi(cfg, question, ctx, earlier) {
+  const payload = {
+    messages: [
+      { role: 'system', content: rules(cfg.name || 'Spinka') },
+      { role: 'user', content: JSON.stringify({ pytanie: question, poprzednio: earlier, kontekst: ctx }) }
+    ],
+    response_format: { type: 'json_schema', json_schema: schemaFor(ctx) },
+    max_tokens: LIMITY.maxTokens,
+    temperature: 0.2
+  };
+  const timeout = (ms) => new Promise((_, rej) => setTimeout(() => rej(new AiError('timeout')), ms));
+  if (cfg.ai && typeof cfg.ai.run === 'function') {
+    let out;
+    try { out = await Promise.race([cfg.ai.run(cfg.model, payload), timeout(cfg.timeoutMs)]); } catch (e) { throw e instanceof AiError ? e : klasyfikujBlad(0, e && e.message); }
+    return wyjmijJson(out);
+  }
+  if (!cfg.token || !cfg.accountId) throw new AiError('no_key');
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), cfg.timeoutMs);
+  let res;
+  try {
+    res = await fetch(cfg.base + '/accounts/' + encodeURIComponent(cfg.accountId) + '/ai/run/' + cfg.model, {
+      method: 'POST', signal: ctl.signal,
+      headers: { 'Authorization': 'Bearer ' + cfg.token, 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+  } catch (e) {
+    throw new AiError(ctl.signal.aborted ? 'timeout' : 'network');
+  } finally {
+    clearTimeout(timer);
+  }
+  let body = null; let text = '';
+  try { text = await res.text(); body = JSON.parse(text); } catch (e) { body = null; }
+  if (!res.ok || (body && body.success === false)) {
+    const msg = body && Array.isArray(body.errors) ? body.errors.map((x) => (x.code || '') + ' ' + (x.message || '')).join('; ') : text.slice(0, 300);
+    throw klasyfikujBlad(res.status, msg);
+  }
+  return wyjmijJson(body);
 }

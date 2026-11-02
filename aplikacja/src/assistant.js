@@ -1127,7 +1127,7 @@
     const why = AI.reasonText();
     const ids = detect(q).slice(0, 2);
     botState('off', (AI.available() ? '<b>Nie wysłałem tego pytania do modelu AI</b> (' + esc(why) + '). ' : '<b>Nie odpowiem na to pytanie: model AI nie jest podłączony</b> (' + esc(why || 'brak serwera z modelem') + '). ') +
-      'Nie podaję gotowych odpowiedzi zamiast AI. ' + (AI.available() ? 'Wysyłanie włączysz przełącznikiem pod moim imieniem albo w Profilu.' : 'Do odpowiedzi potrzebny jest serwer projektu z modelem językowym; szczegóły są w Profilu, w części „Twoje dane”.') +
+      'Nie podaję gotowych odpowiedzi zamiast AI. ' + (!AI.available() ? 'Do odpowiedzi potrzebny jest serwer projektu z modelem językowym; szczegóły są w Profilu, w części „Twoje dane”.' : !AI.sending() ? 'Wysyłanie włączysz przełącznikiem pod moim imieniem albo w Profilu.' : 'Po tej godzinie możesz zapytać jeszcze raz.') +
       '<span class="st-next">Możesz sam sprawdzić dane w aplikacji albo przejść ' + (ids.length ? 'pasujący ' : '') + 'scenariusz demonstracyjny (bez AI):</span>');
     placeChips(ids.length ? ids : ['pismo', 'oc']);
   }
@@ -1155,11 +1155,12 @@
   }
 
   /*
-   * Model AI (Gemini) przez serwer projektu: lokalny server/gemini-adapter.mjs albo funkcja serwerowa
-   * (server/funkcja-serwerowa.mjs) pod adresem wpisanym przy budowaniu. Bez serwera asystent nie odpowiada
+   * Model AI przez serwer projektu: lokalny server/serwer-lokalny.mjs albo funkcja serwerowa Cloudflare
+   * (server/funkcja-serwerowa.mjs, Workers AI) pod adresem wpisanym przy budowaniu. Bez serwera asystent nie odpowiada
    * na pytania własnymi słowami i mówi to wprost; scenariusze demonstracyjne działają lokalnie.
-   * Do serwera trafiają tylko: pytanie, po dopytaniu poprzednie pytanie, i fikcyjny kontekst demo (tytuły, krótkie opisy,
-   * terminy, statusy, możliwe kwoty) — bez imienia, PESEL-u, adresu, numerów dokumentów, tablic rejestracyjnych, polis i pełnej treści pism.
+   * Do serwera trafiają tylko: pytanie (do 300 znaków), po dopytaniu poprzednie pytanie, i stan demonstracji
+   * (które pozycje załatwiono, ustawione przypomnienia, statusy spraw z listy). Rekordy dla modelu ma serwer
+   * (server/dane-demo.mjs, ta sama kopia co A.kontekstSeed), więc z przeglądarki nie da się podsunąć modelowi innych „danych”.
    * Pierwsze wysłanie wymaga zgody (do zamknięcia karty). Odpowiedź jest sprawdzana na serwerze i tutaj: źródła tylko
    * z kontekstu, a każda liczba i nazwa miesiąca tylko z tego rekordu, na który odpowiedź się powołuje.
    */
@@ -1168,9 +1169,10 @@
     const raw = m ? String(m.content || '').trim() : '';
     const base = /^\/[\w\/-]+$/.test(raw) || /^https:\/\/[\w.-]+(:\d+)?(\/[\w\/-]*)?$/.test(raw) ? raw.replace(/\/+$/, '') : null;
     const cred = base && /^https:/.test(base) ? 'omit' : 'same-origin';
-    const REASON = { static: 'ta wersja nie ma serwera z modelem AI', no_key: 'serwer projektu nie ma klucza API', bad_key: 'serwer odrzucił klucz API', model_unavailable: 'model jest niedostępny', region: 'model jest niedostępny w tym regionie', server: 'brak połączenia z serwerem projektu', origin: 'serwer nie przyjmuje pytań z tej strony', off: 'wysyłanie pytań do modelu AI jest wyłączone' };
-    const SOON = { timeout: 'Model AI nie odpowiedział w wyznaczonym czasie', network: 'Serwer projektu nie połączył się z modelem AI (brak sieci)', server: 'Brak połączenia z serwerem projektu', provider: 'Dostawca modelu AI zwrócił błąd', invalid: 'Odpowiedź modelu AI nie zgadzała się z danymi aplikacji, więc jej nie pokazuję' };
-    const st = { status: base ? 'checking' : 'static', reason: base ? null : 'static', on: true, pausedUntil: 0, why: '', fails: 0, consent: false, clarify: null, timer: 0, provider: 'Google Gemini', plan: 'free', model: '' };
+    const REASON = { static: 'ta wersja nie ma serwera z modelem AI', no_key: 'serwer projektu nie ma dostępu do modelu AI', bad_key: 'serwer odrzucił klucz API', model_unavailable: 'model jest niedostępny', region: 'model jest niedostępny w tym regionie', server: 'brak połączenia z serwerem projektu', origin: 'serwer nie przyjmuje pytań z tej strony', off: 'wysyłanie pytań do modelu AI jest wyłączone' };
+    const SOON = { timeout: 'Model AI nie odpowiedział w wyznaczonym czasie', network: 'Serwer projektu nie połączył się z modelem AI (brak sieci)', server: 'Brak połączenia z serwerem projektu', provider: 'Dostawca modelu AI zwrócił błąd', invalid: 'Odpowiedź modelu AI nie zgadzała się z danymi aplikacji, więc jej nie pokazuję', too_long: 'Pytanie jest za długie' };
+    const MAXQ = 300;
+    const st = { status: base ? 'checking' : 'static', reason: base ? null : 'static', on: true, pausedUntil: 0, why: '', fails: 0, consent: false, clarify: null, timer: 0, provider: 'model AI', plan: 'free', model: '' };
     try { if (sessionStorage.getItem('asystent-ai') === 'off') st.on = false; if (sessionStorage.getItem('asystent-ai-zgoda') === 'tak') st.consent = true; } catch (e) { /* bez pamięci sesji */ }
     const remember = (k, v) => { try { sessionStorage.setItem(k, v); } catch (e) { /* bez pamięci sesji */ } };
 
@@ -1211,10 +1213,14 @@
       paint();
     }
 
+    // Co i dokąd trafia. Zdanie o dostawcy zależy od tego, kto obsługuje model (dane z /status serwera).
     function disclosure() {
-      return 'Pytanie i fikcyjne dane z tej aplikacji (tytuły spraw i dokumentów, krótkie opisy, terminy, statusy, możliwe kwoty) trafią przez serwer projektu do ' + esc(st.provider) + '. ' +
-        'Nie trafiają: imię, nazwisko, PESEL, adres, numery dokumentów, tablice rejestracyjne, numer polisy, pełna treść pism ani historia rozmowy. ' +
-        'Jak dostawca przetwarza te dane, określają jego warunki' + (st.plan === 'free' ? ' (bezpłatny poziom)' : '') + '. Nie wpisuj prawdziwych danych osobowych.';
+      const cf = /cloudflare/i.test(st.provider);
+      const g = /gemini|google/i.test(st.provider);
+      return 'Pytanie (do ' + MAXQ + ' znaków) trafi do serwera projektu, a stamtąd do ' + esc(st.provider) + ' razem z fikcyjnymi rekordami tej demonstracji: tytułami spraw i dokumentów, krótkimi opisami, terminami policzonymi przez aplikację, statusami i możliwymi kwotami. ' +
+        'Z rozmowy trafia tylko bieżące pytanie, a gdy dopytuję, także poprzednie. Nie trafiają: imię, nazwisko, PESEL, adres, numery dokumentów, tablice rejestracyjne, numer polisy ani pełna treść pism. ' +
+        (cf ? 'Cloudflare zastrzega w zasadach Workers AI, że nie używa tych treści do trenowania modeli. ' : g && st.plan === 'free' ? 'Na bezpłatnym poziomie Google może wykorzystywać te treści do ulepszania swoich usług. ' : 'Jak dostawca przetwarza te dane, określają jego warunki. ') +
+        'Nie wpisuj prawdziwych danych osobowych.';
     }
     // Zgoda przed pierwszym pytaniem do modelu. „Nie wysyłaj” wyłącza wysyłanie do zamknięcia karty.
     function askConsent(q, go) {
@@ -1254,34 +1260,28 @@
           if (j && typeof j.provider === 'string') st.provider = j.provider.slice(0, 40);
           if (j && typeof j.model === 'string') st.model = j.model.slice(0, 40);
           if (j && (j.plan === 'free' || j.plan === 'paid')) st.plan = j.plan;
-          if (j && j.pausedFor > 0) pause(j.pausedFor, 'limit zapytań');
+          if (j && j.pausedFor > 0) pause(j.pausedFor, j.pauseKind === 'limit_dzienny' ? 'wyczerpana dzienna pula modelu' : 'limit zapytań');
         })
         .catch(() => { st.status = 'off'; st.reason = 'server'; })
         .then(() => { clearTimeout(timer); paint(); });
     })();
 
-    // Fikcyjny kontekst demo: tylko pola z listy. Bez osoby, numerów dokumentów, tablic, polis i treści pism.
-    const SAFE_ROWS = ['Ważny do', 'Ważne do', 'Ważna do', 'Data wydania', 'Wydał', 'Kategorie', 'Punkty karne', 'Marka i model', 'Ubezpieczenie OC', 'OC ważne do', 'Badanie techniczne do'];
+    // Stan demonstracji: jedyna zmienna część kontekstu, którą przeglądarka wysyła (serwer sprawdza id, daty i statusy).
     const two = (n) => (n < 10 ? '0' : '') + n;
     const iso = (d) => d.getFullYear() + '-' + two(d.getMonth() + 1) + '-' + two(d.getDate());
-    const when = (d) => { const n = T.inDays(d); return T.fmt(d) + ' (' + T.fmtLong(d) + ', ' + (n >= 0 ? 'za ' + T.dni(n) : T.dni(-n) + ' temu') + ')'; };
-    function demoContext() {
-      const z = [];
-      (A.todo || []).forEach((t) => {
-        const f = [t.kind === 'Pismo' ? 'Od: ' + t.from : null, t.what, t.due ? (t.dueLabel || 'Termin') + ': ' + when(t.due) : null, t.dueNote,
-          t.amount ? 'Możliwa kwota: ' + t.amount.text + ', ' + t.amount.when : null, t.why, t.next, t.reminder ? 'Przypomnienie ustawione na ' + T.fmt(t.reminder) : null];
-        z.push({ id: 'todo:' + t.id, rodzaj: t.group === 'info' ? 'informacja' : t.kind === 'Pismo' ? 'pismo' : 'termin', tytul: t.title, fakty: f.filter(Boolean) });
-      });
-      (A.docs || []).forEach((d) => {
-        const rows = (d.rows || []).filter((r) => SAFE_ROWS.indexOf(r[0]) >= 0).map((r) => r[0] + ': ' + r[1]);
-        z.push({ id: 'doc:' + d.id, rodzaj: 'dokument', tytul: d.name, fakty: [d.status ? 'Status: ' + d.status.text : null].concat(rows, [d.note]).filter(Boolean) });
-      });
-      (A.cases || []).forEach((c) => {
-        z.push({ id: 'case:' + c.id, rodzaj: 'sprawa', tytul: c.title, fakty: ['Status: ' + c.statusText, c.steps ? 'Etap ' + c.step + ' z ' + c.steps : null,
-          c.due ? (c.dueWhat ? c.dueWhat.charAt(0).toUpperCase() + c.dueWhat.slice(1) : 'Termin') + ': ' + when(c.due) : null, c.note, c.next].filter(Boolean) });
-      });
-      return { dzis: iso(T.today), dzis_slownie: T.fmtLong(T.today) + ' ' + T.today.getFullYear(), zrodla: z.slice(0, 16) };
+    function stanDemo() {
+      const seed = (A.kontekstSeed && A.kontekstSeed.zrodla) || [];
+      const live = (A.todo || []).map((t) => 'todo:' + t.id);
+      const przypomnienia = {};
+      (A.todo || []).forEach((t) => { if (t.reminder) przypomnienia['todo:' + t.id] = iso(t.reminder); });
+      return {
+        bez: seed.filter((z) => z.id.indexOf('todo:') === 0 && live.indexOf(z.id) < 0).map((z) => z.id),
+        przypomnienia: przypomnienia,
+        sprawy: (A.cases || []).filter((c) => A.kontekst.STATUSY.indexOf(c.statusText) >= 0).map((c) => ({ id: c.id, status: c.statusText }))
+      };
     }
+    // Ten sam kod i te same rekordy co na serwerze (server/kontekst.mjs + server/dane-demo.mjs, wklejone przy budowaniu).
+    function demoContext() { return A.kontekst.zastosujStan(A.kontekstSeed, stanDemo()); }
 
     // Drugie sprawdzenie w przeglądarce (pierwsze robi serwer): kształt, źródła z kontekstu i — najważniejsze —
     // każda liczba (data, kwota, liczba dni) i nazwa miesiąca tylko z tego rekordu, na który odpowiedź się powołuje.
@@ -1320,11 +1320,12 @@
     }
 
     async function answer(text, bubble) {
+      if (String(text).trim().length > MAXQ) return { ok: false, error: 'too_long' };
       if (bubble) bubble.querySelector('.bubble').insertAdjacentHTML('beforeend', '<span class="said remote">' + ic('info', 20) + 'wysłane do modelu AI (' + esc(st.provider) + ')</span>');
       const ctx = demoContext();
       const earlier = st.clarify;
       st.clarify = null;
-      const body = { pytanie: String(text).slice(0, 400), kontekst: ctx };
+      const body = { pytanie: String(text).trim(), stan: stanDemo() };
       if (earlier) body.poprzednio = earlier;
       const ctl = new AbortController();
       const timer = setTimeout(() => ctl.abort(), 20000);
@@ -1354,9 +1355,13 @@
         return;
       }
       let msg;
-      if (e === 'limit' || e === 'local_limit') {
-        pause(r.retryAfter, e === 'limit' ? 'limit dostawcy' : 'limit serwera projektu');
-        msg = (e === 'limit' ? 'Wyczerpał się limit zapytań do modelu AI.' : 'Serwer projektu ogranicza liczbę zapytań do modelu AI.') + ' Do ' + hhmm(st.pausedUntil) + ' nie wysyłam pytań.';
+      if (e === 'too_long') {
+        botState('err', 'Nie wysłałem pytania: ma ' + String(q).trim().length + ' znaków, a model przyjmuje najwyżej ' + MAXQ + '. Skróć je i zapytaj jeszcze raz.');
+        return;
+      }
+      if (e === 'limit' || e === 'local_limit' || e === 'limit_dzienny') {
+        pause(r.retryAfter, e === 'limit_dzienny' ? 'wyczerpana dzienna pula modelu' : e === 'limit' ? 'limit dostawcy' : 'limit serwera projektu');
+        msg = (e === 'limit_dzienny' ? 'AI niedostępne: wyczerpała się dzienna bezpłatna pula modelu (' + st.provider + ').' : e === 'limit' ? 'AI niedostępne: wyczerpał się limit zapytań do modelu.' : 'Serwer projektu ogranicza liczbę zapytań do modelu AI.') + ' Do ' + hhmm(st.pausedUntil) + ' nie wysyłam pytań.';
       } else if (e === 'invalid') {
         // Treść niezgodna z danymi to nie awaria: nie wstrzymujemy AI, można zapytać inaczej.
         msg = SOON.invalid + '. Możesz zapytać inaczej albo sprawdzić dane w aplikacji.';

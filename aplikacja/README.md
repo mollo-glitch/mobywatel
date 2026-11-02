@@ -9,8 +9,8 @@ Klikalny prototyp koncepcyjny. Aplikacja zaczyna od pytania „Co chcesz załatw
 Sekwencja, około 2,4 s animacji i chwila na odczyt; od czerwonego ekranu do wyboru osoby około 3,2 s:
 
 1. Cały ekran wypełnia jednolita czerwień (widoczna od pierwszej klatki, bez mignięcia aplikacji).
-2. Biały orzeł z godła wznosi się z dołu ekranu i zatrzymuje na środku.
-3. Z góry opada korona i delikatnie osiada na głowie orła (osobna warstwa tylko na czas ruchu; potem pokazujemy złożone godło w oryginalnej kolejności warstw).
+2. Biały orzeł z koroną wznosi się z dołu ekranu i zatrzymuje na środku. Ruch dostaje cały element znaku, więc orzeł i korona mają w każdej klatce to samo przesunięcie (także przy wolnym renderowaniu).
+3. Korona osiada: gdy orzeł hamuje, korona przez bezwładność unosi się o ok. 1% wysokości znaku i lekko rośnie od podstawy, potem osiada. Podstawa zostaje na głowie (w spoczynku korona zachodzi na głowę o ok. 1,2% wysokości znaku, a uniesienie jest mniejsze). Do rundy 28 korona spadała osobno z góry ekranu (ok. 550 px lotu), co wyglądało, jakby odpadła od orła; porównanie klatek i test `testy/runda-29/godlo-test.js`. Korona jest osobną warstwą tylko na czas ruchu; potem pokazujemy złożone godło w oryginalnej kolejności warstw.
 4. Czerwień kurczy się do kwadratowej ikony aplikacji, tło wokół robi się białe.
 5. Ikona przesuwa się w lewo, a po prawej odsłania się napis „mObywatel”.
 6. Gotowy znak z nazwą stoi chwilę.
@@ -43,33 +43,45 @@ Asystent nazywa się **Spinka** i ma własny znak: dwie kartki sprawy spięte cz
 
 ## Asystent: pytania własnymi słowami (AI)
 
-Runda 28: gotowe reguły, które udawały rozmowę (rozpoznawanie intencji i przygotowane odpowiedzi na „Mam długi?”, „Ile rat…” itd.), zostały **usunięte**. Pytania własnymi słowami obsługuje wyłącznie model językowy przez serwer projektu. Scenariusze krok po kroku (pismo, OC, portfel, nowy dowód, dostęp do danych) zostają: to prowadzone ścieżki demonstracyjne uruchamiane przyciskami, nie rozmowa.
+Runda 28: gotowe reguły, które udawały rozmowę, zostały **usunięte**. Pytania własnymi słowami obsługuje wyłącznie model językowy przez serwer projektu. Scenariusze krok po kroku (pismo, OC, portfel, nowy dowód, dostęp do danych) zostają: to prowadzone ścieżki demonstracyjne uruchamiane przyciskami, nie rozmowa.
 
-**Bez serwera** (plik statyczny, GitHub Pages bez funkcji serwerowej): nagłówek „Model AI niepodłączony”. Na wpisane pytanie asystent odpowiada jasnym stanem: „Nie odpowiem na to pytanie: model AI nie jest podłączony… Nie podaję gotowych odpowiedzi zamiast AI”, i daje przyciski do „Do załatwienia”, „Dokumenty” oraz do scenariusza, którego nazwa pasuje do wpisanych słów (np. „Zacznij: Koniec polisy OC”). Słowa kluczowe służą tylko do tej podpowiedzi. Nic nie jest wysyłane.
+**Bez serwera** (plik statyczny, GitHub Pages bez funkcji serwerowej): nagłówek „Model AI niepodłączony”. Na wpisane pytanie asystent odpowiada jasnym stanem: „Nie odpowiem na to pytanie: model AI nie jest podłączony… Nie podaję gotowych odpowiedzi zamiast AI”, i daje przyciski do „Do załatwienia”, „Dokumenty” oraz do scenariusza, którego nazwa pasuje do wpisanych słów. Słowa kluczowe służą tylko do tej podpowiedzi. Nic nie jest wysyłane.
 
-**Z serwerem** (`server/gemini-adapter.mjs` lokalnie albo `server/funkcja-serwerowa.mjs` dla strony statycznej):
+**Z serwerem** (`server/serwer-lokalny.mjs` lokalnie albo `server/funkcja-serwerowa.mjs` jako funkcja Cloudflare dla strony statycznej):
 
-- **Zgoda przed pierwszym wysłaniem:** karta „Wysłać to pytanie do modelu AI?” z listą, co trafia (pytanie, tytuły spraw i dokumentów, krótkie opisy, terminy, statusy, możliwe kwoty) i czego nie ma (imię, nazwisko, PESEL, adres, numery dokumentów, tablice, numer polisy, pełna treść pism, historia rozmowy). Pytanie czeka na „Wyślij do modelu AI”. „Nie wysyłaj” wyłącza wysyłanie do zamknięcia karty. Zgodę można cofnąć w Profilu.
-- **Odpowiedź w dwóch warstwach:** „Objaśnienie modelu AI” (tekst modelu, podpisany) oraz „Dane z aplikacji, na których oparto odpowiedź”: karty z rekordów aplikacji (sprawa, dokument, termin), których treść pochodzi z danych, nie z modelu. Punkty „Z danych aplikacji” mają źródło w nawiasie, „Tego w danych nie ma” mówi, czego brakuje.
-- **Niejednoznaczne pytanie** („raty?”, „Jaki termin?”): model mówi, czego nie wie, i dopytuje (np. „Chodzi o raty kredytu czy o raty składki OC?”) z przyciskami.
-- **Sprawdzenie odpowiedzi** (`server/rdzen.mjs`, `check()`; drugi raz w przeglądarce): źródła i akcje tylko z listy; **każda liczba (data, kwota, liczba dni, rat) i nazwa miesiąca musi pochodzić z rekordu, na który punkt się powołuje**, a w objaśnieniu tylko z rekordów zacytowanych w odpowiedzi. Termin pisma (7.11) podany jako koniec polisy OC (4.11), „14 rat po 650 zł” bez danych, „Sprawdziłem w BIK”, „Ustawiłem przypomnienie”, linki i dane osobowe: odpowiedź odrzucona. Odrzuconej odpowiedzi nie zastępuje gotowy tekst: aplikacja mówi, że odpowiedź nie zgadzała się z danymi, i proponuje zapytać inaczej.
+- **Rekordy są na serwerze (runda 29).** `build.mjs` buduje z `src/data.js` ograniczony zestaw fikcyjnych rekordów (`server/dane-demo.mjs`: 11 pozycji, tytuły, krótkie opisy, terminy z „za … dni” **policzonymi kodem** od daty pokazu). Przeglądarka wysyła tylko pytanie (do 300 znaków), po dopytaniu poprzednie pytanie, i krótki **stan demonstracji**: które pozycje „Do załatwienia” załatwiono, ustawione przypomnienia, statusy spraw z zamkniętej listy. Serwer sprawdza każde id, datę i status (`server/kontekst.mjs`) i składa z tego kontekst. Rekordy przysłane z przeglądarki są ignorowane, więc endpointu nie da się użyć jako ogólnego czatu z własnymi „danymi”. Ten sam kod i ta sama kopia rekordów są wklejane do aplikacji, więc podgląd w Profilu jest identyczny z tym, co dostaje model (test `asystent-workers-test.js`).
+- **Zgoda przed pierwszym wysłaniem:** karta „Wysłać to pytanie do modelu AI?” z nazwą dostawcy, listą tego, co trafia i czego nie ma (imię, nazwisko, PESEL, adres, numery dokumentów, tablice, numer polisy, pełna treść pism; z rozmowy tylko bieżące pytanie, a po dopytaniu także poprzednie) i zdaniem o zasadach dostawcy. „Nie wysyłaj” wyłącza wysyłanie do zamknięcia karty. Zgodę można cofnąć w Profilu.
+- **Odpowiedź w dwóch warstwach:** „Objaśnienie modelu AI” (tekst modelu, podpisany) oraz „Dane z aplikacji, na których oparto odpowiedź”: karty z rekordów aplikacji, których treść pochodzi z danych, nie z modelu. Punkty „Z danych aplikacji” mają źródło w nawiasie, „Tego w danych nie ma” mówi, czego brakuje.
+- **Niejednoznaczne pytanie** („raty?”, „Jaki termin?”): model ma powiedzieć, czego nie wie, i dopytać (np. „Chodzi o raty kredytu czy o raty składki OC?”).
+- **Sprawdzenie odpowiedzi** (`server/rdzen.mjs`, `check()`; drugi raz w przeglądarce): źródła i akcje tylko z listy; **każda liczba (data, kwota, liczba dni, rat) i nazwa miesiąca musi pochodzić z rekordu, na który punkt się powołuje**. Termin pisma podany jako koniec polisy OC, wymyślone raty, „Sprawdziłem w BIK”, „Wysłałem”, PESEL, linki: odpowiedź odrzucona i niezastąpiona gotowym tekstem.
+- **Limity:** pytanie do 300 znaków (dłuższe nie jest wysyłane, asystent mówi, ile znaków ma pytanie), zapytanie do serwera do 4 KB, odpowiedź modelu do 800 tokenów, z rozmowy tylko jedno poprzednie pytanie.
 - **Zmiany stanu tylko po potwierdzeniu:** model może zaproponować otwarcie rekordu albo scenariusz; scenariusz przed każdą zmianą pokazuje podsumowanie z „Potwierdź”.
-- **Błędy:** brak klucza, odrzucony klucz, niedostępny model lub region → stan „niepodłączony” z powodem. Limit dostawcy (429) albo lokalny → „Do HH:MM nie wysyłam pytań”. Brak sieci, przekroczony czas, błąd dostawcy → komunikat i „Zapytaj jeszcze raz”; dwa takie błędy z rzędu wstrzymują AI na 2 minuty. Nigdy odpowiedź z reguł.
+- **Błędy = „AI niedostępne”, nigdy reguły:** brak dostępu do modelu, odrzucony token/klucz, model niedostępny w planie → stan „niepodłączony” z powodem. Wyczerpana dzienna pula Workers AI → „AI niedostępne: wyczerpała się dzienna bezpłatna pula modelu… Do HH:MM nie wysyłam pytań” (do 00:00 UTC, czyli 01:00 czasu polskiego zimą). Limit dostawcy albo serwera → „Do HH:MM nie wysyłam pytań”. Brak sieci, przekroczony czas, błąd dostawcy → komunikat i „Zapytaj jeszcze raz”; dwa takie błędy z rzędu wstrzymują AI na 2 minuty.
 
-## Model AI: konfiguracja, koszty i warunki
+## Model AI: dostawca, konfiguracja, koszty i warunki
 
-**Architektura.** Klucz API jest tylko na serwerze: zmienna środowiskowa albo `.env` (lokalnie) lub sekret funkcji serwerowej (Cloudflare Workers). Nie trafia do `src/`, `dist/`, HTML, repozytorium ani logów. Rdzeń (`server/rdzen.mjs`: czyszczenie kontekstu, instrukcja dla modelu, schemat JSON, sprawdzenie odpowiedzi, wywołanie Gemini) jest wspólny dla obu serwerów.
+**Wybór (runda 29): Cloudflare Workers AI, model `@cf/google/gemma-4-26b-a4b-it`, plan Workers Free.** Źródło: dokumentacja Cloudflare (strony `workers-ai/platform/pricing`, `platform/limits`, `platform/data-usage`, strona modelu i `workers/platform/limits`, czytane 2.11.2026 przez indeks dokumentacji Context7, bo `developers.cloudflare.com` i `ai.google.dev` są zablokowane w środowisku pracy). Przed wdrożeniem sprawdź je u źródła.
 
-- **Lokalnie:** `cp .env.example .env` (wpisz `GEMINI_API_KEY`), `node build.mjs`, `node server/gemini-adapter.mjs` → http://127.0.0.1:8080. Serwer wstawia adres `/api/assistant` do strony, sprawdza model przy starcie i ma limity 8/min i 200/dzień.
-- **Strona statyczna + funkcja serwerowa:** `server/funkcja-serwerowa.mjs` (Cloudflare Workers): `cp server/wrangler.toml.example server/wrangler.toml` (adres strony w `DOZWOLONE_ZRODLA`), `npx wrangler secret put GEMINI_API_KEY`, `npx wrangler deploy`, potem `ASSISTANT_ENDPOINT=https://<funkcja>/api/assistant node build.mjs` (adres trafia do `<meta name="assistant-endpoint">`, klucz nie). Funkcja przyjmuje pytania tylko z adresów z `DOZWOLONE_ZRODLA` (CORS) i nie loguje treści. Limity w pamięci funkcji są pomocnicze; docelowo ustaw też regułę limitu zapytań w Cloudflare.
-- Zmienne: `GEMINI_API_KEY`, `GEMINI_MODEL` (domyślnie `gemini-3.1-flash-lite`; nazwy modeli się zmieniają), `GEMINI_PLAN` (`free`/`paid`, tylko do opisu w aplikacji), `AI_MAX_PER_MINUTE`, `AI_MAX_PER_DAY`, `GEMINI_TIMEOUT_MS`, `HOST`, `PORT`, `GEMINI_API_BASE` (tylko testy z atrapą).
+- **Bezpłatnie:** 10 000 neuronów dziennie na konto, reset o 00:00 UTC. Na planie Workers Free nie ma dopłat: po wyczerpaniu puli zapytania kończą się błędem, a asystent pokazuje „AI niedostępne”. Powyżej puli płaci się tylko na Workers Paid (0,011 USD za 1000 neuronów); nie włączaj go bez decyzji o kosztach.
+- **Model:** Gemma 4 26B A4B (licencja Gemma 4), 256 tys. tokenów kontekstu, cena 9091 neuronów za 1 mln tokenów wejścia i 27 273 za 1 mln wyjścia. Nie ma go na liście modeli wymagających planu płatnego (Kimi K2.6/K2.7, GLM 5.x, DeepSeek V4). Jedno pytanie to ok. 2,5 tys. tokenów wejścia (7,3 KB) i do 800 wyjścia, czyli ok. 25–45 neuronów: **ok. 200–400 pytań dziennie za darmo**. Wydajność modelu po polsku nie była sprawdzona na prawdziwym modelu (patrz niżej).
+- **Limity:** Workers AI: 300 zapytań/min dla modeli tekstowych; Workers Free: 100 000 zapytań dziennie do funkcji, 10 ms CPU na zapytanie (czekanie na model się nie liczy). Funkcja projektu: 6 pytań/min z adresu IP (powiązanie Rate Limiting po stronie Cloudflare i licznik w pamięci), 150 dziennie na instancję (przybliżone), tylko adresy z `DOZWOLONE_ZRODLA`.
+- **Dane:** według zasad Workers AI Cloudflare nie udostępnia treści innym klientom i nie używa ich do trenowania modeli ani ulepszania usług bez wyraźnej zgody; treść nie jest przechowywana, jeśli nie użyje się osobnego magazynu (projekt nie używa). Do modelu trafiają tylko fikcyjne rekordy demonstracji i pytanie.
+- **Gemini (zostaje tylko do lokalnych testów autora):** strona cennika Gemini API mówi wprost, że na bezpłatnym poziomie treści są używane do ulepszania produktów Google. Zasady dla EOG (aplikacje udostępniane użytkownikom w EOG, Szwajcarii i Wielkiej Brytanii tylko na usługach płatnych) zna projekt z rundy 28 z wyszukiwarki; w tej rundzie indeks dokumentacji nie zwrócił tego akapitu, a strona warunków była zablokowana. Gemini nie jest więc wybrany dla publicznej strony.
 
-**Koszty, limity i warunki (stan sprawdzony 2.11.2026; `ai.google.dev` było zablokowane w środowisku pracy, więc źródłem były wyniki wyszukiwarki cytujące warunki Gemini API i cenniki; przed uruchomieniem sprawdź u źródła):**
+**Wdrożenie funkcji Cloudflare (bez klucza w kodzie):**
 
-- **Warunki dla EOG:** według dodatkowych warunków Gemini API aplikację udostępnianą użytkownikom w EOG, Szwajcarii lub Wielkiej Brytanii wolno opierać **tylko na usługach płatnych** (projekt Google Cloud z aktywnym kontem rozliczeniowym). Bezpłatny poziom nadaje się do lokalnych testów i nagrania pokazu przez autora, nie do publicznej strony dla użytkowników w Polsce.
-- **Dane:** na bezpłatnym poziomie Google może wykorzystywać treści do ulepszania usług (z udziałem ludzi); według warunków dla użytkowników z EOG zasady przetwarzania z usług płatnych obejmują też bezpłatny poziom. Do modelu trafiają wyłącznie fikcyjne dane demonstracyjne.
-- **Limity bezpłatnego poziomu** zależą od modelu i projektu i zmieniają się; aktualne pokazuje Google AI Studio. Serwer ma własne, niższe limity.
-- **Koszt płatnego planu (rząd wielkości):** modele Flash-Lite według cenników to ok. 0,10–0,30 USD za 1 mln tokenów wejścia i 0,40–2,50 USD za 1 mln tokenów wyjścia, zależnie od wersji. Jedno pytanie z kontekstem demo to ok. 2–3 tys. tokenów wejścia i do 1 tys. wyjścia, czyli setne części centa; 1000 pytań to rząd 1–3 USD. Rozliczeń nie włączono w tym projekcie: to decyzja właściciela konta.
+```bash
+node build.mjs                                   # także server/dane-demo.mjs
+cd server && cp wrangler.toml.example wrangler.toml   # wpisz DOZWOLONE_ZRODLA = adres strony
+npx wrangler login                               # logowanie do Twojego konta (plan Workers Free)
+npx wrangler deploy                              # → https://spinka-asystent.<konto>.workers.dev
+cd .. && ASSISTANT_ENDPOINT=https://spinka-asystent.<konto>.workers.dev/api/assistant node build.mjs
+node testy/runda-29/prawdziwy-model-test.mjs https://spinka-asystent.<konto>.workers.dev/api/assistant --origin https://mollo-glitch.github.io
+```
+
+Model działa przez powiązanie `AI` konta, więc nie ma klucza do ukrycia. `wrangler.toml` jest w `.gitignore`.
+
+**Lokalnie (test autora na prawdziwym modelu):** `cp .env.example .env`, wpisz `CF_ACCOUNT_ID` i `CF_API_TOKEN` (token z szablonu „Workers AI”), `node build.mjs`, `node server/serwer-lokalny.mjs` → http://127.0.0.1:8080, potem `node testy/runda-29/prawdziwy-model-test.mjs`. Token jest tylko w `.env` (w `.gitignore`), idzie wyłącznie w nagłówku do api.cloudflare.com. `server/gemini-adapter.mjs` zostaje dla zgodności: ten sam serwer, domyślnie z Gemini.
 
 ## Profil (runda 28)
 
@@ -327,12 +339,15 @@ src/carousel.js   karuzela po okręgu
 src/assistant.js  rozmowa: model AI przez serwer albo jasny stan „niepodłączony”, zgoda, karty danych, scenariusze, podsumowania
 src/wariant-postaci.js  postać Spinki zamiast znaku, tylko w dist/wariant-postaci.html (node build.mjs --wariant-postaci)
 src/app.js        ekrany, nawigacja, koperty, ekran startowy, głos, ustawienia
-server/rdzen.mjs           rdzeń asystenta: czyszczenie kontekstu, instrukcja dla modelu, schemat, sprawdzenie odpowiedzi, wywołanie Gemini
-server/gemini-adapter.mjs  lokalny serwer projektu z modelem AI (patrz „Model AI: konfiguracja, koszty i warunki”)
-server/funkcja-serwerowa.mjs, server/wrangler.toml.example  funkcja serwerowa (Cloudflare Workers) dla strony statycznej
+server/rdzen.mjs           rdzeń asystenta: instrukcja dla modelu, schemat, sprawdzenie odpowiedzi, wywołanie Workers AI i Gemini, limity
+server/kontekst.mjs        kontekst dla modelu z rekordów serwera i sprawdzonego stanu demonstracji (wklejany też do aplikacji)
+server/dane-demo.mjs       fikcyjne rekordy dla modelu, generowane przez build.mjs z src/data.js (nie edytuj ręcznie)
+server/serwer-lokalny.mjs  lokalny serwer projektu z modelem AI (Workers AI przez REST albo Gemini); gemini-adapter.mjs: zgodność
+server/funkcja-serwerowa.mjs, server/wrangler.toml.example  funkcja serwerowa Cloudflare (Workers AI, limit zapytań) dla strony statycznej
 .env.example               wzór ustawień serwera bez sekretu (kopiuj do .env, który jest w .gitignore)
 .gitignore                 ignoruje .env i pliki lokalne
 build.mjs         składa wszystko w dist/index.html i dist/artifact.html
+testy/runda-29/   testy rundy 29: godło (godlo-test.js), serwer z atrapą (serwer-test.mjs), asystent z atrapą Workers AI (asystent-workers-test.js), test na prawdziwym modelu (prawdziwy-model-test.mjs, wymaga konta); atrapa: atrapa-modelu.mjs
 testy/runda-28/   testy rundy 28: rdzeń asystenta (rdzen-test.mjs), asystent bez serwera i z atrapą Gemini, Profil (asystent-profil-test.js), znak (znak-test.js); atrapa: atrapa-gemini.mjs
 testy/runda-27/   testy rundy 27; regresja poprawek rundy 25 przechodzi na buildzie rundy 28, testy trybu AI i znaku zakładają odpowiedzi z reguł (usunięte w rundzie 28)
 testy/runda-26/   testy buildu rundy 26 (b54aa1f8, „Pola”); na bieżącym buildzie sprawdzenia postaci nie przejdą, bo szukają „Poli”

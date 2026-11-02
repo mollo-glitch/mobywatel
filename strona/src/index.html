@@ -98,30 +98,48 @@ img { max-width: 100%; height: auto; }
 .btn-cichy:hover { color: var(--czerwien-ciemna); }
 .btn-cichy[hidden] { display: none; }
 
-/* Otwarcie: tytuł na całą szerokość, pod nim film przypięty spinką i opis z działaniami.
-   Na dużym ekranie opis po lewej, film po prawej. Na telefonie i tablecie film zaraz pod tytułem, potem
-   „Otwórz demo” i skróty, niżej opis i autor: przy 320×568 film, „Pomiń film”, przycisk i skróty mieszczą się bez przewijania. */
-.hero { position: relative; z-index: 0; overflow-x: clip; padding: clamp(12px, 4vw, 56px) 0 var(--sekcja); }
+/* Otwarcie jako pierwsza strona pisma: tytuł jak temat sprawy, w prawym górnym rogu nagłówek pisma (data z prototypu
+   i „W sprawie”), pod spodem film bez ramki-kartki, z paskiem postępu, na którym spinka pokazuje, gdzie jesteś, i spisem scen.
+   Na dużym ekranie opis i podpis po lewej, film po prawej. Na telefonie film zaraz pod tytułem, potem „Otwórz demo”, skróty
+   i podpis: przy 320×568 film, „Pomiń film”, przycisk i skróty mieszczą się bez przewijania; nagłówek pisma i sceny są niżej. */
+.hero { position: relative; z-index: 0; overflow-x: clip; padding: clamp(12px, 3.4vw, 48px) 0 var(--sekcja); }
 main { position: relative; z-index: 0; }
-.hero-tytul { font-size: var(--t-tytul); line-height: 1; letter-spacing: -.02em; }
+.hero-glowa { display: grid; gap: 20px; }
+.hero-tytul { font-size: var(--t-tytul); line-height: .98; letter-spacing: -.025em; }
 .hero-tytul .linia { display: block; }
-.hero-uklad { display: grid; margin-top: clamp(14px, 3vw, 44px); }
+/* Nagłówek pisma: dwa wiersze jak w urzędowym piśmie (data, „W sprawie”), cienka linia, bez ramki i bez pogrubień. */
+.pismo-glowa { margin: 0; display: grid; gap: 10px; font-size: var(--t-drobne); line-height: 1.4; color: var(--szary); }
+.pismo-glowa div { display: grid; gap: 2px; padding-top: 10px; border-top: 1px solid rgba(19, 26, 42, .22); }
+.pismo-glowa dt { font-size: var(--t-drobne); }
+.pismo-glowa dd { margin: 0; font-family: var(--font-glowa); font-size: 1.125rem; line-height: 1.3; color: var(--tusz); }
+@media (min-width: 960px) {
+  .hero-glowa { grid-template-columns: minmax(0, 1fr) clamp(220px, 22vw, 300px); column-gap: 40px; align-items: start; }
+  .pismo-glowa { padding-top: .9rem; }
+}
+.hero-uklad { display: grid; margin-top: clamp(16px, 3vw, 44px); }
 .hero-tekst { display: flex; flex-direction: column; }
+@media (max-width: 959px) { .hero-glowa > .pismo-glowa { display: none; } }
+@media (min-width: 960px) { .hero-tekst > .pismo-glowa { display: none; } }
 @media (max-width: 959px) {
   .hero-tekst { margin-top: 12px; }
   .akcje { order: 0; }
-  .hero-opis { order: 1; margin-top: 28px; }
+  .skroty { order: 1; }
   .autor { order: 2; }
+  .hero-opis { order: 3; margin-top: 28px; }
+  .hero-tekst > .pismo-glowa { order: 4; margin-top: 28px; }
+  .sceny { order: 5; }
   .hero-uklad > .tekst-filmu { margin-top: 20px; }
 }
 @media (min-width: 960px) {
   .hero-uklad { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); column-gap: clamp(40px, 5vw, 88px); align-items: start; }
-  .hero-tekst { grid-column: 1; grid-row: 1; padding-top: 24px; }
+  .hero-tekst { grid-column: 1; grid-row: 1; padding-top: 6px; }
   .hero-film { grid-column: 2; grid-row: 1; }
-  .hero-uklad > .tekst-filmu { grid-column: 2; }
+  /* Spis scen na całą szerokość pod filmem i opisem, jak spis treści na dole pierwszej strony pisma. */
+  .hero-uklad > .sceny { grid-column: 1 / -1; grid-row: 2; margin-top: clamp(28px, 3vw, 44px); }
+  .hero-uklad > .sceny ol { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .hero-uklad > .tekst-filmu { grid-column: 1 / -1; }
 }
 .hero-film { position: relative; }
-.hero-film::before { content: ""; position: absolute; z-index: -1; top: 56px; bottom: -48px; left: 28%; width: 100vw; background: var(--tlo-2); }
 /* Zdanie wprowadzające: antykwa w rozmiarze do czytania, bez pogrubień. */
 .hero-opis { font-family: var(--font-glowa); font-size: var(--t-wyr); line-height: 1.4; max-width: 30rem; }
 .akcje { margin-top: 28px; }
@@ -134,10 +152,43 @@ main { position: relative; z-index: 0; }
 .skrot::after { content: "→"; content: "→" / ""; color: var(--czerwien); transition: transform .2s var(--krzywa); }
 .skrot:hover { color: var(--czerwien-ciemna); }
 @media (max-width: 479px) { .skroty { gap: 0 14px; margin-top: 10px; } .skrot { gap: 4px; font-size: clamp(1rem, .8rem + 1.1vw, 1.125rem); } .akcje .btn { width: 100%; } }
-/* Autor: czerwona kreska jak zakładka na marginesie dokumentu. */
-.autor { display: flex; align-items: center; gap: 12px; margin-top: 28px; padding-top: 20px; font-size: var(--t-tekst); }
-.autor-znak { flex: none; width: 4px; align-self: stretch; border-radius: 1px; background: var(--czerwien); }
-@media (max-width: 479px) { .autor { margin-top: 20px; padding-top: 0; } }
+/* Autor jak podpis pod pismem: rola drobnym krojem, nazwisko antykwą, czerwona kreska na marginesie. */
+.autor { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 8px; margin-top: 32px; padding: 2px 0 2px 16px; border-left: 4px solid var(--czerwien); font-size: var(--t-tekst); }
+.autor-rola { color: var(--szary); font-size: var(--t-drobne); }
+.autor-imie { font-family: var(--font-glowa); font-size: 1.375rem; line-height: 1.2; letter-spacing: -.01em; }
+@media (max-width: 959px) { .autor { margin-top: 20px; } }
+
+/* Film bez kartki: linia z opisem i „Pomiń film” jak nagłówek załącznika, obraz w cienkiej ramce, pod nim tor postępu. */
+.film { position: relative; display: flow-root; margin: 0; }
+.film-pod { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; border-bottom: 1px solid rgba(19, 26, 42, .22); font-size: var(--t-drobne); color: var(--szary); white-space: nowrap; }
+.film-pod[hidden] { display: none; }
+#film-info { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 374px) { #film-info { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); } .film-pod { justify-content: flex-end; } }
+.pomin { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 2px; color: var(--tusz); font-weight: 600; text-decoration-color: var(--czerwien); text-decoration-thickness: 2px; }
+.pomin:hover { color: var(--czerwien-ciemna); }
+.film-obraz { margin-top: 12px; padding: 1px; background: rgba(19, 26, 42, .16); }
+.film video { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: contain; background: #12161F; }
+.film video:focus-visible { outline-offset: -3px; }
+video::cue { font-family: var(--font); background: rgba(19, 26, 42, .86); color: #FFFFFF; line-height: 1.35; }
+.film[hidden] { display: none; }
+/* Tor postępu: pasek pokazuje wyłącznie czas filmu, a mała spinka stoi w miejscu, w którym jesteś. */
+.postep { position: relative; height: 4px; margin: clamp(16px, 1.6vw, 20px) 0 6px; background: var(--tlo-2); }
+.postep-pasek { display: block; height: 100%; background: var(--czerwien); transform: scaleX(0); transform-origin: 0 50%; }
+.postep-spinka { position: absolute; top: -9px; left: 0; width: 10px; height: 21px; margin-left: -5px; transform: rotate(-8deg); }
+/* Sceny filmu: spis z czasem jak spis treści pisma; wybór przewija film do sceny. Bieżąca scena ma czerwoną kreskę. */
+@media (max-width: 479px) { .film-obraz { margin-top: 8px; } .postep { margin: 12px 0 4px; } }
+@media (max-width: 479px) and (max-height: 600px) { .hero { padding-top: 8px; } .hero-uklad { margin-top: 10px; } .film-pod { border-bottom: 0; } .film-obraz { margin-top: 0; } }
+.sceny { margin-top: 18px; }
+.sceny[hidden] { display: none; }
+.sceny-tytul { font-size: var(--t-drobne); color: var(--szary); }
+.sceny ol { list-style: none; margin: 6px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 12.5rem), 1fr)); column-gap: 20px; }
+.scena { display: flex; align-items: baseline; gap: 10px; width: 100%; min-height: 44px; padding: 10px 0; border: 0; border-top: 1px solid rgba(19, 26, 42, .16); background: none; color: var(--tusz); font: inherit; text-align: left; cursor: pointer; }
+.scena-czas { flex: none; min-width: 2.6em; font-variant-numeric: tabular-nums; color: var(--szary); font-size: var(--t-drobne); }
+.scena-nazwa { font-family: var(--font-glowa); font-size: 1.0625rem; line-height: 1.3; }
+.scena:hover .scena-nazwa { text-decoration: underline; text-decoration-color: var(--czerwien); text-decoration-thickness: 2px; text-underline-offset: .25em; }
+.scena[aria-current="true"] { border-top: 2px solid var(--czerwien); padding-top: 9px; }
+.scena[aria-current="true"] .scena-czas { color: var(--czerwien-ciemna); }
+@media (min-width: 1200px) { .hero-uklad > .sceny ol { grid-template-columns: repeat(6, minmax(0, 1fr)); } .scena { flex-direction: column; gap: 2px; } }
 
 /* Arkusz przypięty spinką: tylna kartka przesunięta w prawo i do góry, przednia biała z filmem albo ekranem,
    z zagiętym prawym górnym rogiem; czerwona spinka nachodzi na górną krawędź. To znak Spinki zamieniony w ramę. */
@@ -150,23 +201,6 @@ main { position: relative; z-index: 0; }
 .arkusz-przod::before { background: var(--tyl); clip-path: polygon(0 0, 100% 0, 100% 100%); }
 .arkusz-przod::after { background: var(--rog-kolor); clip-path: polygon(0 0, 0 100%, 100% 100%); }
 .klips { position: absolute; z-index: 2; top: calc(-2px - var(--ay)); left: clamp(18px, 6%, 44px); width: clamp(19px, 1.8vw, 24px); height: auto; aspect-ratio: 12 / 25; transform: rotate(-8deg); transform-origin: 50% 100%; }
-.film { position: relative; display: flow-root; margin: 0; }
-.film .arkusz-przod { padding-top: var(--pas); }
-.film video { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: contain; background: #12161F; border-radius: 1px; }
-.film video:focus-visible { outline-offset: -3px; }
-video::cue { font-family: var(--font); background: rgba(19, 26, 42, .86); color: #FFFFFF; line-height: 1.35; }
-.film[hidden] { display: none; }
-.postep { height: 4px; margin-top: clamp(10px, 1.2vw, 14px); background: var(--tlo-2); overflow: hidden; }
-.postep-pasek { display: block; height: 100%; background: var(--czerwien); transform: scaleX(0); transform-origin: 0 50%; }
-/* Opis filmu i „Pomiń film” w nagłówku kartki, obok spinki: widoczne od razu, nie zajmują osobnego wiersza. */
-.film-pod { position: absolute; z-index: 3; top: var(--ay); left: 0; right: var(--ax); height: var(--pas); display: flex; align-items: center; justify-content: space-between; gap: 12px;
-  padding: 0 calc(var(--rog) + 8px) 0 calc(clamp(18px, 6%, 44px) + clamp(19px, 1.8vw, 24px) + 14px); font-size: var(--t-drobne); color: var(--szary); white-space: nowrap; }
-.film-pod[hidden] { display: none; }
-#film-info { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-@media (max-width: 374px) { #film-info { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); } .film-pod { justify-content: flex-end; } }
-.pomin { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; margin-block: calc((var(--pas) - 44px) / 2); padding: 0 2px; color: var(--tusz); font-weight: 600; text-decoration-color: var(--czerwien); text-decoration-thickness: 2px; }
-.pomin:hover { color: var(--czerwien-ciemna); }
-
 /* Koniec filmu albo film niedostępny: kartka z postacią Spinki, która wskazuje następny krok albo mówi wprost, że coś nie działa. */
 .koniec { display: flex; align-items: center; gap: 12px 18px; flex-wrap: wrap; margin-top: 18px; padding: 18px 20px 20px; background: var(--karta); border-radius: 2px; }
 .koniec[hidden] { display: none; }
@@ -241,6 +275,8 @@ video::cue { font-family: var(--font); background: rgba(19, 26, 42, .86); color:
 .dane-ekrany { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: clamp(16px, 2.4vw, 32px); align-items: start; }
 .dane-ekrany .ekran-plaski:nth-child(2) { margin-top: clamp(24px, 5vw, 72px); }
 .ekran-plaski { margin: 0; }
+/* Ekrany Profilu płasko, w cienkiej ramce: przypięta kartka zostaje tylko w „Demonstracji”. */
+.ekran-ramka { padding: 1px; background: rgba(19, 26, 42, .16); }
 .ekran-plaski img { display: block; width: 100%; height: auto; aspect-ratio: 390 / 640; object-fit: cover; object-position: 50% 0; border-radius: 1px; }
 .ekran-plaski figcaption { margin-top: 12px; font-size: var(--t-drobne); color: var(--szary); }
 
@@ -358,7 +394,10 @@ video::cue { font-family: var(--font); background: rgba(19, 26, 42, .86); color:
 <main id="tresc">
   <section class="hero" aria-labelledby="tytul">
    <div class="kontener">
-    <h1 id="tytul" class="hero-tytul"><span class="sr-only" translate="no">Spinka. </span><span class="linia wejscie" style="--i:1">Każda sprawa</span> <span class="linia wejscie" style="--i:2">ma następny krok.</span></h1>
+    <div class="hero-glowa">
+      <h1 id="tytul" class="hero-tytul"><span class="sr-only" translate="no">Spinka. </span><span class="linia wejscie" style="--i:1">Każda sprawa</span> <span class="linia wejscie" style="--i:2">ma następny krok.</span></h1>
+      <dl class="pismo-glowa wejscie" style="--i:2"><div><dt>Data w prototypie</dt><dd><!--data-pokazu--></dd></div><div><dt>W sprawie</dt><dd>asystenta spraw w koncepcji aplikacji mObywatel</dd></div></dl>
+    </div>
     <div class="hero-uklad">
       <div class="hero-film">
         <figure class="film wejscie" style="--i:3" id="film-blok">
@@ -366,17 +405,14 @@ video::cue { font-family: var(--font); background: rgba(19, 26, 42, .86); color:
             <span id="film-info">Film</span>
             <a class="pomin" href="aplikacja/">Pomiń film <span aria-hidden="true">→</span></a>
           </figcaption>
-          <div class="arkusz">
-            <svg class="klips" viewBox="0 0 12 25" aria-hidden="true" focusable="false"><rect width="12" height="25" rx="6" fill="#C8102E"/><rect x="4.25" y="5" width="3.5" height="14" rx="1.75" fill="#FFFFFF"/></svg>
-            <div class="arkusz-przod">
-              <video id="film" controls playsinline preload="metadata" width="1920" height="1080"<!--film:poster--> aria-describedby="film-info">
-                <source id="film-zrodlo" src="<!--film:mp4-->" type="video/mp4">
-                <!--film:track-->
-                <p>Ta przeglądarka nie odtwarza filmu. <a href="aplikacja/">Przejdź do demonstracji</a>.</p>
-              </video>
-            </div>
+          <div class="film-obraz">
+            <video id="film" controls playsinline preload="metadata" width="1920" height="1080"<!--film:poster--> aria-describedby="film-info">
+              <source id="film-zrodlo" src="<!--film:mp4-->" type="video/mp4">
+              <!--film:track-->
+              <p>Ta przeglądarka nie odtwarza filmu. <a href="aplikacja/">Przejdź do demonstracji</a>.</p>
+            </video>
           </div>
-          <div class="postep" aria-hidden="true"><span class="postep-pasek" id="postep-pasek"></span></div>
+          <div class="postep" aria-hidden="true"><span class="postep-pasek" id="postep-pasek"></span><svg class="postep-spinka" id="postep-spinka" viewBox="0 0 12 25" focusable="false"><rect width="12" height="25" rx="6" fill="#C8102E"/><rect x="4.25" y="5" width="3.5" height="14" rx="1.75" fill="#FFFFFF"/></svg></div>
         </figure>
         <div class="koniec" id="koniec" hidden>
           <span class="koniec-postac" aria-hidden="true"><!--postac:krok:64--><!--postac:ostrzega:64--></span>
@@ -395,8 +431,20 @@ video::cue { font-family: var(--font); background: rgba(19, 26, 42, .86); color:
           <a class="skrot" href="aplikacja/#pismo"><span>Pismo z urzędu</span></a>
           <a class="skrot" href="aplikacja/#oc"><span>Kończy się OC</span></a>
         </div>
-        <p class="autor wejscie" style="--i:5"><span class="autor-znak" aria-hidden="true"></span><span>Koncepcja i projekt aplikacji: <strong translate="no">Igor M.</strong></span></p>
+        <p class="autor wejscie" style="--i:5"><span class="autor-rola">Koncepcja i projekt aplikacji:</span> <span class="autor-imie" translate="no">Igor M.</span></p>
+        <dl class="pismo-glowa"><div><dt>Data w prototypie</dt><dd><!--data-pokazu--></dd></div><div><dt>W sprawie</dt><dd>asystenta spraw w koncepcji aplikacji mObywatel</dd></div></dl>
       </div>
+      <nav class="sceny wejscie" style="--i:5" id="sceny" aria-labelledby="sceny-tytul">
+        <p class="sceny-tytul" id="sceny-tytul">Sceny filmu</p>
+        <ol>
+          <li><button type="button" class="scena" data-t="0"><span class="scena-czas">0:00</span><span class="scena-nazwa">Termin. Pismo. I co teraz?</span></button></li>
+          <li><button type="button" class="scena" data-t="7"><span class="scena-czas">0:07</span><span class="scena-nazwa">Jasny następny krok</span></button></li>
+          <li><button type="button" class="scena" data-t="12"><span class="scena-czas">0:12</span><span class="scena-nazwa">Termin widać od razu</span></button></li>
+          <li><button type="button" class="scena" data-t="19.3"><span class="scena-czas">0:19</span><span class="scena-nazwa">Zapytaj Spinkę</span></button></li>
+          <li><button type="button" class="scena" data-t="24.2"><span class="scena-czas">0:24</span><span class="scena-nazwa">Decyzja jest Twoja</span></button></li>
+          <li><button type="button" class="scena" data-t="33.5"><span class="scena-czas">0:33</span><span class="scena-nazwa">Każda sprawa ma następny krok</span></button></li>
+        </ol>
+      </nav>
       <!--film:tekst-->
     </div>
     <p class="sr-only" id="ogloszenie" aria-live="polite"></p>
@@ -455,7 +503,7 @@ video::cue { font-family: var(--font); background: rgba(19, 26, 42, .86); color:
     <div class="kontener dane-uklad">
       <div class="dane-tekst">
         <h2 id="dane-h" class="odslona">Asystent mówi, skąd wie</h2>
-        <p class="lead odslona" style="--i:1">W Profilu widać, co aplikacja pokazuje, gdzie to trzyma i co trafiłoby do modelu AI: ta sama lista, którą asystent wysyła.</p>
+        <p class="lead odslona" style="--i:1">W Profilu widać, co aplikacja pokazuje, gdzie to trzyma i co trafiłoby do modelu AI: ta sama lista fikcyjnych rekordów, którą serwer projektu przekazuje modelowi.</p>
         <ol class="zasady">
           <li class="odslona" style="--i:2"><h3>Dane aplikacji osobno, objaśnienie modelu osobno</h3><p>Pod odpowiedzią są karty z prawdziwych rekordów aplikacji: dokument, sprawa i data. Tekst modelu jest podpisany jako objaśnienie.</p></li>
           <li class="odslona" style="--i:3"><h3>Nie wie, to mówi</h3><p>Gdy w danych czegoś nie ma, asystent to wypisuje i dopytuje, np. czy chodzi o raty kredytu, czy składki OC. Daty spoza danych są odrzucane.</p></li>
@@ -464,13 +512,11 @@ video::cue { font-family: var(--font); background: rgba(19, 26, 42, .86); color:
       </div>
       <div class="dane-ekrany odslona" style="--i:2">
         <figure class="ekran-plaski">
-          <div class="arkusz"><svg class="klips" viewBox="0 0 12 25" aria-hidden="true" focusable="false"><rect width="12" height="25" rx="6" fill="#C8102E"/><rect x="4.25" y="5" width="3.5" height="14" rx="1.75" fill="#FFFFFF"/></svg>
-            <div class="arkusz-przod"><img src="obrazy/profil-o-prototypie.webp" width="780" height="1520" loading="lazy" decoding="async" alt="Ekran Profilu w prototypie, część „O prototypie”: Spinka to asystent spraw w nieoficjalnej koncepcji aplikacji mObywatel. Co robi: tłumaczy pisma i terminy, pokazuje skutki, przed zmianą pokazuje podsumowanie. Czego nie robi: nie łączy się z urzędem, bankiem ani BIK, niczego nie wysyła do instytucji."></div></div>
+          <div class="ekran-ramka"><img src="obrazy/profil-o-prototypie.webp" width="780" height="1520" loading="lazy" decoding="async" alt="Ekran Profilu w prototypie, część „O prototypie”: Spinka to asystent spraw w nieoficjalnej koncepcji aplikacji mObywatel. Co robi: tłumaczy pisma i terminy, pokazuje skutki, przed zmianą pokazuje podsumowanie. Czego nie robi: nie łączy się z urzędem, bankiem ani BIK, niczego nie wysyła do instytucji."></div>
           <figcaption>Profil: co Spinka robi, a czego nie.</figcaption>
         </figure>
         <figure class="ekran-plaski">
-          <div class="arkusz"><svg class="klips" viewBox="0 0 12 25" aria-hidden="true" focusable="false"><rect width="12" height="25" rx="6" fill="#C8102E"/><rect x="4.25" y="5" width="3.5" height="14" rx="1.75" fill="#FFFFFF"/></svg>
-            <div class="arkusz-przod"><img src="obrazy/profil-dane-dla-ai.webp" width="780" height="1520" loading="lazy" decoding="async" alt="Ekran Profilu, część „Asystent AI”: stan „Niepodłączony: ta wersja nie ma serwera z modelem AI” i podgląd danych, które trafiłyby do modelu, np. wezwanie z urzędu skarbowego z terminem 7 listopada."></div></div>
+          <div class="ekran-ramka"><img src="obrazy/profil-dane-dla-ai.webp" width="780" height="1520" loading="lazy" decoding="async" alt="Ekran Profilu, część „Asystent AI”: stan „Niepodłączony: ta wersja nie ma serwera z modelem AI” i podgląd danych, które trafiłyby do modelu, np. wezwanie z urzędu skarbowego z terminem 7 listopada."></div>
           <figcaption>Profil: stan asystenta i podgląd danych dla modelu.</figcaption>
         </figure>
       </div>
@@ -578,15 +624,29 @@ if (document.documentElement.classList.contains('ruch')) {
   const doDemo = document.getElementById('do-demo');
   const jeszczeRaz = document.getElementById('jeszcze-raz');
   const ogloszenie = document.getElementById('ogloszenie');
+  const spinka = document.getElementById('postep-spinka');
+  const sceny = document.getElementById('sceny');
+  const przyciski = sceny ? Array.from(sceny.querySelectorAll('.scena')) : [];
   const malyRuch = matchMedia('(prefers-reduced-motion: reduce)');
   let klatka = 0;
 
   // Pasek pokazuje wyłącznie postęp odtwarzania: currentTime / duration. Zanim znany jest czas filmu, stoi na zerze.
+  // Spinka na torze stoi w tym samym miejscu; bieżąca scena w spisie ma aria-current.
   const ustaw = () => {
     const d = v.duration;
     const p = d > 0 && isFinite(d) ? Math.min(1, Math.max(0, v.currentTime / d)) : 0;
     pasek.style.transform = 'scaleX(' + p + ')';
+    if (spinka) spinka.style.left = (p * 100) + '%';
+    let biezaca = null;
+    if (v.currentTime > 0 || !v.paused) przyciski.forEach((b) => { if (+b.dataset.t <= v.currentTime + 0.05) biezaca = b; });
+    przyciski.forEach((b) => { if (b === biezaca) b.setAttribute('aria-current', 'true'); else b.removeAttribute('aria-current'); });
   };
+  // Scena: przewiń film do jej początku i odtwórz (fokus zostaje na przycisku, żeby można było wybrać następną).
+  przyciski.forEach((b) => b.addEventListener('click', () => {
+    v.currentTime = +b.dataset.t;
+    ustaw();
+    v.play().catch(() => {});
+  }));
   const petla = () => { ustaw(); klatka = v.paused || v.ended ? 0 : requestAnimationFrame(petla); };
   ['loadedmetadata', 'durationchange', 'timeupdate', 'seeking', 'seeked', 'pause', 'emptied'].forEach((e) => v.addEventListener(e, ustaw));
 
@@ -636,6 +696,7 @@ if (document.documentElement.classList.contains('ruch')) {
   const bladFilmu = () => {
     if (blok.hidden) return;
     blok.hidden = true;
+    if (sceny) sceny.hidden = true;
     pokazKoniec('blad');
   };
   zrodlo.addEventListener('error', bladFilmu);

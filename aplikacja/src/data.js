@@ -279,6 +279,35 @@ window.APP = window.APP || {};
     }
   ];
 
+  /*
+   * Rekordy dla modelu AI: ograniczony, fikcyjny zestaw spraw, dokumentów i terminów z tej demonstracji.
+   * Wszystkie daty i liczby dni są tu policzone kodem od zegara pokazowego (model ich nie liczy, tylko objaśnia).
+   * build.mjs wywołuje tę funkcję na danych początkowych i zapisuje wynik w server/dane-demo.mjs: serwer odpowiada
+   * tylko z tych rekordów, a z przeglądarki przyjmuje jedynie krótki, sprawdzalny stan demonstracji (server/kontekst.mjs).
+   * Bez osoby, numerów dokumentów, tablic, numeru polisy i pełnej treści pism.
+   */
+  const SAFE_ROWS = ['Ważny do', 'Ważne do', 'Ważna do', 'Data wydania', 'Wydał', 'Kategorie', 'Punkty karne', 'Marka i model', 'Ubezpieczenie OC', 'OC ważne do', 'Badanie techniczne do'];
+  const two = (n) => (n < 10 ? '0' : '') + n;
+  const iso = (d) => d.getFullYear() + '-' + two(d.getMonth() + 1) + '-' + two(d.getDate());
+  const when = (d) => { const n = inDays(d); return fmt(d) + ' (' + fmtLong(d) + ', ' + (n >= 0 ? 'za ' + dni(n) : dni(-n) + ' temu') + ')'; };
+  A.kontekstZDanych = (todo, cases, docs) => {
+    const z = [];
+    (todo || []).forEach((t) => {
+      const f = [t.kind === 'Pismo' ? 'Od: ' + t.from : null, t.what, t.due ? (t.dueLabel || 'Termin') + ': ' + when(t.due) : null, t.dueNote,
+        t.amount ? 'Możliwa kwota: ' + t.amount.text + ', ' + t.amount.when : null, t.why, t.next];
+      z.push({ id: 'todo:' + t.id, rodzaj: t.group === 'info' ? 'informacja' : t.kind === 'Pismo' ? 'pismo' : 'termin', tytul: t.title, fakty: f.filter(Boolean), termin: t.due ? iso(t.due) : null });
+    });
+    (docs || []).forEach((d) => {
+      const rows = (d.rows || []).filter((r) => SAFE_ROWS.indexOf(r[0]) >= 0).map((r) => r[0] + ': ' + r[1]);
+      z.push({ id: 'doc:' + d.id, rodzaj: 'dokument', tytul: d.name, fakty: [d.status ? 'Status: ' + d.status.text : null].concat(rows, [d.note]).filter(Boolean) });
+    });
+    (cases || []).forEach((c) => {
+      z.push({ id: 'case:' + c.id, rodzaj: 'sprawa', tytul: c.title, fakty: ['Status: ' + c.statusText, c.steps ? 'Etap ' + c.step + ' z ' + c.steps : null,
+        c.due ? (c.dueWhat ? c.dueWhat.charAt(0).toUpperCase() + c.dueWhat.slice(1) : 'Termin') + ': ' + when(c.due) : null, c.note, c.next].filter(Boolean) });
+    });
+    return { dzis: iso(today), dzis_slownie: fmtLong(today) + ' ' + today.getFullYear(), zrodla: z };
+  };
+
   A.suggestions = ['Zgubiłem portfel', 'Pismo z urzędu', 'Kończy się OC', 'Kto widzi moje dane?'];
 
   A.voiceSamples = [

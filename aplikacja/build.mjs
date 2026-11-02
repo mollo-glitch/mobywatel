@@ -18,6 +18,22 @@ vm.runInContext(src('marka.js'), sandbox);
 vm.runInContext(src('icons.js'), sandbox);
 // Nazwa asystenta w statycznym HTML: znaczniki <!--marka:imie--> itd. dostają formy z src/marka.js.
 const marka = sandbox.window.APP.marka || { imie: 'Asystent' };
+
+/*
+ * Rekordy dla modelu AI: ten sam zestaw fikcyjnych danych, który widać w aplikacji, z datami policzonymi od zegara
+ * pokazowego (src/data.js). Serwer odpowiada wyłącznie z nich (server/dane-demo.mjs). Do aplikacji trafia ta sama
+ * kopia i ten sam kod stosowania stanu (server/kontekst.mjs), więc podgląd w Profilu = to, co wysyła serwer.
+ */
+vm.runInContext(src('data.js'), sandbox);
+const D = sandbox.window.APP;
+const daneDemo = JSON.parse(JSON.stringify(D.kontekstZDanych(D.todoSeed(), D.casesSeed(), D.docs)));
+if (!daneDemo.zrodla.length || !/^\d{4}-\d{2}-\d{2}$/.test(daneDemo.dzis)) throw new Error('Nie udało się zbudować rekordów dla modelu AI.');
+writeFileSync(join(root, 'server', 'dane-demo.mjs'),
+  '// Wygenerowane przez build.mjs z src/data.js (fikcyjne dane prototypu). Nie edytuj ręcznie: zmień src/data.js i zbuduj.\n' +
+  'export default ' + JSON.stringify(daneDemo, null, 1) + ';\n');
+const kontekstJs = readFileSync(join(root, 'server', 'kontekst.mjs'), 'utf8').replace(/^export /gm, '');
+if (/\bimport\b|\bexport\b/.test(kontekstJs.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, ''))) throw new Error('server/kontekst.mjs nie może mieć importów: jest wklejany do aplikacji.');
+const kontekstBundle = '(function (A) {\n' + kontekstJs + '\nA.kontekst = { stanCzysty: stanCzysty, zastosujStan: zastosujStan, STATUSY: STATUSY };\nA.kontekstSeed = ' + JSON.stringify(daneDemo) + ';\n})(window.APP);\n';
 const escHtml = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const icon = sandbox.window.APP.icon;
 const tabIcon = sandbox.window.APP.tabIcon;
@@ -61,7 +77,9 @@ let page = src('page.html')
   .replace(/<!--marka:(\w+)-->/g, (_, k) => escHtml(marka[k] || ''));
 const [head, body] = page.split('<!--/HEAD-->');
 const style = '<style>\n' + src('styles.css') + '</style>';
-const js = '<script>\n' + scripts.map((f) => `/* ${f} */\n` + src(f)).join('\n') + '</script>';
+const part = (f) => (f === 'kontekst' ? '/* server/kontekst.mjs + server/dane-demo.mjs */\n' + kontekstBundle : `/* ${f} */\n` + src(f));
+const withKontekst = (list) => list.reduce((acc, f) => acc.concat(f === 'data.js' ? [f, 'kontekst'] : [f]), []);
+const js = '<script>\n' + withKontekst(scripts).map(part).join('\n') + '</script>';
 
 const headOut = head.replace('<!--STYLE-->', style).trim();
 const bodyOut = body.replace('<!--SCRIPTS-->', js).trim();
@@ -80,7 +98,7 @@ writeFileSync(
     headOut + '\n</head>\n<body>\n' + bodyOut + '\n</body>\n</html>\n'
 );
 if (WARIANT) {
-  const jsW = '<script>\n' + ['marka.js', 'data.js', 'icons.js', 'wariant-postaci.js', 'carousel.js', 'assistant.js', 'app.js'].map((f) => `/* ${f} */\n` + src(f)).join('\n') + '</script>';
+  const jsW = '<script>\n' + withKontekst(['marka.js', 'data.js', 'icons.js', 'wariant-postaci.js', 'carousel.js', 'assistant.js', 'app.js']).map(part).join('\n') + '</script>';
   writeFileSync(join(root, 'dist', 'wariant-postaci.html'),
     '<!doctype html>\n<html lang="pl">\n<head>\n<meta charset="utf-8">\n' + endpointMeta + '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n' +
       headOut + '\n</head>\n<body>\n' + body.replace('<!--SCRIPTS-->', jsW).trim() + '\n</body>\n</html>\n');

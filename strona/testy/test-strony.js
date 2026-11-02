@@ -5,7 +5,7 @@ const { chromium } = require('playwright'); const fs = require('fs'); const cryp
 const [, , P1, P2, AXE_PATH] = process.argv;
 const A = 'http://127.0.0.1:' + P1; const B = 'http://127.0.0.1:' + P2;
 const AXE = fs.readFileSync(AXE_PATH || require.resolve('axe-core/axe.min.js'), 'utf8');
-const APLIKACJA_MD5 = '19104791e46ffa036dbbb307ac1070bf';
+const APLIKACJA_MD5 = 'aa05f84856717a12399b0bc075fa888e';
 const R = []; const ok = (co, w, sz) => R.push({ co, ok: !!w, sz });
 const H = { 320: 568, 390: 844, 1280: 800 };
 const axe = async (p) => { await p.addScriptTag({ content: AXE }); return p.evaluate(async () => (await axe.run(document.querySelector('.ruch .odslona:not(.widoczne)') ? { exclude: [['.ruch .odslona:not(.widoczne)']] } : document, { runOnly: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'best-practice'] })).violations.map((v) => v.id + ' (' + v.nodes.length + ')')); };

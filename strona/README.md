@@ -10,22 +10,35 @@ Bez frameworka, bez analityki, bez plików cookie, bez zależności w przegląda
 
 | Ścieżka | Co to jest |
 |---|---|
-| `src/index.html` | strona (style i skrypt w jednym pliku); znaczniki `<!--znak:…-->` i `<!--film:…-->` wypełnia build |
+| `src/index.html` | strona (style i skrypt w jednym pliku); znaczniki `<!--znak:…-->`, `<!--film:…-->` i `<!--data-pokazu-->` wypełnia build |
 | `src/fonty/` | Poltawski Nowy (nagłówki; rewitalizacja antykwy Półtawskiego, zmienna waga 400–700) i Atkinson Hyperlegible Next (tekst, ten sam krój co w aplikacji), latin i latin-ext, z licencjami OFL 1.1; serwowane z własnego adresu |
 | `src/postac/spinka-postac.svg` | postać Spinki: kartka ze spinką bez twarzy; znacznik `<!--postac:STAN:ROZMIAR-->` (stany: pojawia, spokoj, wskazuje, gotowe, pomylka, odpoczywa), ruch w CSS strony |
 | `build.mjs` | składa `public/`: strona, fonty, znak, film, `aplikacja/index.html` |
 | `przygotuj-film.sh` | wersja webowa filmu i plakat z pliku źródłowego (nie nadpisuje źródła) |
 | `podglad.mjs` | lokalny serwer `public/` z obsługą Range (przewijanie wideo) |
-| `src/obrazy/` | trzy zrzuty prawdziwych ekranów aplikacji (WebP) do sekcji „Demonstracja” |
+| `src/obrazy/` | zrzuty prawdziwych ekranów aplikacji (WebP): trzy do „Demonstracji”, dwa ekrany Profilu do „Asystent mówi, skąd wie” |
 | `narzedzia/zrzuty-aplikacji.js` | odtwarza `src/obrazy/` z działającego buildu aplikacji (Playwright, Pillow); aplikacji nie zmienia |
+| `testy/otwarcie-test.js` | otwarcie z rundy 29: nagłówek pisma i data zgodna z aplikacją, brak przypiętej kartki w otwarciu i w „Twoich danych”, sceny filmu myszą i klawiaturą, spinka na torze, sceny ukryte bez filmu |
 | `testy/test-strony.js` | testy w Chromium: pierwszy ekran 320/390/1280, odtwarzanie, napisy, pauza, koniec, klawiatura, ograniczony ruch, stos ekranów w „Demonstracji”, nagłówki w 2 liniach, brak przewijania w bok przy 16 szerokościach, axe, `/aplikacja/`, brak filmu |
 | `public/` | wynik buildu: to wgrywa się na hosting |
 
 Źródła spoza tego katalogu (ścieżki domyślne, można zmienić opcjami `build.mjs`):
 
-- aplikacja: `../aplikacja/dist/index.html`, build 27; `build.mjs` przerywa, jeśli MD5 nie jest `61c2912275be841d8bc7c7d7a0767f7f`.
+- aplikacja: `../aplikacja/dist/index.html`; `build.mjs` przerywa, jeśli MD5 nie zgadza się z wartością `APLIKACJA_MD5` w `build.mjs` (runda 29: `aa05f84856717a12399b0bc075fa888e`).
   Plik trafia do `public/aplikacja/index.html` bajt w bajt: zachowanie, dane, ekrany i teksty aplikacji są niezmienione.
 - znak: `../aplikacja/docs/znak-spinki/` (oryginalny znak Spinki wyeksportowany z kodu aplikacji).
+
+## Otwarcie (runda 29)
+
+Pierwsza część strony jest zbudowana jak pierwsza strona pisma, bo tym zajmuje się Spinka:
+
+- tytuł „Każda sprawa ma następny krok.” jak temat sprawy; obok (od 960 px) nagłówek pisma: „Data w prototypie” (z zegara pokazowego aplikacji, wstawiana przy budowaniu) i „W sprawie: asystenta spraw w koncepcji aplikacji mObywatel”; na telefonie ten sam nagłówek stoi niżej, pod opisem;
+- film bez przypiętej kartki i bez tła-plamy: nad nim linia „Film, 0:41, z napisami” i „Pomiń film”, pod nim tor postępu, na którym mała czerwona spinka stoi w miejscu odtwarzania;
+- „Sceny filmu”: spis sześciu scen z czasem; wybór przewija film do sceny i ją odtwarza, bieżąca scena ma czerwoną kreskę (`aria-current`); na szerokim ekranie pas na całą szerokość pod filmem i opisem, na telefonie pod opisem;
+- podpis autora jak pod pismem: „Koncepcja i projekt aplikacji:” drobnym krojem i „Igor M.” antykwą, z czerwoną kreską na marginesie;
+- przypięta kartka została tylko w sekcji „Demonstracja”; ekrany Profilu w „Asystent mówi, skąd wie” są płaskie, w cienkiej ramce.
+
+Na telefonie pierwszy ekran bez zmian w treści: tytuł, film z „Pomiń film”, „Otwórz demo”, skróty (320×568 bez przewijania).
 
 ## Film
 

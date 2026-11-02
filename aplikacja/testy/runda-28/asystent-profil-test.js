@@ -99,7 +99,7 @@ const axe = async (p) => { await p.addScriptTag({ content: AXE }); return p.eval
   // 4. Limit dostawcy: wstrzymanie z godziną i prawdziwym powodem, bez gotowych odpowiedzi.
   { await mock('/__reset'); const { c, p } = await nowa(AIU); await czat(p); await zapytaj(p, 'test #429'); await p.tap('.icard.consent [data-v=tak]'); await p.waitForTimeout(1500);
     const l = await ostatnie(p, 2); await zapytaj(p, 'Kiedy kończy się polisa?'); const l2 = await ostatnie(p, 3);
-    ok('limit (429): „Wyczerpał się limit… Do HH:MM nie wysyłam pytań”; następne pytanie dostaje stan „wstrzymany do HH:MM (limit dostawcy)”', /Wyczerpał się limit zapytań do modelu AI\. Do \d\d:\d\d nie wysyłam pytań/.test(l.join(' ')) && /Nie wysłałem tego pytania do modelu AI \(model AI jest wstrzymany do \d\d:\d\d \(limit dostawcy\)\)/.test(l2.join(' ')), { l, l2 });
+    ok('limit (429): „Wyczerpał się limit… Do HH:MM nie wysyłam pytań”; następne pytanie dostaje stan „wstrzymany do HH:MM (limit dostawcy)”', /(Wyczerpał się limit zapytań do modelu AI|AI niedostępne: wyczerpał się limit zapytań do modelu)\. Do \d\d:\d\d nie wysyłam pytań/ /* runda 29: dopisek „AI niedostępne” */.test(l.join(' ')) && /Nie wysłałem tego pytania do modelu AI \(model AI jest wstrzymany do \d\d:\d\d \(limit dostawcy\)\)/.test(l2.join(' ')), { l, l2 });
     await c.close(); }
 
   // 5. Profil: trzy części, spis, rozmiar tekstu (3 stopnie, strzałki), kontrast, ograniczenie animacji, bez przewijania w bok.

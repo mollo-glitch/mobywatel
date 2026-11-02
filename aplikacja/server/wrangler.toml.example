@@ -1,15 +1,27 @@
-# Wzór konfiguracji funkcji serwerowej asystenta (Cloudflare Workers). Skopiuj do wrangler.toml (plik jest w .gitignore).
-# Klucz NIE trafia tutaj: ustaw go poleceniem `npx wrangler secret put GEMINI_API_KEY`.
+# Wzór konfiguracji funkcji serwerowej asystenta (Cloudflare Workers). Skopiuj do wrangler.toml (plik jest w .gitignore)
+# i uruchamiaj wrangler z katalogu server/. Nie ma tu żadnego klucza: model działa przez powiązanie AI Twojego konta.
 name = "spinka-asystent"
 main = "funkcja-serwerowa.mjs"
 compatibility_date = "2026-10-01"
 
+# Cloudflare Workers AI. Plan Workers Free: 10 000 neuronów dziennie bez opłat; po ich wyczerpaniu zapytania kończą się
+# błędem do 00:00 UTC (asystent pokazuje wtedy „AI niedostępne”). Nie przechodź na Workers Paid bez decyzji o kosztach.
+[ai]
+binding = "AI"
+
+# Limit zapytań na adres IP liczony przez Cloudflare (period: 10 albo 60 s). namespace_id: dowolna liczba unikalna w koncie.
+[[ratelimits]]
+name = "LIMIT_IP"
+namespace_id = "2901"
+  [ratelimits.simple]
+  limit = 6
+  period = 60
+
 [vars]
 # Adresy stron, z których funkcja przyjmuje pytania (bez ukośnika na końcu), rozdzielone przecinkami.
 DOZWOLONE_ZRODLA = "https://mollo-glitch.github.io"
-GEMINI_MODEL = "gemini-3.1-flash-lite"
-# free = bezpłatny poziom (tylko testy autora; warunki Gemini API nie pozwalają udostępniać go użytkownikom w EOG),
-# paid = projekt Google Cloud z aktywnym kontem rozliczeniowym.
-GEMINI_PLAN = "free"
-AI_MAX_PER_MINUTE = "8"
-AI_MAX_PER_DAY = "200"
+# Model z katalogu Workers AI dostępny w planie Free (bez dopisku „Paid access required” na stronie modelu).
+AI_MODEL = "@cf/google/gemma-4-26b-a4b-it"
+AI_MAX_PER_MINUTE = "6"
+AI_MAX_PER_DAY = "150"
+AI_TIMEOUT_MS = "20000"
