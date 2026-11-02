@@ -15,7 +15,9 @@ Bez frameworka, bez analityki, bez plików cookie, bez zależności w przegląda
 | `build.mjs` | składa `public/`: strona, fonty, znak, film, `aplikacja/index.html` |
 | `przygotuj-film.sh` | wersja webowa filmu i plakat z pliku źródłowego (nie nadpisuje źródła) |
 | `podglad.mjs` | lokalny serwer `public/` z obsługą Range (przewijanie wideo) |
-| `testy/test-strony.js` | testy w Chromium: pierwszy ekran 320/390/1280, odtwarzanie, napisy, pauza, koniec, klawiatura, ograniczony ruch, axe, `/aplikacja/`, brak filmu |
+| `src/obrazy/` | trzy zrzuty prawdziwych ekranów aplikacji (WebP) do sekcji „Demonstracja” |
+| `narzedzia/zrzuty-aplikacji.js` | odtwarza `src/obrazy/` z działającego buildu aplikacji (Playwright, Pillow); aplikacji nie zmienia |
+| `testy/test-strony.js` | testy w Chromium: pierwszy ekran 320/390/1280, odtwarzanie, napisy, pauza, koniec, klawiatura, ograniczony ruch, stos ekranów w „Demonstracji”, nagłówki w 2 liniach, brak przewijania w bok przy 16 szerokościach, axe, `/aplikacja/`, brak filmu |
 | `public/` | wynik buildu: to wgrywa się na hosting |
 
 Źródła spoza tego katalogu (ścieżki domyślne, można zmienić opcjami `build.mjs`):
@@ -70,7 +72,7 @@ Cloudflare Pages, Vercel i zwykły serwer WWW ją mają). Linki są względne, w
 np. `https://użytkownik.github.io/spinka/`. `public/.nojekyll` wyłącza przetwarzanie Jekyll na GitHub Pages.
 Po publikacji sprawdź publiczny adres: stronę, film z napisami, `/aplikacja/` i adres bez końcowego ukośnika.
 
-Rozmiar strony bez filmu: około 110 KB (HTML ~19 KB, fonty ~92 KB) plus aplikacja ~490 KB pobierana dopiero po przejściu.
+Rozmiar strony bez filmu: około 350 KB (HTML ~43 KB, fonty ~92 KB, trzy zrzuty ekranów ~218 KB wczytywane dopiero przy przewinięciu) plus aplikacja ~490 KB pobierana dopiero po przejściu.
 Film ładuje tylko metadane (`preload="metadata"`), dopóki ktoś go nie włączy.
 
 ## Czego strona nie robi

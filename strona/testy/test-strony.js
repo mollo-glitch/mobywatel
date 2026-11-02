@@ -8,7 +8,7 @@ const AXE = fs.readFileSync(AXE_PATH || require.resolve('axe-core/axe.min.js'), 
 const APLIKACJA_MD5 = '83d237e0c6d0e28ec90a01296f5ca5c8';
 const R = []; const ok = (co, w, sz) => R.push({ co, ok: !!w, sz });
 const H = { 320: 568, 390: 844, 1280: 800 };
-const axe = async (p) => { await p.addScriptTag({ content: AXE }); return p.evaluate(async () => (await axe.run(document, { runOnly: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'best-practice'] })).violations.map((v) => v.id + ' (' + v.nodes.length + ')')); };
+const axe = async (p) => { await p.addScriptTag({ content: AXE }); return p.evaluate(async () => (await axe.run(document.querySelector('.ruch .odslona:not(.widoczne)') ? { exclude: [['.ruch .odslona:not(.widoczne)']] } : document, { runOnly: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'best-practice'] })).violations.map((v) => v.id + ' (' + v.nodes.length + ')')); };
 const pasek = (p) => p.evaluate(() => { const m = /scaleX\(([\d.e-]+)\)/.exec(document.getElementById('postep-pasek').style.transform); const v = document.getElementById('film');
   return { pasek: m ? +m[1] : 0, czas: v.duration > 0 ? v.currentTime / v.duration : 0, paused: v.paused, ended: v.ended }; });
 const czekaj = (p, fn, ms) => p.waitForFunction(fn, null, { timeout: ms || 20000 });
@@ -19,16 +19,17 @@ const czekaj = (p, fn, ms) => p.waitForFunction(fn, null, { timeout: ms || 20000
     const log = { bledy: [], zadania: [] }; p.on('pageerror', (e) => log.bledy.push(e.message)); p.on('console', (m) => { if (m.type() === 'error') log.bledy.push(m.text()); });
     p.on('request', (r) => log.zadania.push(r.url())); return { ctx, p, log }; };
 
-  // 1. Pierwszy ekran przy 320, 390, 1280: nazwa, hasło, film i „Pomiń film” bez przewijania; nic nie wystaje w bok; axe.
+  // 1. Pierwszy ekran przy 320, 390, 1280: nazwa, tytuł, film i „Pomiń film” bez przewijania; nic nie wystaje w bok; axe.
   for (const w of [320, 390, 1280]) {
     const { ctx, p, log } = await nowa(w); await p.goto(A + '/'); await p.waitForTimeout(1200);
     const m = await p.evaluate(() => { const r = (s) => document.querySelector(s).getBoundingClientRect();
       const nazwaWidoczna = [document.querySelector('h1'), document.querySelector('.logo')].some((e) => { const q = e.getBoundingClientRect(); return q.width > 2 && q.height > 2 && /Spinka/.test(e.textContent) && q.bottom <= innerHeight; });
-      return { h1: document.querySelector('h1').textContent, nazwaWidoczna, haslo: document.querySelector('.haslo').textContent, otworz: r('#otworz-demo').bottom, pismo: r('a[href="aplikacja/#pismo"]').bottom, oc: r('a[href="aplikacja/#oc"]').bottom,
+      const h1 = document.querySelector('h1'); const lh = parseFloat(getComputedStyle(h1).lineHeight);
+      return { h1: h1.textContent.replace(/\s+/g, ' ').trim(), liniiTytulu: Math.round(h1.getBoundingClientRect().height / lh), nazwaWidoczna, otworz: r('#otworz-demo').bottom, pismo: r('a[href="aplikacja/#pismo"]').bottom, oc: r('a[href="aplikacja/#oc"]').bottom,
         film: r('#film').bottom, pomin: r('.pomin').bottom, okno: innerHeight, bok: document.documentElement.scrollWidth - innerWidth,
-        male: [...document.querySelectorAll('.top a, .hero a, .hero button')].filter((e) => e.getClientRects().length && !e.closest('video')).map((e) => [e.textContent.trim().slice(0, 24), Math.round(e.getBoundingClientRect().height)]).filter((x) => x[1] < 44) }; });
-    ok(w + ' px: na pierwszym ekranie nazwa, hasło, „Otwórz demo”, skróty „Pismo z urzędu” i „Kończy się OC”, film i „Pomiń film”; bez przewijania w bok',
-      m.h1 === 'Spinka' && m.nazwaWidoczna && m.haslo === 'Każda sprawa ma następny krok.' && [m.otworz, m.pismo, m.oc, m.film, m.pomin].every((y) => y <= m.okno) && m.bok === 0, m);
+        male: [...document.querySelectorAll('.naglowek a, .hero a, .hero button, .hero summary')].filter((e) => e.getClientRects().length && !e.closest('video')).map((e) => [e.textContent.trim().slice(0, 24), Math.round(e.getBoundingClientRect().height)]).filter((x) => x[1] < 44) }; });
+    ok(w + ' px: na pierwszym ekranie nazwa, tytuł w 2 liniach, „Otwórz demo”, skróty „Pismo z urzędu” i „Kończy się OC”, film i „Pomiń film”; bez przewijania w bok',
+      m.h1 === 'Spinka. Każda sprawa ma następny krok.' && m.liniiTytulu === 2 && m.nazwaWidoczna && [m.otworz, m.pismo, m.oc, m.film, m.pomin].every((y) => y <= m.okno) && m.bok === 0, m);
     ok(w + ' px: cele dotyku w nagłówku i na pierwszym ekranie mają co najmniej 44 px wysokości', m.male.length === 0, m.male);
     const v = await axe(p); ok(w + ' px: axe bez naruszeń (start)', v.length === 0, v);
     const obce = log.zadania.filter((u) => !u.startsWith(A + '/'));
@@ -81,8 +82,9 @@ const czekaj = (p, fn, ms) => p.waitForFunction(fn, null, { timeout: ms || 20000
   // 3b. Ruch strony: wejście pierwszego ekranu, odsłanianie sekcji przy przewijaniu, reakcja na najechanie; podpis autora.
   { const { ctx, p, log } = await nowa(1280); await p.goto(A + '/'); await p.waitForTimeout(150);
     const start = await p.evaluate(() => ({ ruch: document.documentElement.classList.contains('ruch'), animacje: [...document.querySelectorAll('.wejscie')].map((e) => getComputedStyle(e).animationName),
-      ukryteNizej: [...document.querySelectorAll('.odslona')].filter((e) => e.getBoundingClientRect().top > innerHeight && +getComputedStyle(e).opacity === 0).length }));
-    ok('ruch: elementy pierwszego ekranu wchodzą animacją (pojawienie), sekcje poniżej czekają na przewinięcie', start.ruch && start.animacje.length >= 6 && start.animacje.every((n) => n === 'pojawienie') && start.ukryteNizej > 0, start);
+      ukryteNizej: [...document.querySelectorAll('.odslona')].filter((e) => e.getBoundingClientRect().top > innerHeight && !e.classList.contains('widoczne') && +getComputedStyle(e).opacity < 1).length,
+      najnizszeKrycie: Math.min(...[...document.querySelectorAll('.wejscie, .odslona')].map((e) => +getComputedStyle(e).opacity)) }));
+    ok('ruch: elementy pierwszego ekranu wchodzą animacją (pojawienie), sekcje poniżej czekają na przewinięcie; nic nie jest całkiem niewidoczne (krycie ≥ 0,3)', start.ruch && start.animacje.length >= 6 && start.animacje.every((n) => n === 'pojawienie') && start.ukryteNizej > 0 && start.najnizszeKrycie >= 0.3, start);
     await p.waitForTimeout(900);
     const pierwszy = await p.evaluate(() => [...document.querySelectorAll('.wejscie')].map((e) => +getComputedStyle(e).opacity));
     for (let y = 0; y <= 4000; y += 300) { await p.mouse.wheel(0, 300); await p.waitForTimeout(120); }
@@ -116,8 +118,9 @@ const czekaj = (p, fn, ms) => p.waitForFunction(fn, null, { timeout: ms || 20000
     const linki = kroki.filter((k) => k.el.startsWith('a'));
     ok('klawiatura: pierwszy Tab to „Przejdź do treści”, widoczny', kroki[0].tekst === 'Przejdź do treści' && kroki[0].widoczny, kroki[0]);
     ok('klawiatura: każdy link ma widoczną obwódkę fokusu 3 px', linki.every((k) => k.obwodka === 'solid 3px'), linki);
-    ok('klawiatura: Tab dochodzi kolejno do „Otwórz demo”, obu skrótów, filmu i „Pomiń film”', ['Otwórz demo', 'Pismo z urzędu', 'Kończy się OC'].every((t) => kroki.some((k) => k.tekst === t)) && kroki.some((k) => k.el.startsWith('video')) && kroki.some((k) => /Pomiń film/.test(k.tekst))
-      && kroki.findIndex((k) => k.tekst === 'Otwórz demo') < kroki.findIndex((k) => k.el.startsWith('video')), kroki.map((k) => k.el + ' ' + k.tekst));
+    const i = (f) => kroki.findIndex(f);
+    const kol = [i((k) => k.el.startsWith('a.btn') && k.tekst === 'Otwórz demo'), i((k) => /Pomiń film/.test(k.tekst)), i((k) => k.el.startsWith('video')), i((k) => k.el.startsWith('a#otworz-demo')), i((k) => k.tekst === 'Pismo z urzędu'), i((k) => k.tekst === 'Kończy się OC')];
+    ok('klawiatura: Tab dochodzi kolejno do „Otwórz demo” w nagłówku, „Pomiń film”, filmu, „Otwórz demo” w otwarciu i obu skrótów (jak na ekranie telefonu)', kol.every((x, n) => x >= 0 && (n === 0 || x > kol[n - 1])), kroki.map((k) => k.el + ' ' + k.tekst));
     await ctx.close(); }
 
   // 5. „Pomiń film” prowadzi do prawdziwej demonstracji (sprawdzony build aplikacji, bajt w bajt); bezpośredni adres na telefonie i komputerze.
@@ -150,6 +153,47 @@ const czekaj = (p, fn, ms) => p.waitForFunction(fn, null, { timeout: ms || 20000
     const c = await p.evaluate(() => document.querySelector('#chat-h').textContent);
     ok(w + ' px: bezpośredni adres /aplikacja/: wejście, Start, rozmowa „Zapytaj Spinkę”' + (w === 1280 ? ', przewodnik obok telefonu' : ''), s.h1 === 'Start' && c === 'Zapytaj Spinkę' && (w === 390 || s.przewodnik === 'block') && log.bledy.length === 0, { ...s, c, bledy: log.bledy });
     await ctx.close(); }
+
+  // 5b. Demonstracja: prawdziwe ekrany aplikacji; na dużym ekranie wskazanie kroku (mysz, Tab) wysuwa jego ekran na wierzch.
+  { const { ctx, p, log } = await nowa(1280); await p.goto(A + '/#demonstracja'); await p.waitForTimeout(1200);
+    const poz = () => p.evaluate(() => Object.fromEntries([...document.querySelectorAll('.ekran')].map((e) => [e.dataset.ekran, e.dataset.poz])));
+    const obrazy = await p.evaluate(() => [...document.querySelectorAll('.ekran img')].map((i) => ({ src: i.getAttribute('src'), w: i.naturalWidth, alt: i.alt.length })));
+    ok('demonstracja: trzy zrzuty prawdziwych ekranów aplikacji wczytane, każdy z opisem (alt)', obrazy.length === 3 && obrazy.every((o) => /^obrazy\/.+\.webp$/.test(o.src) && o.w > 0 && o.alt > 20), obrazy);
+    const p0 = await poz(); await p.hover('.krok[data-ekran=wybor]'); await p.waitForTimeout(650); const p1 = await poz();
+    await p.focus('.krok[data-ekran=przypomnienie] a'); await p.waitForTimeout(650); const p2 = await poz();
+    const aktywny = await p.evaluate(() => [...document.querySelectorAll('.krok.aktywny')].map((k) => k.dataset.ekran));
+    ok('demonstracja (1280): na starcie z przodu „Pismo”, najechanie na krok i fokus z klawiatury wysuwają jego ekran; aktywny krok oznaczony',
+      p0.pismo === 'srodek' && p1.wybor === 'srodek' && p2.przypomnienie === 'srodek' && aktywny.join() === 'przypomnienie', { p0, p1, p2, aktywny });
+    const linki = await p.evaluate(() => ({ kroki: [...document.querySelectorAll('.krok a')].map((a) => a.getAttribute('href')), demo: document.querySelector('.demo-akcje .btn').getAttribute('href') }));
+    ok('demonstracja: linki kroków prowadzą do #pismo, #oc i wejścia demo; przycisk do /aplikacja/', linki.kroki.join() === 'aplikacja/#pismo,aplikacja/#oc,aplikacja/' && linki.demo === 'aplikacja/', linki);
+    await p.click('.demo-akcje .btn'); await p.waitForURL(A + '/aplikacja/'); await p.waitForSelector('#entry:not([hidden])', { timeout: 20000 });
+    ok('demonstracja: „Otwórz demonstrację” otwiera aplikację, bez błędów', (await p.title()) === 'Co chcesz załatwić?' && log.bledy.length === 0, log.bledy); await ctx.close(); }
+  { const { ctx, p } = await nowa(390, { hasTouch: true, isMobile: true }); await p.goto(A + '/#demonstracja'); await p.waitForTimeout(1000);
+    const r = await p.evaluate(() => { const e = document.getElementById('ekrany'); return { przewijany: e.scrollWidth > e.clientWidth + 50, stos: e.classList.contains('stos') && getComputedStyle(e).display === 'block', bok: document.documentElement.scrollWidth - innerWidth,
+      podpisy: [...e.querySelectorAll('figcaption')].filter((f) => f.getClientRects().length).length }; });
+    ok('demonstracja (390): ekrany w poziomym rzędzie do przesuwania kciukiem, z podpisami; strona nie przewija się w bok', r.przewijany && !r.stos && r.podpisy === 3 && r.bok === 0, r); await ctx.close(); }
+  { const { ctx, p } = await nowa(1280, { reducedMotion: 'reduce' }); await p.goto(A + '/#demonstracja'); await p.waitForTimeout(400);
+    const r = await p.evaluate(() => [...document.querySelectorAll('.ekran, .krok')].map((e) => getComputedStyle(e).transitionDuration).filter((d) => d !== '0s'));
+    ok('demonstracja, ograniczony ruch: ekrany i kroki zmieniają się bez przejść', r.length === 0, r); await ctx.close(); }
+
+  // 5c. Nagłówki w najwyżej 2 liniach, tekst co najmniej 15 px, autor w sekcji „O projekcie” i stopce; axe po odsłonięciu całej strony.
+  for (const w of [320, 390, 768, 960, 1024, 1440]) {
+    const { ctx, p } = await nowa(w, w < 600 ? { hasTouch: true, isMobile: true } : {}); await p.goto(A + '/'); await p.waitForTimeout(400);
+    const H2 = await p.evaluate(() => document.body.scrollHeight); for (let y = 0; y < H2; y += 400) { await p.evaluate((y) => scrollTo(0, y), y); await p.waitForTimeout(60); } await p.waitForTimeout(900);
+    const m = await p.evaluate(() => {
+      const linie = (e) => { const r = document.createRange(); r.selectNodeContents(e); const tops = new Set([...r.getClientRects()].filter((q) => q.width > 1).map((q) => Math.round(q.top))); return tops.size; };
+      const naglowki = [...document.querySelectorAll('h1 .linia, h2, .krok h3')].map((e) => [e.textContent.trim().slice(0, 30), linie(e)]).filter((x) => x[1] > 2);
+      const male = [...document.querySelectorAll('body *')].filter((e) => e.childElementCount === 0 && e.textContent.trim() && e.getClientRects().length && !e.closest('[aria-hidden=true], .sr-only, video'))
+        .filter((e) => parseFloat(getComputedStyle(e).fontSize) < 15).map((e) => e.textContent.trim().slice(0, 20));
+      return { zaDlugie: naglowki, male, autorProjekt: (document.querySelector('#o-projekcie .podpis') || {}).textContent.replace(/\s+/g, ' ').trim(), bok: document.documentElement.scrollWidth - innerWidth }; });
+    ok(w + ' px: tytuł i nagłówki sekcji w najwyżej 2 liniach, brak tekstu poniżej 15 px, bez przewijania w bok', m.zaDlugie.length === 0 && m.male.length === 0 && m.bok === 0, m);
+    if (w === 390 || w === 1440) { ok(w + ' px: autor w sekcji „O projekcie”', /Koncepcja i projekt aplikacji\s*Igor M\./.test(m.autorProjekt), m.autorProjekt);
+      const v = await axe(p); ok(w + ' px: axe bez naruszeń (cała strona po odsłonięciu sekcji)', v.length === 0, v); }
+    await ctx.close(); }
+
+  { const bok = {}; for (const w of [320, 360, 390, 480, 600, 719, 720, 768, 959, 960, 1024, 1100, 1280, 1440, 1920, 2560]) {
+      const { ctx, p } = await nowa(w); await p.goto(A + '/'); await p.waitForTimeout(300); bok[w] = await p.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth); await ctx.close(); }
+    ok('16 szerokości od 320 do 2560 px: strona nigdzie nie przewija się w bok', Object.values(bok).every((x) => x === 0), bok); }
 
   // 6. Film się nie wczytał (strona zbudowana bez filmu): komunikat i przejście do demonstracji, bez kradzieży fokusu i przewijania.
   for (const w of [320, 1280]) {

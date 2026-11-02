@@ -49,11 +49,13 @@ html = html.replace('<!--film:tekst-->', tekst.length ? '<details class="tekst-f
 if (/<!--(znak|film):/.test(html)) stop('zostały niezastąpione znaczniki w src/index.html');
 
 fs.rmSync(OUT, { recursive: true, force: true });
-for (const d of ['aplikacja', 'film', 'fonty']) fs.mkdirSync(path.join(OUT, d), { recursive: true });
+for (const d of ['aplikacja', 'film', 'fonty', 'obrazy']) fs.mkdirSync(path.join(OUT, d), { recursive: true });
 fs.writeFileSync(path.join(OUT, 'index.html'), html);
 fs.writeFileSync(path.join(OUT, 'aplikacja/index.html'), app);
 fs.copyFileSync(path.join(ZNAK, 'spinka-znak-bez-odznaki.svg'), path.join(OUT, 'znak.svg'));
 for (const f of fs.readdirSync(path.join(ROOT, 'src/fonty'))) fs.copyFileSync(path.join(ROOT, 'src/fonty', f), path.join(OUT, 'fonty', f));
+// Zrzuty prawdziwych ekranów aplikacji do sekcji „Demonstracja” (tworzy je narzedzia/zrzuty-aplikacji.js).
+for (const f of fs.readdirSync(path.join(ROOT, 'src/obrazy'))) fs.copyFileSync(path.join(ROOT, 'src/obrazy', f), path.join(OUT, 'obrazy', f));
 for (const k of Object.keys(PLIKI)) if (jest(k)) fs.copyFileSync(path.join(FILM, PLIKI[k]), path.join(OUT, 'film', PLIKI[k]));
 fs.writeFileSync(path.join(OUT, '.nojekyll'), '');
 
