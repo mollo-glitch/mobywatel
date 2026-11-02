@@ -38,6 +38,10 @@ const znak = (stan, rozmiar) => {
 
 let html = fs.readFileSync(path.join(ROOT, 'src/index.html'), 'utf8');
 html = html.replace(/<!--znak:([\w-]+):(\d+)-->/g, (_, s, r) => znak(s, +r));
+// Postać Spinki (rozwinięcie znaku: kartka ze spinką, bez twarzy). Jeden rysunek, stan wybiera klasa, ruch jest w CSS strony.
+const POSTAC = fs.readFileSync(path.join(ROOT, 'src/postac/spinka-postac.svg'), 'utf8').replace(/\n\s*/g, '');
+const STANY = ['pojawia', 'spokoj', 'wskazuje', 'gotowe', 'pomylka', 'odpoczywa'];
+html = html.replace(/<!--postac:([\w-]+):(\d+)-->/g, (_, s, r) => { if (!STANY.includes(s)) stop('nieznany stan postaci: ' + s); return POSTAC.replace('STAN', s).replace('ROZMIAR', r).replace('ROZMIAR', r); });
 html = html.replace('<!--film:mp4-->', 'film/' + PLIKI.mp4);
 html = html.replace('<!--film:poster-->', jest('plakat') ? ' poster="film/' + PLIKI.plakat + '"' : '');
 html = html.replace('<!--film:preload-plakatu-->', jest('plakat') ? '<link rel="preload" href="film/' + PLIKI.plakat + '" as="image" fetchpriority="high">' : '');
@@ -46,7 +50,7 @@ const esc = (t) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, 
 const tekst = jest('mp4') && fs.existsSync(path.join(FILM, TEKST)) ? fs.readFileSync(path.join(FILM, TEKST), 'utf8').split('\n').map((l) => l.trim()).filter(Boolean) : [];
 html = html.replace('<!--film:tekst-->', tekst.length ? '<details class="tekst-filmu wejscie" style="--i:6"><summary>Tekst z filmu</summary><ol>' +
   tekst.map((l) => '<li>' + esc(l).replace(/^\[(.*?)\]\s*/, '<span class="opis-obrazu">$1</span> ') + '</li>').join('') + '</ol></details>' : '');
-if (/<!--(znak|film):/.test(html)) stop('zostały niezastąpione znaczniki w src/index.html');
+if (/<!--(znak|film|postac):/.test(html)) stop('zostały niezastąpione znaczniki w src/index.html');
 
 fs.rmSync(OUT, { recursive: true, force: true });
 for (const d of ['aplikacja', 'film', 'fonty', 'obrazy']) fs.mkdirSync(path.join(OUT, d), { recursive: true });

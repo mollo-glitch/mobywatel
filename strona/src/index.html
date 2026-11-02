@@ -18,7 +18,8 @@
 <meta property="og:locale" content="pl_PL">
 <link rel="icon" type="image/svg+xml" href="znak.svg">
 <link rel="preload" href="fonty/atkinson-hyperlegible-next-latin.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="fonty/ibm-plex-sans-700-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonty/poltawski-nowy-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonty/poltawski-nowy-latin-ext.woff2" as="font" type="font/woff2" crossorigin>
 <!--film:preload-plakatu-->
 <style>
 @font-face { font-family: "Atkinson Hyperlegible Next"; font-style: normal; font-weight: 400 700; font-display: swap;
@@ -27,80 +28,82 @@
 @font-face { font-family: "Atkinson Hyperlegible Next"; font-style: normal; font-weight: 400 700; font-display: swap;
   src: url(fonty/atkinson-hyperlegible-next-latin.woff2) format("woff2");
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
-@font-face { font-family: "IBM Plex Sans"; font-style: normal; font-weight: 700; font-display: swap;
-  src: url(fonty/ibm-plex-sans-700-latin-ext.woff2) format("woff2");
+/* Poltawski Nowy: rewitalizacja antykwy Adama Półtawskiego (lata 20.), kroju rysowanego z myślą o polskich znakach. OFL 1.1. */
+@font-face { font-family: "Poltawski Nowy"; font-style: normal; font-weight: 400 700; font-display: swap;
+  src: url(fonty/poltawski-nowy-latin-ext.woff2) format("woff2");
   unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF; }
-@font-face { font-family: "IBM Plex Sans"; font-style: normal; font-weight: 700; font-display: swap;
-  src: url(fonty/ibm-plex-sans-700-latin.woff2) format("woff2");
+@font-face { font-family: "Poltawski Nowy"; font-style: normal; font-weight: 400 700; font-display: swap;
+  src: url(fonty/poltawski-nowy-latin.woff2) format("woff2");
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
 
-/* Tokeny z aplikacji (build 27): jasne tło, granat jako tusz i pole sekcji, czerwień tylko na działaniu i na spince.
-   Pięć stopni pisma: tytuł, nagłówek sekcji, wyróżnienie, tekst, drobne; wyjątkiem jest nazwa w stopce. */
+/* Kolory z aplikacji (build 27): jasne tło, granat jako tusz, czerwień tylko na działaniu i na spince.
+   Dwa kroje: Poltawski Nowy w nagłówkach i zdaniach do czytania z bliska, Atkinson Hyperlegible Next w tekście i sterowaniu.
+   Hierarchia rozmiarem i krojem, nie pogrubieniem: nagłówki w wadze 400–500. */
 :root {
   color-scheme: only light;
-  --tlo: #EEF1F6; --tlo-2: #E1E6EF; --karta: #FFFFFF;
+  --tlo: #EEF1F6; --tlo-2: #E1E6EF; --karta: #FFFFFF; --rog-kolor: #C9D0DD;
   --tusz: #131A2A; --granat: #131A2A; --granat-2: #1E2A46; --szary: #4F586C;
   --na-granacie: #FFFFFF; --na-granacie-2: #C9D0DD;
   --czerwien: #C8102E; --czerwien-ciemna: #A90D26;
   --fokus: #1D4E9E; --fokus-jasny: #A9C2F5;
   --font: "Atkinson Hyperlegible Next", "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --font-head: "IBM Plex Sans", var(--font);
+  --font-glowa: "Poltawski Nowy", Georgia, "Times New Roman", serif;
   --margines: max(16px, min(4.5vw, 64px), env(safe-area-inset-left), env(safe-area-inset-right));
   --szer: 1312px;
-  --t-tytul: clamp(2rem, .9rem + 5.6vw, 5.75rem);
-  --t-h2: clamp(1.625rem, .95rem + 2.95vw, 3.5rem);
-  --t-wyr: clamp(1.1875rem, 1.05rem + .45vw, 1.375rem);
+  --t-tytul: clamp(2.125rem, .9rem + 6.2vw, 6.25rem);
+  --t-h2: clamp(1.75rem, 1rem + 3vw, 3.75rem);
+  --t-wyr: clamp(1.25rem, 1.1rem + .5vw, 1.5rem);
   --t-tekst: clamp(1.0625rem, 1rem + .2vw, 1.125rem);
   --t-drobne: .9375rem;
   --sekcja: clamp(80px, 10vw, 168px);
   --krzywa: cubic-bezier(.2, .8, .2, 1);
-  --ay: 18px; --ax: 14px; --pas: clamp(36px, 3.4vw, 48px);
+  --ay: 18px; --ax: 14px; --pas: clamp(36px, 3.4vw, 48px); --rog: clamp(14px, 1.4vw, 20px);
 }
 *, *::before, *::after { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 body { margin: 0; background: var(--tlo); color: var(--tusz); font-family: var(--font); font-size: var(--t-tekst); line-height: 1.55; -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: rgba(200, 16, 46, .12); }
 a { color: inherit; text-underline-offset: .2em; text-decoration-thickness: .08em; }
 a, button { touch-action: manipulation; }
-:focus-visible { outline: 3px solid var(--fokus); outline-offset: 3px; border-radius: 4px; }
+:focus-visible { outline: 3px solid var(--fokus); outline-offset: 3px; border-radius: 2px; }
 .pole-granat :focus-visible, .stopka :focus-visible, .pasek-proto :focus-visible { outline-color: var(--fokus-jasny); }
-h1, h2, h3 { font-family: var(--font-head); font-weight: 700; margin: 0; text-wrap: balance; }
+h1, h2, h3, dt { font-family: var(--font-glowa); font-weight: 400; margin: 0; text-wrap: balance; font-kerning: normal; }
 p { margin: 0; text-wrap: pretty; }
+strong { font-weight: 600; }
 img { max-width: 100%; height: auto; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
-.skip { position: absolute; left: var(--margines); top: 8px; z-index: 20; padding: 10px 14px; background: var(--karta); border-radius: 10px; font-weight: 700; transform: translateY(-200%); }
+.skip { position: absolute; left: var(--margines); top: 8px; z-index: 20; padding: 10px 14px; background: var(--karta); border-radius: 2px; font-weight: 600; transform: translateY(-200%); }
 .skip:focus-visible { transform: none; }
 .kontener { width: min(100% - 2 * var(--margines), var(--szer)); margin-inline: auto; }
 
 /* Pasek prototypu jak w aplikacji: nieoficjalność widoczna od pierwszej chwili. */
 .pasek-proto { background: var(--granat); color: var(--na-granacie); font-size: var(--t-drobne); line-height: 1.35; padding: 8px 0; }
 .pasek-proto p { text-align: center; }
-.pasek-proto strong { font-weight: 700; }
+@media (max-width: 479px) { .pasek-proto { padding: 5px 0; line-height: 1.3; } }
 
 /* Nagłówek: znak z nazwą, dwa odnośniki, jedno działanie. */
 .naglowek { display: flex; align-items: center; gap: 12px; min-height: 72px; }
-.logo { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; font-family: var(--font-head); font-weight: 700; font-size: 1.375rem; letter-spacing: -.015em; min-height: 44px; }
+.logo { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; font-family: var(--font-glowa); font-weight: 500; font-size: 1.5rem; letter-spacing: -.01em; min-height: 44px; }
 .logo svg { flex: none; }
 .nav { margin-left: auto; display: flex; align-items: center; gap: 4px; }
-.nav a:not(.btn) { display: inline-flex; align-items: center; min-height: 44px; padding: 0 12px; font-weight: 600; text-decoration: none; border-radius: 10px; }
-.nav a:not(.btn):hover { text-decoration: underline; }
+.nav a:not(.btn) { display: inline-flex; align-items: center; min-height: 44px; padding: 0 12px; text-decoration: none; }
+.nav a:not(.btn):hover { text-decoration: underline; text-decoration-color: var(--czerwien); text-decoration-thickness: 2px; }
 .nav .btn { margin-left: 8px; min-height: 44px; padding: 0 18px; }
 /* Na telefonie „Otwórz demo” jest w otwarciu tuż niżej; w nagłówku zostaje sam odnośnik do demonstracji. */
-@media (max-width: 719px) { .nav a.nav-dalej, .nav a.btn { display: none; } .nav a:not(.btn) { padding: 0 4px; } .naglowek { min-height: 56px; } .logo { font-size: 1.25rem; } }
-@media (max-width: 479px) { .pasek-proto { padding: 5px 0; line-height: 1.3; } }
+@media (max-width: 719px) { .nav a.nav-dalej, .nav a.btn { display: none; } .nav a:not(.btn) { padding: 0 4px; } .naglowek { min-height: 56px; } .logo { font-size: 1.375rem; } }
 
-/* Przyciski: płaskie, w pełni zaokrąglone, jeden kolor wypełnienia. */
-.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 52px; padding: 0 26px; border-radius: 999px; background: var(--czerwien); color: #FFFFFF; font-weight: 700; text-decoration: none; transition: background-color .15s ease, transform .2s var(--krzywa); }
+/* Przyciski: prostokątne jak druk, jeden kolor wypełnienia. Bez pigułek. */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 52px; padding: 0 26px; border-radius: 2px; background: var(--czerwien); color: #FFFFFF; font-weight: 600; text-decoration: none; transition: background-color .15s ease, transform .2s var(--krzywa); }
 .btn:hover { background: var(--czerwien-ciemna); }
-.btn svg { flex: none; }
-.btn-cichy { min-height: 44px; padding: 0 4px; border: 0; background: none; font: inherit; font-weight: 600; color: var(--tusz); text-decoration: underline; text-underline-offset: .2em; cursor: pointer; }
+.btn-cichy { min-height: 44px; padding: 0 4px; border: 0; background: none; font: inherit; color: var(--tusz); text-decoration: underline; text-underline-offset: .2em; cursor: pointer; }
 .btn-cichy:hover { color: var(--czerwien-ciemna); }
 .btn-cichy[hidden] { display: none; }
 
-/* Otwarcie: duży tytuł na całą szerokość, pod nim film przypięty spinką i opis z działaniami.
+/* Otwarcie: tytuł na całą szerokość, pod nim film przypięty spinką i opis z działaniami.
    Na dużym ekranie opis po lewej, film po prawej. Na telefonie i tablecie film zaraz pod tytułem, potem
    „Otwórz demo” i skróty, niżej opis i autor: przy 320×568 film, „Pomiń film”, przycisk i skróty mieszczą się bez przewijania. */
-.hero { padding: clamp(12px, 4vw, 56px) 0 var(--sekcja); }
-.hero-tytul { font-size: var(--t-tytul); line-height: .98; letter-spacing: -.035em; }
+.hero { position: relative; z-index: 0; overflow-x: clip; padding: clamp(12px, 4vw, 56px) 0 var(--sekcja); }
+main { position: relative; z-index: 0; }
+.hero-tytul { font-size: var(--t-tytul); line-height: 1; letter-spacing: -.02em; }
 .hero-tytul .linia { display: block; }
 .hero-uklad { display: grid; margin-top: clamp(14px, 3vw, 44px); }
 .hero-tekst { display: flex; flex-direction: column; }
@@ -118,73 +121,77 @@ img { max-width: 100%; height: auto; }
   .hero-uklad > .tekst-filmu { grid-column: 2; }
 }
 .hero-film { position: relative; }
-.hero-film::before { content: ""; position: absolute; z-index: -1; top: 56px; bottom: -48px; left: 28%; width: 100vw; border-radius: 12px 0 0 12px; background: var(--tlo-2); }
-main { position: relative; z-index: 0; }
-.hero { position: relative; z-index: 0; overflow-x: clip; }
-.hero-opis { font-size: var(--t-wyr); line-height: 1.45; max-width: 34rem; }
-.hero-opis strong { font-weight: 700; }
-.akcje { margin-top: 24px; }
+.hero-film::before { content: ""; position: absolute; z-index: -1; top: 56px; bottom: -48px; left: 28%; width: 100vw; background: var(--tlo-2); }
+/* Zdanie wprowadzające: antykwa w rozmiarze do czytania, bez pogrubień. */
+.hero-opis { font-family: var(--font-glowa); font-size: var(--t-wyr); line-height: 1.4; max-width: 30rem; }
+.akcje { margin-top: 28px; }
 @media (max-width: 959px) { .akcje { margin-top: 0; } }
-.skroty { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 16px; }
-@media (max-width: 479px) { .skroty { gap: 6px 8px; margin-top: 12px; } }
-.skroty-tytul { flex: 1 0 100%; font-size: var(--t-drobne); line-height: 1.35; font-weight: 600; color: var(--szary); }
-.skrot { display: inline-flex; align-items: center; min-height: 44px; padding: 0 18px; border-radius: 999px; background: var(--karta); color: var(--tusz); font-weight: 700; font-size: var(--t-drobne); text-decoration: none; transition: background-color .15s ease, color .15s ease, transform .2s var(--krzywa); }
-.skrot:hover { background: var(--granat); color: #FFFFFF; }
+/* Skróty: odnośniki jak w spisie spraw (krój nagłówków, czerwone podkreślenie, strzałka), nie pigułki. */
+.skroty { display: flex; flex-wrap: wrap; align-items: center; gap: 0 28px; margin-top: 16px; }
+.skroty-tytul { flex: 1 0 100%; font-size: var(--t-drobne); line-height: 1.35; color: var(--szary); }
+.skrot { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; font-family: var(--font-glowa); font-weight: 500; font-size: var(--t-wyr); color: var(--tusz); text-decoration: none; transition: color .15s ease; }
+.skrot span { text-decoration: underline; text-decoration-color: var(--czerwien); text-decoration-thickness: 2px; text-underline-offset: .3em; }
+.skrot::after { content: "→"; content: "→" / ""; color: var(--czerwien); transition: transform .2s var(--krzywa); }
+.skrot:hover { color: var(--czerwien-ciemna); }
+@media (max-width: 479px) { .skroty { gap: 0 14px; margin-top: 10px; } .skrot { gap: 4px; font-size: clamp(1rem, .8rem + 1.1vw, 1.125rem); } .akcje .btn { width: 100%; } }
+/* Autor: czerwona kreska jak zakładka na marginesie dokumentu. */
 .autor { display: flex; align-items: center; gap: 12px; margin-top: 28px; padding-top: 20px; font-size: var(--t-tekst); }
-.autor-znak { flex: none; width: 4px; align-self: stretch; border-radius: 2px; background: var(--czerwien); }
-.autor strong { font-weight: 700; }
-@media (max-width: 479px) {
-  .akcje .btn { width: 100%; }
-  .skrot { flex: 1 1 0; justify-content: center; padding: 0 10px; }
-  .autor { margin-top: 20px; padding-top: 0; }
-}
+.autor-znak { flex: none; width: 4px; align-self: stretch; border-radius: 1px; background: var(--czerwien); }
+@media (max-width: 479px) { .autor { margin-top: 20px; padding-top: 0; } }
 
 /* Arkusz przypięty spinką: tylna kartka przesunięta w prawo i do góry, przednia biała z filmem albo ekranem,
-   czerwona spinka nachodzi na górną krawędź. To znak Spinki zamieniony w ramę. */
-.arkusz { position: relative; margin: var(--ay) var(--ax) 0 0; }
-.arkusz::before { content: ""; position: absolute; inset: 0; transform: translate(var(--ax), calc(-1 * var(--ax))); border-radius: 8px; background: var(--tlo-2); }
-.arkusz-przod { position: relative; border-radius: 8px; background: var(--karta); padding: clamp(24px, 2.4vw, 32px) clamp(6px, .9vw, 12px) clamp(6px, .9vw, 12px); box-shadow: 0 30px 60px -36px rgba(19, 26, 42, .45); }
-.klips { position: absolute; z-index: 2; top: calc(-2px - var(--ay)); left: clamp(18px, 6%, 44px); width: clamp(19px, 1.8vw, 24px); height: auto; aspect-ratio: 12 / 25; transform: rotate(-8deg); transform-origin: 50% 100%; }
+   z zagiętym prawym górnym rogiem; czerwona spinka nachodzi na górną krawędź. To znak Spinki zamieniony w ramę. */
 @media (max-width: 599px) { :root { --ay: 14px; --ax: 10px; } }
+.arkusz { --tyl: var(--tlo-2); position: relative; margin: var(--ay) var(--ax) 0 0; }
+.arkusz::before { content: ""; position: absolute; inset: 0; transform: translate(var(--ax), calc(-1 * var(--ax))); border-radius: 2px; background: var(--tyl); }
+.arkusz-przod { position: relative; border-radius: 2px; background: var(--karta); padding: clamp(24px, 2.4vw, 32px) clamp(6px, .9vw, 12px) clamp(6px, .9vw, 12px); box-shadow: 0 30px 60px -36px rgba(19, 26, 42, .45); }
+/* Zagięty róg: wycięty trójkąt w kolorze tylnej kartki i zagięta klapka w tonie papieru. */
+.arkusz-przod::before, .arkusz-przod::after { content: ""; position: absolute; z-index: 1; top: 0; right: 0; width: var(--rog); height: var(--rog); }
+.arkusz-przod::before { background: var(--tyl); clip-path: polygon(0 0, 100% 0, 100% 100%); }
+.arkusz-przod::after { background: var(--rog-kolor); clip-path: polygon(0 0, 0 100%, 100% 100%); }
+.klips { position: absolute; z-index: 2; top: calc(-2px - var(--ay)); left: clamp(18px, 6%, 44px); width: clamp(19px, 1.8vw, 24px); height: auto; aspect-ratio: 12 / 25; transform: rotate(-8deg); transform-origin: 50% 100%; }
 .film { position: relative; display: flow-root; margin: 0; }
 .film .arkusz-przod { padding-top: var(--pas); }
-.film video { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: contain; background: #12161F; border-radius: 3px; }
+.film video { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: contain; background: #12161F; border-radius: 1px; }
 .film video:focus-visible { outline-offset: -3px; }
 video::cue { font-family: var(--font); background: rgba(19, 26, 42, .86); color: #FFFFFF; line-height: 1.35; }
 .film[hidden] { display: none; }
-.postep { height: 4px; margin-top: clamp(10px, 1.2vw, 14px); border-radius: 2px; background: var(--tlo-2); overflow: hidden; }
+.postep { height: 4px; margin-top: clamp(10px, 1.2vw, 14px); background: var(--tlo-2); overflow: hidden; }
 .postep-pasek { display: block; height: 100%; background: var(--czerwien); transform: scaleX(0); transform-origin: 0 50%; }
 /* Opis filmu i „Pomiń film” w nagłówku kartki, obok spinki: widoczne od razu, nie zajmują osobnego wiersza. */
-.film-pod { position: absolute; z-index: 1; top: var(--ay); left: 0; right: var(--ax); height: var(--pas); display: flex; align-items: center; justify-content: space-between; gap: 12px;
-  padding: 0 clamp(8px, 1.2vw, 16px) 0 calc(clamp(18px, 6%, 44px) + clamp(19px, 1.8vw, 24px) + 14px); font-size: var(--t-drobne); color: var(--szary); white-space: nowrap; }
+.film-pod { position: absolute; z-index: 3; top: var(--ay); left: 0; right: var(--ax); height: var(--pas); display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 0 calc(var(--rog) + 8px) 0 calc(clamp(18px, 6%, 44px) + clamp(19px, 1.8vw, 24px) + 14px); font-size: var(--t-drobne); color: var(--szary); white-space: nowrap; }
 .film-pod[hidden] { display: none; }
 #film-info { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 @media (max-width: 374px) { #film-info { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); } .film-pod { justify-content: flex-end; } }
-.pomin { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; margin-block: calc((var(--pas) - 44px) / 2); padding: 0 2px; color: var(--tusz); font-weight: 700; }
+.pomin { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; margin-block: calc((var(--pas) - 44px) / 2); padding: 0 2px; color: var(--tusz); font-weight: 600; text-decoration-color: var(--czerwien); text-decoration-thickness: 2px; }
 .pomin:hover { color: var(--czerwien-ciemna); }
 
-/* Koniec filmu: następny krok. */
-.koniec { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-top: 16px; padding: 18px 20px; background: var(--karta); border-radius: 8px; }
+/* Koniec filmu albo film niedostępny: kartka z postacią Spinki, która wskazuje następny krok albo mówi wprost, że coś nie działa. */
+.koniec { display: flex; align-items: center; gap: 12px 18px; flex-wrap: wrap; margin-top: 18px; padding: 18px 20px 20px; background: var(--karta); border-radius: 2px; }
 .koniec[hidden] { display: none; }
-.koniec svg { flex: none; }
-.koniec-tekst { flex: 1 1 14rem; min-width: 0; font-weight: 700; }
-.koniec-akcje { display: flex; align-items: center; gap: 8px 16px; flex-wrap: wrap; }
+.koniec-postac { flex: none; display: flex; }
+.koniec-postac .postac--pomylka, .koniec--blad .koniec-postac .postac--wskazuje { display: none; }
+.koniec--blad .koniec-postac .postac--pomylka { display: block; }
+.koniec-tekst { flex: 1 1 14rem; min-width: 0; font-family: var(--font-glowa); font-size: var(--t-wyr); line-height: 1.3; }
+.koniec-akcje { display: flex; align-items: center; gap: 8px 16px; flex-wrap: wrap; flex: 1 0 100%; }
+@media (max-width: 479px) { .koniec { padding: 14px 16px 16px; gap: 10px 12px; } .koniec-postac .postac { width: 48px; height: 48px; } .koniec-tekst { font-size: 1.125rem; } }
 @media (prefers-reduced-motion: no-preference) {
   .koniec.pokaz { animation: wejscie .24s var(--krzywa) both; }
   @keyframes wejscie { from { opacity: 0; transform: translateY(6px); } }
 }
-.tekst-filmu { margin-top: 12px; }
-.tekst-filmu summary { display: inline-flex; align-items: center; min-height: 44px; cursor: pointer; font-weight: 700; }
+.tekst-filmu { margin-top: 14px; }
+.tekst-filmu summary { display: inline-flex; align-items: center; min-height: 44px; cursor: pointer; font-weight: 600; }
 .tekst-filmu summary:hover { color: var(--czerwien-ciemna); }
 .tekst-filmu ol { margin: 6px 0 0; padding-left: 1.5em; display: grid; gap: 6px; max-width: 46rem; }
 .opis-obrazu { color: var(--szary); }
 
 /* Sekcje */
 .sekcja { padding: var(--sekcja) 0; scroll-margin-top: 0; }
-.sekcja h2 { font-size: var(--t-h2); line-height: 1.04; letter-spacing: -.028em; }
-.lead { font-size: var(--t-wyr); line-height: 1.45; margin-top: 20px; max-width: 36rem; }
+.sekcja h2 { font-size: var(--t-h2); line-height: 1.06; letter-spacing: -.015em; }
+.lead { font-family: var(--font-glowa); font-size: var(--t-wyr); line-height: 1.4; margin-top: 22px; max-width: 34rem; }
 
-/* Demonstracja: granatowe pole, po lewej trzy kroki sprawy, po prawej prawdziwe ekrany przypięte spinkami. */
+/* Demonstracja: granatowe pole, po lewej trzy kroki sprawy z kreską na marginesie, po prawej prawdziwe ekrany przypięte spinkami. */
 .pole-granat { background: var(--granat); color: var(--na-granacie); }
 #demonstracja { overflow-x: clip; }
 .demo-uklad { display: grid; gap: 48px; }
@@ -192,24 +199,24 @@ video::cue { font-family: var(--font); background: rgba(19, 26, 42, .86); color:
 /* Nagłówek w wąskiej kolumnie (960–1200 px) zmniejsza się z kolumną, żeby zostać w 2 liniach. */
 .demo-tekst { container-type: inline-size; }
 .demo-tekst h2 { font-size: min(var(--t-h2), 11cqi); }
-.kroki { list-style: none; margin: 36px 0 0; padding: 0; display: grid; gap: 6px; }
-.krok { position: relative; padding: 18px 20px 20px 24px; border-radius: 8px; transition: background-color .25s ease; }
-.krok::before { content: ""; position: absolute; left: 0; top: 18px; bottom: 20px; width: 4px; border-radius: 2px; background: var(--granat-2); transition: background-color .25s ease; }
-.krok h3 { font-size: var(--t-wyr); line-height: 1.25; letter-spacing: -.01em; }
-.krok p { margin-top: 6px; color: var(--na-granacie); }
-.krok a { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; margin-top: 4px; font-weight: 700; color: #FFFFFF; }
+.kroki { list-style: none; margin: 36px 0 0; padding: 0; display: grid; gap: 4px; }
+.krok { position: relative; padding: 14px 0 16px 26px; }
+.krok::before { content: ""; position: absolute; left: 0; top: 18px; bottom: 20px; width: 4px; border-radius: 1px; background: var(--granat-2); transition: background-color .25s ease; }
+.krok h3 { font-size: var(--t-wyr); font-weight: 500; line-height: 1.2; color: var(--na-granacie-2); transition: color .25s ease; }
+.krok p { margin-top: 6px; color: var(--na-granacie-2); }
+.krok a { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; margin-top: 2px; font-weight: 600; color: #FFFFFF; text-decoration-color: var(--czerwien); text-decoration-thickness: 2px; }
 .krok a span { transition: transform .2s var(--krzywa); }
-.krok.aktywny, .krok:hover { background: var(--granat-2); }
+.krok.aktywny h3, .krok:hover h3 { color: #FFFFFF; }
 .krok.aktywny::before, .krok:hover::before { background: var(--czerwien); }
 .demo-akcje { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; margin-top: 32px; }
 .adres { font-size: var(--t-drobne); color: var(--na-granacie-2); }
-.adres code { font: inherit; font-weight: 700; color: #FFFFFF; }
+.adres code { font: inherit; font-weight: 600; color: #FFFFFF; }
 .drobne { margin-top: 14px; font-size: var(--t-drobne); color: var(--na-granacie-2); }
 .ekrany { position: relative; display: flex; gap: 20px; margin: 0; padding: 18px 0 6px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
 .ekrany::-webkit-scrollbar { display: none; }
 .ekran { flex: 0 0 min(68vw, 280px); margin: 0; scroll-snap-align: center; }
-.ekran .arkusz::before { background: var(--granat-2); }
-.ekran img { display: block; width: 100%; height: auto; aspect-ratio: 390 / 640; object-fit: cover; object-position: 50% 0; border-radius: 3px; }
+.ekran .arkusz { --tyl: var(--granat-2); }
+.ekran img { display: block; width: 100%; height: auto; aspect-ratio: 390 / 640; object-fit: cover; object-position: 50% 0; border-radius: 1px; }
 .ekran[data-ekran="przypomnienie"] img { object-position: 50% 100%; }
 .ekran figcaption { margin-top: 12px; font-size: var(--t-drobne); color: var(--na-granacie-2); }
 /* Na dużym ekranie: stos z jednym ekranem na wierzchu; wskazanie kroku wysuwa jego ekran. */
@@ -222,33 +229,57 @@ video::cue { font-family: var(--font); background: rgba(19, 26, 42, .86); color:
   .ekrany.stos .ekran[data-poz="prawo"] { z-index: 2; transform: translateX(22%) translateY(40px) rotate(5deg) scale(.84); }
 }
 
-/* O projekcie: jasne pole o ton ciemniejsze, po lewej teza i autor, po prawej fakty. */
+/* O projekcie: jasne pole o ton ciemniejsze; po lewej teza i podpis autora jak na dokumencie, po prawej fakty, niżej postać. */
 .pole-jasne { background: var(--tlo-2); }
 .o-uklad { display: grid; gap: 48px; }
 .o-uklad h2 { grid-column: 1 / -1; }
 .o-uklad .lead { margin-top: 0; }
-@media (min-width: 960px) { .o-uklad { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 48px clamp(40px, 6vw, 112px); } }
-.podpis { display: flex; align-items: center; gap: 16px; margin-top: 36px; padding: 20px 24px; border-radius: 8px; background: var(--karta); }
+@media (min-width: 960px) { .o-uklad { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 56px clamp(40px, 6vw, 112px); } }
+.podpis { display: flex; align-items: flex-end; gap: 16px; margin-top: 40px; max-width: 26rem; }
 .podpis svg { flex: none; }
+.podpis p { flex: 1; padding-bottom: 10px; border-bottom: 3px solid var(--tusz); }
 .podpis-rola { font-size: var(--t-drobne); color: var(--szary); }
-.podpis-imie { font-family: var(--font-head); font-weight: 700; font-size: var(--t-wyr); letter-spacing: -.01em; }
+.podpis-imie { display: block; margin-top: 2px; font-family: var(--font-glowa); font-size: calc(var(--t-wyr) * 1.5); line-height: 1.1; letter-spacing: -.01em; }
 .fakty { margin: 0; display: grid; gap: 36px 48px; }
 @media (min-width: 640px) { .fakty { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-.fakt dt { font-family: var(--font-head); font-weight: 700; font-size: var(--t-wyr); line-height: 1.25; letter-spacing: -.01em; padding-top: 18px; position: relative; }
-.fakt dt::before { content: ""; position: absolute; left: 0; top: 0; width: 40px; height: 4px; border-radius: 2px; background: var(--tusz); }
+.fakt dt { font-size: var(--t-wyr); font-weight: 500; line-height: 1.2; padding-top: 18px; position: relative; }
+.fakt dt::before { content: ""; position: absolute; left: 0; top: 0; width: 40px; height: 4px; border-radius: 1px; background: var(--tusz); }
 .fakt:first-child dt::before { background: var(--czerwien); }
 .fakt dd { margin: 8px 0 0; }
 
-/* Stopka: nazwa wraca na całą szerokość. */
+/* Postać Spinki: rozwinięcie znaku, kartka ze spinką bez twarzy. Stan pokazuje postawa kartki, kąt spinki i układ linii. */
+.postac { display: block; overflow: visible; }
+.postac .postac-strzalka, .postac .postac-ptaszek, .postac .postac-skreslenie, .postac .postac-poprawka { display: none; }
+.postac-cialo { transform-box: view-box; transform-origin: 37px 74px; }
+.postac-klips { transform-box: view-box; transform-origin: 27px 28px; transform: rotate(-8deg); }
+.postac--wskazuje .postac-linia-2 { display: none; }
+.postac--wskazuje .postac-strzalka { display: inline; }
+.postac--wskazuje .postac-cialo { transform: rotate(4deg); }
+.postac--gotowe .postac-linia { display: none; }
+.postac--gotowe .postac-ptaszek { display: inline; }
+.postac--gotowe .postac-klips { transform: translateY(-3px) rotate(-18deg); }
+.postac--pomylka .postac-skreslenie, .postac--pomylka .postac-poprawka { display: inline; }
+.postac--pomylka .postac-cialo { transform: rotate(-4deg); }
+.postac--odpoczywa .postac-cialo { transform: rotate(-7deg); }
+.postac--odpoczywa .postac-klips { transform: rotate(-24deg); }
+.postac-blok { grid-column: 1 / -1; display: grid; gap: 28px; padding-top: 8px; }
+@media (min-width: 960px) { .postac-blok { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: clamp(40px, 6vw, 112px); align-items: center; } }
+.postac-blok h3 { font-size: var(--t-wyr); font-weight: 500; line-height: 1.2; }
+.postac-blok > div > p { margin-top: 10px; max-width: 30rem; }
+.postac-stany { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(104px, 1fr)); gap: 24px 16px; }
+.postac-stany li { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; font-size: var(--t-drobne); line-height: 1.35; }
+.postac-stany .postac { width: clamp(64px, 6.4vw, 96px); height: auto; }
+
+/* Stopka: nazwa wraca na całą szerokość, w antykwie. */
 .stopka { background: var(--granat); color: var(--na-granacie); padding: clamp(64px, 8vw, 120px) 0 calc(40px + env(safe-area-inset-bottom)); }
-.stopka-nazwa { display: flex; align-items: flex-end; gap: clamp(12px, 2vw, 28px); font-family: var(--font-head); font-weight: 700; font-size: clamp(4.5rem, 17vw, 15.5rem); line-height: .8; letter-spacing: -.05em; }
-.stopka-nazwa svg { flex: none; width: .62em; height: .62em; margin-bottom: .04em; }
+.stopka-nazwa { display: flex; align-items: flex-end; gap: clamp(12px, 2vw, 28px); font-family: var(--font-glowa); font-weight: 400; font-size: clamp(4.5rem, 17vw, 15.5rem); line-height: .8; letter-spacing: -.03em; }
+.stopka-nazwa svg { flex: none; width: .56em; height: .56em; margin-bottom: .02em; }
 .stopka-uklad { display: grid; gap: 28px; margin-top: clamp(36px, 5vw, 64px); }
 @media (min-width: 960px) { .stopka-uklad { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 64px; } }
-.stopka-haslo { font-size: var(--t-wyr); font-weight: 700; }
-.stopka .autor-stopka { margin-top: 8px; font-size: var(--t-wyr); }
+.stopka-haslo { font-family: var(--font-glowa); font-size: var(--t-wyr); }
+.stopka .autor-stopka { margin-top: 8px; font-size: var(--t-tekst); }
 .stopka-linki { display: flex; flex-wrap: wrap; gap: 0 20px; }
-.stopka-linki a { display: inline-flex; align-items: center; min-height: 44px; font-weight: 700; }
+.stopka-linki a { display: inline-flex; align-items: center; min-height: 44px; text-decoration-color: var(--czerwien); text-decoration-thickness: 2px; }
 .stopka-noty { margin-top: 12px; font-size: var(--t-drobne); color: var(--na-granacie-2); }
 .stopka-noty p + p { margin-top: 4px; }
 
@@ -261,16 +292,35 @@ video::cue { font-family: var(--font); background: rgba(19, 26, 42, .86); color:
   @keyframes przypiecie { 0% { transform: translateY(-14px) rotate(-18deg); } 70% { transform: translateY(2px) rotate(-6deg) scaleY(.96); } 100% { transform: rotate(-8deg); } }
   .ruch .odslona { opacity: .3; transform: translateY(24px); transition: opacity .6s var(--krzywa), transform .6s var(--krzywa); transition-delay: calc(var(--i, 0) * 80ms); }
   .ruch .odslona.widoczne { opacity: 1; transform: none; }
+  /* Postać: każdy ruch raz, gdy postać wchodzi w widok albo pojawia się panel końca. Bez pętli i bez podskakiwania w miejscu. */
+  .ruch :is(.widoczne, .pokaz) .postac .postac-klips { animation: postac-klips .5s var(--krzywa) .15s both; }
+  @keyframes postac-klips { 0% { transform: translateY(-10px) rotate(-26deg); } 70% { transform: translateY(1px) rotate(-6deg); } }
+  .ruch :is(.widoczne, .pokaz) .postac--pojawia .postac-cialo { animation: postac-wejscie .5s var(--krzywa) both; }
+  @keyframes postac-wejscie { from { opacity: .2; transform: translateY(12px); } }
+  .ruch :is(.widoczne, .pokaz) .postac--wskazuje .postac-cialo { animation: postac-pochyl .55s var(--krzywa) .25s both; }
+  @keyframes postac-pochyl { from { transform: rotate(0); } 60% { transform: rotate(6deg); } }
+  .ruch :is(.widoczne, .pokaz) :is(.postac-strzalka, .postac-ptaszek, .postac-skreslenie, .postac-poprawka) { stroke-dasharray: 1; }
+  .ruch :is(.widoczne, .pokaz) .postac--wskazuje .postac-strzalka { animation: postac-rysuj .45s var(--krzywa) .45s both; }
+  .ruch :is(.widoczne, .pokaz) .postac--gotowe .postac-ptaszek { animation: postac-rysuj .4s var(--krzywa) .3s both; }
+  .ruch :is(.widoczne, .pokaz) .postac--gotowe .postac-cialo { animation: postac-podskok .45s var(--krzywa) .6s both; }
+  @keyframes postac-podskok { 40% { transform: translateY(-6px); } }
+  .ruch :is(.widoczne, .pokaz) .postac--pomylka .postac-skreslenie { animation: postac-rysuj .3s ease-out .3s both; }
+  .ruch :is(.widoczne, .pokaz) .postac--pomylka .postac-poprawka { animation: postac-rysuj .35s ease-out .75s both; }
+  .ruch :is(.widoczne, .pokaz) .postac--pomylka .postac-cialo { animation: postac-wzrusz .5s ease .5s both; }
+  @keyframes postac-wzrusz { from { transform: rotate(0); } 35% { transform: rotate(-6deg); } 70% { transform: rotate(-2deg); } }
+  .ruch :is(.widoczne, .pokaz) .postac--odpoczywa .postac-cialo { animation: postac-odchyl .9s var(--krzywa) .3s both; }
+  @keyframes postac-odchyl { from { transform: rotate(0); } }
+  @keyframes postac-rysuj { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
   @media (hover: hover) and (pointer: fine) {
-    .btn:hover, .skrot:hover { transform: translateY(-2px); }
-    .btn:active, .skrot:active { transform: none; }
+    .btn:hover { transform: translateY(-2px); }
+    .btn:active { transform: none; }
     .pomin span, .krok a span { display: inline-block; transition: transform .2s var(--krzywa); }
-    .pomin:hover span, .krok a:hover span { transform: translateX(3px); }
+    .pomin:hover span, .krok a:hover span, .skrot:hover::after { transform: translateX(3px); }
     .logo svg > g:nth-of-type(2) { transform-box: fill-box; transform-origin: 50% 100%; transition: transform .25s var(--krzywa); }
     .logo:hover svg > g:nth-of-type(2) { transform: translateY(-1.5px) rotate(-8deg); }
   }
 }
-@media (prefers-reduced-motion: reduce) { .ekrany.stos .ekran, .ekrany.stos .ekran figcaption, .krok, .krok::before { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .ekrany.stos .ekran, .ekrany.stos .ekran figcaption, .krok, .krok::before, .krok h3 { transition: none; } }
 @media print { .ruch .odslona { opacity: 1; transform: none; } }
 </style>
 </head>
@@ -312,7 +362,7 @@ video::cue { font-family: var(--font); background: rgba(19, 26, 42, .86); color:
           <div class="postep" aria-hidden="true"><span class="postep-pasek" id="postep-pasek"></span></div>
         </figure>
         <div class="koniec" id="koniec" hidden>
-          <!--znak:krok:40-->
+          <span class="koniec-postac" aria-hidden="true"><!--postac:wskazuje:64--><!--postac:pomylka:64--></span>
           <p class="koniec-tekst" id="koniec-tekst">Następny krok: sprawdź Spinkę w działaniu.</p>
           <div class="koniec-akcje">
             <a class="btn" id="do-demo" href="aplikacja/">Przejdź do demonstracji</a>
@@ -321,12 +371,12 @@ video::cue { font-family: var(--font); background: rgba(19, 26, 42, .86); color:
         </div>
       </div>
       <div class="hero-tekst">
-        <p class="hero-opis wejscie" style="--i:3"><strong translate="no">Spinka</strong> to asystent spraw w koncepcji aplikacji mObywatel. Pokazuje, czego dotyczy pismo, do kiedy masz czas i co się stanie po każdej decyzji.</p>
+        <p class="hero-opis wejscie" style="--i:3"><span translate="no">Spinka</span> to asystent spraw w koncepcji aplikacji mObywatel. Pokazuje, czego dotyczy pismo, do kiedy masz czas i co się stanie po każdej decyzji.</p>
         <div class="akcje wejscie" style="--i:4"><a class="btn" id="otworz-demo" href="aplikacja/">Otwórz demo</a></div>
         <div class="skroty wejscie" style="--i:4" role="group" aria-labelledby="skroty-tytul">
           <span class="skroty-tytul" id="skroty-tytul">Albo zacznij od sprawy:</span>
-          <a class="skrot" href="aplikacja/#pismo">Pismo z urzędu</a>
-          <a class="skrot" href="aplikacja/#oc">Kończy się OC</a>
+          <a class="skrot" href="aplikacja/#pismo"><span>Pismo z urzędu</span></a>
+          <a class="skrot" href="aplikacja/#oc"><span>Kończy się OC</span></a>
         </div>
         <p class="autor wejscie" style="--i:5"><span class="autor-znak" aria-hidden="true"></span><span>Koncepcja i projekt aplikacji: <strong translate="no">Igor M.</strong></span></p>
       </div>
@@ -400,6 +450,19 @@ video::cue { font-family: var(--font); background: rgba(19, 26, 42, .86); color:
         <div class="fakt odslona" style="--i:3"><dt>Odpowiedzi z gotowych reguł</dt><dd>Spinka w prototypie korzysta z przygotowanych scenariuszy, nie z modelu AI.</dd></div>
         <div class="fakt odslona" style="--i:4"><dt>Decyzja zawsze należy do Ciebie</dt><dd>Przed każdym ważnym krokiem prototyp pokazuje podsumowanie: co się stanie, czego nie zrobi i czy da się to cofnąć.</dd></div>
       </dl>
+      <div class="postac-blok">
+        <div class="odslona">
+          <h3>Spinka nie ma twarzy</h3>
+          <p>Nie udaje rozmówcy ani sztucznej inteligencji. Stan sprawy pokazuje postawą kartki, kątem spinki i układem linii, jak dokument na biurku.</p>
+        </div>
+        <ul class="postac-stany odslona" style="--i:1" aria-label="Spinka w pięciu stanach">
+          <li><!--postac:pojawia:72--><span>Pojawia się przy sprawie</span></li>
+          <li><!--postac:wskazuje:72--><span>Wskazuje następny krok</span></li>
+          <li><!--postac:gotowe:72--><span>Pokazuje, co załatwione</span></li>
+          <li><!--postac:pomylka:72--><span>Mówi wprost, gdy coś nie działa</span></li>
+          <li><!--postac:odpoczywa:72--><span>Odpoczywa, gdy nic nie trzeba robić</span></li>
+        </ul>
+      </div>
     </div>
   </section>
 </main>
@@ -501,6 +564,7 @@ if (document.documentElement.classList.contains('ruch')) {
   const pokazKoniec = (powod) => {
     const zBledu = powod === 'blad';
     pod.hidden = true;
+    koniec.classList.toggle('koniec--blad', zBledu);
     koniecTekst.textContent = zBledu ? 'Film jest chwilowo niedostępny. Demonstracja działa: możesz przejść do niej od razu.' : 'Następny krok: sprawdź Spinkę w działaniu.';
     jeszczeRaz.hidden = zBledu;
     koniec.hidden = false;

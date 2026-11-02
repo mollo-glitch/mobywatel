@@ -65,6 +65,8 @@ const czekaj = (p, fn, ms) => p.waitForFunction(fn, null, { timeout: ms || 20000
     const k = await p.evaluate(() => { const d = document.getElementById('do-demo'); const r = d.getBoundingClientRect();
       return { widoczny: !document.getElementById('koniec').hidden, wOknie: r.top >= 0 && r.bottom <= innerHeight, href: d.href, tekst: d.textContent, fokus: document.activeElement.id, pomin: document.getElementById('film-pod').hidden, ogl: document.getElementById('ogloszenie').textContent }; });
     ok('koniec: wyraźny przycisk „Przejdź do demonstracji” w oknie, prowadzi do /aplikacja/; „Pomiń film” znika', k.widoczny && k.wOknie && k.href === A + '/aplikacja/' && k.tekst === 'Przejdź do demonstracji' && k.pomin, k);
+    const pk = await p.evaluate(() => ({ wskazuje: getComputedStyle(document.querySelector('#koniec .postac--wskazuje')).display, pomylka: getComputedStyle(document.querySelector('#koniec .postac--pomylka')).display, ukryta: document.querySelector('.koniec-postac').getAttribute('aria-hidden') }));
+    ok('koniec: postać Spinki wskazuje następny krok (poza „pomyłka” ukryta), ukryta przed czytnikiem', pk.wskazuje === 'block' && pk.pomylka === 'none' && pk.ukryta === 'true', pk);
     ok('koniec: pasek pełny, komunikat dla czytnika, fokus na przycisku (gdy nie był na innym elemencie)', (await pasek(p)).pasek === 1 && /skończył/.test(k.ogl) && k.fokus === 'do-demo', { ...k, pasek: await pasek(p) });
     await p.click('#jeszcze-raz'); await p.waitForTimeout(900);
     const j = await p.evaluate(() => { const v = document.getElementById('film'); return { czas: v.currentTime, gra: !v.paused, panel: !document.getElementById('koniec').hidden, fokus: document.activeElement.id }; });
@@ -191,6 +193,26 @@ const czekaj = (p, fn, ms) => p.waitForFunction(fn, null, { timeout: ms || 20000
       const v = await axe(p); ok(w + ' px: axe bez naruszeń (cała strona po odsłonięciu sekcji)', v.length === 0, v); }
     await ctx.close(); }
 
+  // 5d. Typografia i postać: antykwa w nagłówkach bez ciężkich pogrubień, pięć stanów postaci, ruch postaci tylko bez „ograniczaj animacje”.
+  { const { ctx, p, log } = await nowa(1440); await p.goto(A + '/'); await p.evaluate(() => document.fonts.ready); await p.waitForTimeout(400);
+    const t = await p.evaluate(() => ({ fonty: [...document.fonts].filter((f) => f.status === 'loaded').map((f) => f.family.replace(/"/g, '')),
+      naglowki: [...document.querySelectorAll('h1, h2, h3, dt, .logo')].map((e) => [e.tagName, getComputedStyle(e).fontFamily.split(',')[0].replace(/"/g, ''), +getComputedStyle(e).fontWeight]),
+      tekst: getComputedStyle(document.querySelector('.krok p')).fontFamily.split(',')[0].replace(/"/g, ''), pogrubione: [...document.querySelectorAll('main *, header *, footer *')].filter((e) => e.childElementCount === 0 && e.textContent.trim() && +getComputedStyle(e).fontWeight >= 700).map((e) => e.textContent.trim().slice(0, 20)) }));
+    ok('typografia: nagłówki w Poltawski Nowy (waga najwyżej 500), tekst w Atkinson Hyperlegible Next, nic w wadze 700+; font wczytany z własnego adresu',
+      t.fonty.includes('Poltawski Nowy') && t.naglowki.every((n) => n[1] === 'Poltawski Nowy' && n[2] <= 500) && t.tekst === 'Atkinson Hyperlegible Next' && t.pogrubione.length === 0 && !log.zadania.some((u) => /plex/i.test(u)), t);
+    const st = await p.evaluate(() => [...document.querySelectorAll('.postac-stany li')].map((li) => [li.querySelector('svg').getAttribute('class').replace('postac postac--', ''), li.textContent.trim(), li.querySelector('svg').getAttribute('aria-hidden')]));
+    ok('postać: pięć stanów w „O projekcie” (pojawia, wskazuje, gotowe, pomyłka, odpoczywa) z podpisami; rysunki ukryte przed czytnikiem',
+      st.map((x) => x[0]).join() === 'pojawia,wskazuje,gotowe,pomylka,odpoczywa' && st.every((x) => x[1].length > 10 && x[2] === 'true'), st);
+    await p.evaluate(() => document.querySelector('.postac-blok').scrollIntoView({ block: 'center' })); await p.waitForTimeout(300);
+    const ruch = await p.evaluate(() => [...document.querySelectorAll('.postac-stany .postac-cialo, .postac-stany .postac-strzalka, .postac-stany .postac-ptaszek')].map((e) => getComputedStyle(e).animationName).filter((n) => n !== 'none'));
+    await p.waitForTimeout(1800);
+    const poRuchu = await p.evaluate(() => [...document.querySelectorAll('.postac-stany .postac-cialo, .postac-stany .postac-klips')].map((e) => e.getAnimations().filter((a) => a.playState === 'running').length).reduce((a, b) => a + b, 0));
+    ok('postać: przy wejściu w widok każdy stan gra swój ruch raz, po ok. 1,5 s wszystko stoi (bez pętli)', ruch.length >= 5 && poRuchu === 0, { ruch, poRuchu }); await ctx.close(); }
+  { const { ctx, p } = await nowa(1440, { reducedMotion: 'reduce' }); await p.goto(A + '/'); await p.evaluate(() => document.querySelector('.postac-blok').scrollIntoView({ block: 'center' })); await p.waitForTimeout(300);
+    const r = await p.evaluate(() => ({ animacje: [...document.querySelectorAll('.postac *')].map((e) => getComputedStyle(e).animationName).filter((n) => n !== 'none'),
+      strzalka: getComputedStyle(document.querySelector('.postac-stany .postac--wskazuje .postac-strzalka')).display, ptaszek: getComputedStyle(document.querySelector('.postac-stany .postac--gotowe .postac-ptaszek')).display }));
+    ok('postać, ograniczony ruch: od razu pozy końcowe (strzałka, ptaszek), bez żadnej animacji', r.animacje.length === 0 && r.strzalka !== 'none' && r.ptaszek !== 'none', r); await ctx.close(); }
+
   { const bok = {}; for (const w of [320, 360, 390, 480, 600, 719, 720, 768, 959, 960, 1024, 1100, 1280, 1440, 1920, 2560]) {
       const { ctx, p } = await nowa(w); await p.goto(A + '/'); await p.waitForTimeout(300); bok[w] = await p.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth); await ctx.close(); }
     ok('16 szerokości od 320 do 2560 px: strona nigdzie nie przewija się w bok', Object.values(bok).every((x) => x === 0), bok); }
@@ -200,7 +222,8 @@ const czekaj = (p, fn, ms) => p.waitForFunction(fn, null, { timeout: ms || 20000
     const { ctx, p } = await nowa(w); await p.goto(B + '/'); await p.waitForTimeout(1200);
     const e = await p.evaluate(() => ({ film: document.getElementById('film-blok').hidden, panel: !document.getElementById('koniec').hidden, tekst: document.getElementById('koniec-tekst').textContent,
       powtorka: document.getElementById('jeszcze-raz').hidden, fokus: document.activeElement === document.body, scroll: scrollY, cta: document.getElementById('do-demo').getBoundingClientRect().bottom <= innerHeight }));
-    ok(w + ' px bez filmu: zamiast odtwarzacza komunikat i „Przejdź do demonstracji” na pierwszym ekranie; fokus i przewinięcie bez zmian', e.film && e.panel && /niedostępny/.test(e.tekst) && e.powtorka && e.fokus && e.scroll === 0 && e.cta, e);
+    e.postac = await p.evaluate(() => [...document.querySelectorAll('#koniec .postac')].filter((x) => getComputedStyle(x).display !== 'none').map((x) => x.getAttribute('class')).join());
+    ok(w + ' px bez filmu: zamiast odtwarzacza komunikat i „Przejdź do demonstracji” na pierwszym ekranie, postać w stanie „pomyłka”; fokus i przewinięcie bez zmian', /postac--pomylka/.test(e.postac) && !/wskazuje/.test(e.postac) && e.film && e.panel && /niedostępny/.test(e.tekst) && e.powtorka && e.fokus && e.scroll === 0 && e.cta, e);
     const v = await axe(p); ok(w + ' px bez filmu: axe bez naruszeń', v.length === 0, v); await ctx.close(); }
 
   await b.close();

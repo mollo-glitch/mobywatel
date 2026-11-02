@@ -11,7 +11,8 @@ Bez frameworka, bez analityki, bez plików cookie, bez zależności w przegląda
 | Ścieżka | Co to jest |
 |---|---|
 | `src/index.html` | strona (style i skrypt w jednym pliku); znaczniki `<!--znak:…-->` i `<!--film:…-->` wypełnia build |
-| `src/fonty/` | Atkinson Hyperlegible Next i IBM Plex Sans 700 (latin, latin-ext) z licencjami OFL; te same kroje co w aplikacji, serwowane z własnego adresu |
+| `src/fonty/` | Poltawski Nowy (nagłówki; rewitalizacja antykwy Półtawskiego, zmienna waga 400–700) i Atkinson Hyperlegible Next (tekst, ten sam krój co w aplikacji), latin i latin-ext, z licencjami OFL 1.1; serwowane z własnego adresu |
+| `src/postac/spinka-postac.svg` | postać Spinki: kartka ze spinką bez twarzy; znacznik `<!--postac:STAN:ROZMIAR-->` (stany: pojawia, spokoj, wskazuje, gotowe, pomylka, odpoczywa), ruch w CSS strony |
 | `build.mjs` | składa `public/`: strona, fonty, znak, film, `aplikacja/index.html` |
 | `przygotuj-film.sh` | wersja webowa filmu i plakat z pliku źródłowego (nie nadpisuje źródła) |
 | `podglad.mjs` | lokalny serwer `public/` z obsługą Range (przewijanie wideo) |
@@ -72,7 +73,7 @@ Cloudflare Pages, Vercel i zwykły serwer WWW ją mają). Linki są względne, w
 np. `https://użytkownik.github.io/spinka/`. `public/.nojekyll` wyłącza przetwarzanie Jekyll na GitHub Pages.
 Po publikacji sprawdź publiczny adres: stronę, film z napisami, `/aplikacja/` i adres bez końcowego ukośnika.
 
-Rozmiar strony bez filmu: około 350 KB (HTML ~43 KB, fonty ~92 KB, trzy zrzuty ekranów ~218 KB wczytywane dopiero przy przewinięciu) plus aplikacja ~490 KB pobierana dopiero po przejściu.
+Rozmiar strony bez filmu: około 380 KB (HTML ~56 KB, fonty ~120 KB, trzy zrzuty ekranów ~218 KB wczytywane dopiero przy przewinięciu) plus aplikacja ~490 KB pobierana dopiero po przejściu.
 Film ładuje tylko metadane (`preload="metadata"`), dopóki ktoś go nie włączy.
 
 ## Czego strona nie robi
