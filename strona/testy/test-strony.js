@@ -89,7 +89,8 @@ const czekaj = (p, fn, ms) => p.waitForFunction(fn, null, { timeout: ms || 20000
     ok('ruch: elementy pierwszego ekranu wchodzą animacją (pojawienie), sekcje poniżej czekają na przewinięcie; nic nie jest całkiem niewidoczne (krycie ≥ 0,3)', start.ruch && start.animacje.length >= 6 && start.animacje.every((n) => n === 'pojawienie') && start.ukryteNizej > 0 && start.najnizszeKrycie >= 0.3, start);
     await p.waitForTimeout(900);
     const pierwszy = await p.evaluate(() => [...document.querySelectorAll('.wejscie')].map((e) => +getComputedStyle(e).opacity));
-    for (let y = 0; y <= 4000; y += 300) { await p.mouse.wheel(0, 300); await p.waitForTimeout(120); }
+    // Do samego dołu strony (runda 29: strona jest dłuższa niż 4000 px).
+    for (let i = 0; i < 40 && await p.evaluate(() => scrollY + innerHeight < document.documentElement.scrollHeight - 2); i++) { await p.mouse.wheel(0, 300); await p.waitForTimeout(120); }
     await p.waitForTimeout(900);
     const po = await p.evaluate(() => ({ niewidoczne: [...document.querySelectorAll('.odslona')].filter((e) => +getComputedStyle(e).opacity < 1 || !e.classList.contains('widoczne')).map((e) => e.textContent.trim().slice(0, 30)) }));
     ok('ruch: po wejściu pierwszy ekran w pełni widoczny, po przewinięciu cała treść odsłonięta', pierwszy.every((o) => o === 1) && po.niewidoczne.length === 0, { pierwszy, ...po });
@@ -207,10 +208,12 @@ const czekaj = (p, fn, ms) => p.waitForFunction(fn, null, { timeout: ms || 20000
   // 5d. Typografia i postać: antykwa w nagłówkach bez ciężkich pogrubień, pięć stanów postaci, ruch postaci tylko bez „ograniczaj animacje”.
   { const { ctx, p, log } = await nowa(1440); await p.goto(A + '/'); await p.evaluate(() => document.fonts.ready); await p.waitForTimeout(400);
     const t = await p.evaluate(() => ({ fonty: [...document.fonts].filter((f) => f.status === 'loaded').map((f) => f.family.replace(/"/g, '')),
-      naglowki: [...document.querySelectorAll('h1, h2, h3, dt, .logo')].map((e) => [e.tagName, getComputedStyle(e).fontFamily.split(',')[0].replace(/"/g, ''), +getComputedStyle(e).fontWeight]),
-      tekst: getComputedStyle(document.querySelector('.krok p')).fontFamily.split(',')[0].replace(/"/g, ''), pogrubione: [...document.querySelectorAll('main *, header *, footer *')].filter((e) => e.childElementCount === 0 && e.textContent.trim() && +getComputedStyle(e).fontWeight >= 700).map((e) => e.textContent.trim().slice(0, 20)) }));
-    ok('typografia: nagłówki w Poltawski Nowy (waga najwyżej 500), tekst w Atkinson Hyperlegible Next, nic w wadze 700+; font wczytany z własnego adresu',
-      t.fonty.includes('Poltawski Nowy') && t.naglowki.every((n) => n[1] === 'Poltawski Nowy' && n[2] <= 500) && t.tekst === 'Atkinson Hyperlegible Next' && t.pogrubione.length === 0 && !log.zadania.some((u) => /plex/i.test(u)), t);
+      // Runda 29: wyjątek na prośbę autora: hasło na czerwonej planszy otwarcia (i puste rzędy w tle) w Archivo 900, jak plansze filmu v8.
+      naglowki: [...document.querySelectorAll('h1, h2, h3, dt, .logo')].filter((e) => !e.closest('.plansza')).map((e) => [e.tagName, getComputedStyle(e).fontFamily.split(',')[0].replace(/"/g, ''), +getComputedStyle(e).fontWeight]),
+      plansza: [...document.querySelectorAll('.plansza h1, .plansza .duch')].map((e) => [getComputedStyle(e).fontFamily.split(',')[0].replace(/"/g, ''), +getComputedStyle(e).fontWeight]),
+      tekst: getComputedStyle(document.querySelector('.krok p')).fontFamily.split(',')[0].replace(/"/g, ''), pogrubione: [...document.querySelectorAll('main *, header *, footer *')].filter((e) => !e.closest('.plansza') && e.childElementCount === 0 && e.textContent.trim() && +getComputedStyle(e).fontWeight >= 700).map((e) => e.textContent.trim().slice(0, 20)) }));
+    ok('typografia: nagłówki w Poltawski Nowy (waga najwyżej 500), tekst w Atkinson Hyperlegible Next, nic w wadze 700+ poza planszą otwarcia (Archivo 900, jak w filmie); fonty z własnego adresu',
+      t.fonty.includes('Poltawski Nowy') && t.fonty.includes('Archivo Plansza') && t.plansza.length === 3 && t.plansza.every((x) => x[0] === 'Archivo Plansza' && x[1] === 900) && t.naglowki.every((n) => n[1] === 'Poltawski Nowy' && n[2] <= 500) && t.tekst === 'Atkinson Hyperlegible Next' && t.pogrubione.length === 0 && !log.zadania.some((u) => /plex/i.test(u)), t);
     const st = await p.evaluate(() => [...document.querySelectorAll('.postac-stany li')].map((li) => [li.querySelector('svg').getAttribute('class').replace('postac postac--', ''), li.textContent.trim(), li.querySelector('svg').getAttribute('aria-hidden')]));
     ok('postać: te same pięć stanów co w aplikacji (słucha, wyjaśnia, ostrzega, następny krok, gotowe) z podpisami; rysunki ukryte przed czytnikiem',
       st.map((x) => x[0]).join() === 'slucha,wyjasnia,ostrzega,krok,gotowe' && st.every((x) => x[1].length > 10 && x[2] === 'true'), st);

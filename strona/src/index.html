@@ -20,6 +20,8 @@
 <link rel="preload" href="fonty/atkinson-hyperlegible-next-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonty/poltawski-nowy-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonty/poltawski-nowy-latin-ext.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonty/archivo-900-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonty/archivo-900-latin-ext.woff2" as="font" type="font/woff2" crossorigin>
 <!--film:preload-plakatu-->
 <style>
 @font-face { font-family: "Atkinson Hyperlegible Next"; font-style: normal; font-weight: 400 700; font-display: swap;
@@ -27,6 +29,13 @@
   unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF; }
 @font-face { font-family: "Atkinson Hyperlegible Next"; font-style: normal; font-weight: 400 700; font-display: swap;
   src: url(fonty/atkinson-hyperlegible-next-latin.woff2) format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+/* Archivo 900: krój plansz filmu Spinki; tylko w czerwonej planszy otwarcia (hasło i puste rzędy w tle). OFL 1.1. */
+@font-face { font-family: "Archivo Plansza"; font-style: normal; font-weight: 900; font-display: swap;
+  src: url(fonty/archivo-900-latin-ext.woff2) format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: "Archivo Plansza"; font-style: normal; font-weight: 900; font-display: swap;
+  src: url(fonty/archivo-900-latin.woff2) format("woff2");
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
 /* Poltawski Nowy: rewitalizacja antykwy Adama Półtawskiego (lata 20.), kroju rysowanego z myślą o polskich znakach. OFL 1.1. */
 @font-face { font-family: "Poltawski Nowy"; font-style: normal; font-weight: 400 700; font-display: swap;
@@ -98,28 +107,56 @@ img { max-width: 100%; height: auto; }
 .btn-cichy:hover { color: var(--czerwien-ciemna); }
 .btn-cichy[hidden] { display: none; }
 
-/* Otwarcie jako pierwsza strona pisma: tytuł jak temat sprawy, w prawym górnym rogu nagłówek pisma (data z prototypu
-   i „W sprawie”), pod spodem film bez ramki-kartki, z paskiem postępu, na którym spinka pokazuje, gdzie jesteś, i spisem scen.
+/* Otwarcie: czerwona plansza z hasłem jak w filmie (niżej), pod nią nagłówek pisma (data z prototypu
+   i „W sprawie”) pod podpisem autora, obok film bez ramki-kartki, z paskiem postępu, na którym spinka pokazuje, gdzie jesteś, i spisem scen.
    Na dużym ekranie opis i podpis po lewej, film po prawej. Na telefonie film zaraz pod tytułem, potem „Otwórz demo”, skróty
    i podpis: przy 320×568 film, „Pomiń film”, przycisk i skróty mieszczą się bez przewijania; nagłówek pisma i sceny są niżej. */
-.hero { position: relative; z-index: 0; overflow-x: clip; padding: clamp(12px, 3.4vw, 48px) 0 var(--sekcja); }
+.hero { position: relative; z-index: 0; overflow-x: clip; padding: 0 0 var(--sekcja); }
 main { position: relative; z-index: 0; }
-.hero-glowa { display: grid; gap: 20px; }
-.hero-tytul { font-size: var(--t-tytul); line-height: .98; letter-spacing: -.025em; }
+/* Plansza otwarcia jak w filmie (v8, master): czerwone pole, wielkie białe hasło w Archivo 900 i to samo słowo
+   pustym obrysem w rzędach nad i pod nim, przyciętych krawędzią planszy. Przy wejściu plansza wjeżdża od lewej
+   (zmiana koloru jak cięcie w filmie), hasło odsłania się wierszami, a rzędy rozjeżdżają się w przeciwne strony
+   i po 4,5 s stają (ruch krótszy niż 5 s, więc bez przycisku pauzy). Bez ruchu: od razu stan końcowy. */
+.plansza { --czerw-pl: #C8102E; position: relative; overflow: hidden; background: linear-gradient(180deg, #D0142F 0%, var(--czerw-pl) 55%, #BD0E2A 100%); color: #FFFFFF; }
+.plansza :focus-visible { outline-color: #FFFFFF; }
+.plansza-tlo { position: absolute; inset: 0; pointer-events: none; }
+.duch { position: absolute; left: -6%; white-space: nowrap; font-family: "Archivo Plansza", "Arial Black", system-ui, sans-serif; font-weight: 900; text-transform: uppercase; letter-spacing: -.02em; line-height: 1;
+  font-size: calc(var(--rozm-pl) * 1.5); color: transparent; -webkit-text-stroke: max(1px, .011em) rgba(255, 255, 255, .34); }
+.duch-1 { top: calc(var(--rozm-pl) * -0.68); }
+.duch-2 { bottom: calc(var(--rozm-pl) * -0.62); left: -22%; }
+.hero-glowa { position: relative; display: grid; gap: 20px; padding: clamp(24px, 3vw, 44px) 0 clamp(26px, 3.1vw, 46px); }
+/* Rozmiar hasła: dwa wiersze na każdej szerokości. Zmierzone w przeglądarce: „MA NASTĘPNY KROK.” = 11,44 em,
+   „KAŻDA SPRAWA” = 8,44 em; dzielnik 11,8 zostawia zapas. Nagłówek pisma stoi obok krótszego pierwszego wiersza. */
+.plansza { --rozm-pl: min(5.6rem, calc((100vw - 2 * var(--margines)) / 11.8)); }
+@media (max-width: 479px) { .hero-glowa { padding: 18px 0 20px; } }
+@media (max-width: 479px) and (max-height: 600px) { .hero-glowa { padding: 12px 0 14px; } }
+@media (min-width: 960px) {
+  .hero-glowa { display: block; }
+  .hero .hero-uklad { margin-top: 16px; }
+  .hero .film-obraz { margin-top: 8px; }
+}
+.hero-tytul { font-family: "Archivo Plansza", "Arial Black", system-ui, sans-serif; font-weight: 900; text-transform: uppercase; font-size: var(--rozm-pl); line-height: .92; letter-spacing: -.02em; color: #FFFFFF; }
+@media (prefers-reduced-motion: no-preference) {
+  .ruch .plansza { animation: plansza-wjazd .46s cubic-bezier(.7, 0, .2, 1) both; }
+  .ruch .hero-tytul .linia { animation: haslo-odslona .5s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(.28s + var(--i, 1) * .12s); }
+  .ruch .duch-1 { animation: duch-w-lewo 4.5s cubic-bezier(.16, .84, .3, 1) .2s both; }
+  .ruch .duch-2 { animation: duch-w-prawo 4.5s cubic-bezier(.16, .84, .3, 1) .2s both; }
+  @keyframes plansza-wjazd { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+  @keyframes haslo-odslona { from { clip-path: inset(0 100% 0 0); transform: translateX(-.25em); } to { clip-path: inset(0 0 0 0); transform: none; } }
+  @keyframes duch-w-lewo { from { transform: translateX(14%); } to { transform: translateX(0); } }
+  @keyframes duch-w-prawo { from { transform: translateX(-14%); } to { transform: translateX(0); } }
+}
 .hero-tytul .linia { display: block; }
 /* Nagłówek pisma: dwa wiersze jak w urzędowym piśmie (data, „W sprawie”), cienka linia, bez ramki i bez pogrubień. */
 .pismo-glowa { margin: 0; display: grid; gap: 10px; font-size: var(--t-drobne); line-height: 1.4; color: var(--szary); }
 .pismo-glowa div { display: grid; gap: 2px; padding-top: 10px; border-top: 1px solid rgba(19, 26, 42, .22); }
 .pismo-glowa dt { font-size: var(--t-drobne); }
 .pismo-glowa dd { margin: 0; font-family: var(--font-glowa); font-size: 1.125rem; line-height: 1.3; color: var(--tusz); }
-@media (min-width: 960px) {
-  .hero-glowa { grid-template-columns: minmax(0, 1fr) clamp(220px, 22vw, 300px); column-gap: 40px; align-items: start; }
-  .pismo-glowa { padding-top: .9rem; }
-}
+
 .hero-uklad { display: grid; margin-top: clamp(16px, 3vw, 44px); }
 .hero-tekst { display: flex; flex-direction: column; }
-@media (max-width: 959px) { .hero-glowa > .pismo-glowa { display: none; } }
-@media (min-width: 960px) { .hero-tekst > .pismo-glowa { display: none; } }
+/* Nagłówek pisma pod podpisem autora, na każdej szerokości (plansza ma tylko hasło i puste rzędy, jak w filmie). */
+@media (min-width: 960px) { .hero-tekst > .pismo-glowa { margin-top: 32px; max-width: 26rem; } }
 @media (max-width: 959px) {
   .hero-tekst { margin-top: 12px; }
   .akcje { order: 0; }
@@ -393,11 +430,13 @@ video::cue { font-family: var(--font); background: rgba(19, 26, 42, .86); color:
 
 <main id="tresc">
   <section class="hero" aria-labelledby="tytul">
-   <div class="kontener">
-    <div class="hero-glowa">
-      <h1 id="tytul" class="hero-tytul"><span class="sr-only" translate="no">Spinka. </span><span class="linia wejscie" style="--i:1">Każda sprawa</span> <span class="linia wejscie" style="--i:2">ma następny krok.</span></h1>
-      <dl class="pismo-glowa wejscie" style="--i:2"><div><dt>Data w prototypie</dt><dd><!--data-pokazu--></dd></div><div><dt>W sprawie</dt><dd>asystenta spraw w koncepcji aplikacji mObywatel</dd></div></dl>
+   <div class="plansza">
+    <div class="plansza-tlo" aria-hidden="true"><span class="duch duch-1">Pismo. Termin. Pismo. Termin. Pismo.</span><span class="duch duch-2">Termin. Pismo. Termin. Pismo. Termin.</span></div>
+    <div class="kontener hero-glowa">
+      <h1 id="tytul" class="hero-tytul"><span class="sr-only" translate="no">Spinka. </span><span class="linia" style="--i:1">Każda sprawa</span> <span class="linia" style="--i:2">ma następny krok.</span></h1>
     </div>
+   </div>
+   <div class="kontener">
     <div class="hero-uklad">
       <div class="hero-film">
         <figure class="film wejscie" style="--i:3" id="film-blok">

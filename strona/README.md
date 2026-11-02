@@ -30,15 +30,11 @@ Bez frameworka, bez analityki, bez plików cookie, bez zależności w przegląda
 
 ## Otwarcie (runda 29)
 
-Pierwsza część strony jest zbudowana jak pierwsza strona pisma, bo tym zajmuje się Spinka:
-
-- tytuł „Każda sprawa ma następny krok.” jak temat sprawy; obok (od 960 px) nagłówek pisma: „Data w prototypie” (z zegara pokazowego aplikacji, wstawiana przy budowaniu) i „W sprawie: asystenta spraw w koncepcji aplikacji mObywatel”; na telefonie ten sam nagłówek stoi niżej, pod opisem;
-- film bez przypiętej kartki i bez tła-plamy: nad nim linia „Film, 0:41, z napisami” i „Pomiń film”, pod nim tor postępu, na którym mała czerwona spinka stoi w miejscu odtwarzania;
-- „Sceny filmu”: spis sześciu scen z czasem; wybór przewija film do sceny i ją odtwarza, bieżąca scena ma czerwoną kreskę (`aria-current`); na szerokim ekranie pas na całą szerokość pod filmem i opisem, na telefonie pod opisem;
-- podpis autora jak pod pismem: „Koncepcja i projekt aplikacji:” drobnym krojem i „Igor M.” antykwą, z czerwoną kreską na marginesie;
-- przypięta kartka została tylko w sekcji „Demonstracja”; ekrany Profilu w „Asystent mówi, skąd wie” są płaskie, w cienkiej ramce.
-
-Na telefonie pierwszy ekran bez zmian w treści: tytuł, film z „Pomiń film”, „Otwórz demo”, skróty (320×568 bez przewijania).
+- **Plansza jak w filmie v8 (master):** czerwone pole na całą szerokość, hasło „KAŻDA SPRAWA / MA NASTĘPNY KROK.” białym Archivo 900 wersalikami i to samo słownictwo („Pismo. Termin.”) pustym obrysem w dwóch rzędach nad i pod hasłem, przyciętych krawędzią planszy (ukryte przed czytnikiem). Rozmiar hasła liczony tak, żeby zawsze były dwa wiersze („MA NASTĘPNY KROK.” = 11,44 em). Archivo 900 (OFL, `src/fonty/archivo-900-*.woff2`) jest tylko na planszy; reszta strony bez zmian (Poltawski Nowy, Atkinson).
+- **Przejście przy wejściu:** plansza wjeżdża od lewej (0,46 s, jak zmiana koloru w filmie), wiersze hasła odsłaniają się po kolei, puste rzędy rozjeżdżają się w przeciwne strony i stają po 4,5 s (ruch krótszy niż 5 s, bez pętli). Przy ograniczonym ruchu i bez skryptu plansza od razu stoi w stanie końcowym.
+- **Pod planszą:** film bez przypiętej kartki (linia „Film, 0:41, z napisami” i „Pomiń film”, tor postępu z małą spinką w miejscu odtwarzania), opis, „Otwórz demo”, skróty, podpis autora i nagłówek pisma („Data w prototypie” z zegara aplikacji, „W sprawie”).
+- **Sceny filmu:** spis sześciu scen z czasem; wybór przewija film do sceny, bieżąca scena ma czerwoną kreskę (`aria-current`).
+- Przypięta kartka została tylko w „Demonstracji”; ekrany Profilu w „Asystent mówi, skąd wie” są płaskie.
 
 ## Film
 

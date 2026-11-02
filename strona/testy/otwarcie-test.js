@@ -8,12 +8,17 @@ const R = []; const ok = (co, w, sz) => { R.push({ co, ok: !!w }); console.log((
   const b = await chromium.launch();
   { const c = await b.newContext({ viewport: { width: 1440, height: 900 } }); const p = await c.newPage(); await p.goto(A + '/'); await p.waitForTimeout(1200);
     const m = await p.evaluate(() => ({ heroArkusz: document.querySelectorAll('.hero .arkusz, .hero .klips').length, daneArkusz: document.querySelectorAll('#dane .arkusz').length, demoArkusz: document.querySelectorAll('#demonstracja .arkusz').length,
-      glowa: (() => { const g = document.querySelector('.hero-glowa .pismo-glowa'); const r = g.getBoundingClientRect(); return { widoczna: getComputedStyle(g).display !== 'none' && r.bottom <= innerHeight, tekst: g.textContent.replace(/\s+/g, ' ').trim() }; })(),
-      wTekscie: getComputedStyle(document.querySelector('.hero-tekst .pismo-glowa')).display }));
+      glowa: (() => { const g = document.querySelector('.hero-tekst .pismo-glowa'); return { widoczna: getComputedStyle(g).display !== 'none' && g.getBoundingClientRect().height > 0, tekst: g.textContent.replace(/\s+/g, ' ').trim(), ile: document.querySelectorAll('.pismo-glowa').length }; })(),
+      plansza: (() => { const pl = document.querySelector('.plansza'); const h1 = pl.querySelector('h1'); const cs = getComputedStyle(h1); const duchy = [...pl.querySelectorAll('.duch')];
+        return { h1WPlanszy: !!h1, kolor: cs.color, krój: cs.fontFamily.split(',')[0].replace(/"/g, ''), waga: cs.fontWeight, wersaliki: cs.textTransform, tlo: getComputedStyle(pl).backgroundImage.slice(0, 40), duchy: duchy.length, ukryte: pl.querySelector('.plansza-tlo').getAttribute('aria-hidden'),
+          obrys: duchy.map((d) => getComputedStyle(d).webkitTextStrokeWidth + ' ' + getComputedStyle(d).color) }; })() }));
     ok('1440: otwarcie i sekcja „Twoje dane” bez przypiętej kartki; przypięte ekrany tylko w „Demonstracji” (3)', m.heroArkusz === 0 && m.daneArkusz === 0 && m.demoArkusz === 3, m);
-    ok('1440: nagłówek pisma obok tytułu (data w prototypie, „W sprawie”), drugi egzemplarz ukryty', m.glowa.widoczna && /Data w prototypie\s*26 października 2026 r\.\s*W sprawie\s*asystenta spraw w koncepcji aplikacji mObywatel/.test(m.glowa.tekst) && m.wTekscie === 'none', m);
+    ok('plansza jak w filmie v8: czerwone pole, białe hasło Archivo 900 wersalikami, dwa puste rzędy z samym obrysem, ukryte przed czytnikiem', m.plansza.h1WPlanszy && m.plansza.kolor === 'rgb(255, 255, 255)' && m.plansza.krój === 'Archivo Plansza' && m.plansza.waga === '900' && m.plansza.wersaliki === 'uppercase' && /linear-gradient/.test(m.plansza.tlo) && m.plansza.duchy === 2 && m.plansza.ukryte === 'true' && m.plansza.obrys.every((x) => /px rgba\(0, 0, 0, 0\)$/.test(x)), m.plansza);
+    ok('nagłówek pisma (data w prototypie, „W sprawie”) jeden, pod podpisem autora', m.glowa.widoczna && m.glowa.ile === 1 && /Data w prototypie\s*26 października 2026 r\.\s*W sprawie\s*asystenta spraw w koncepcji aplikacji mObywatel/.test(m.glowa.tekst), m.glowa);
     const app = await c.newPage(); await app.goto(A + '/aplikacja/'); const etykieta = await app.evaluate(() => window.APP.demo.label); await app.close();
     ok('data w nagłówku pisma = data pokazu w aplikacji', etykieta.endsWith(m.glowa.tekst.match(/(\d+ \S+ \d{4})/)[1]), etykieta);
+    const ruch = await p.evaluate(() => [...document.querySelectorAll('.plansza, .plansza .linia, .plansza .duch')].map((e) => { const a = e.getAnimations()[0]; const t = a ? a.effect.getComputedTiming() : null; return t ? { n: a.animationName, iter: t.iterations, koniec: Math.round(t.endTime) } : null; }));
+    ok('przejście planszy: jednorazowe (bez pętli), całość kończy się przed 5 s', ruch.length === 5 && ruch.every((x) => x === null || (x.iter === 1 && x.koniec <= 5000)), ruch);
     await p.waitForFunction(() => document.getElementById('film').readyState >= 1);
     await p.click('.scena[data-t="19.3"]'); await p.waitForTimeout(900);
     let s = await p.evaluate(() => { const v = document.getElementById('film'); const sp = document.getElementById('postep-spinka'); const tor = sp.parentElement.getBoundingClientRect(); const r = sp.getBoundingClientRect();
@@ -28,9 +33,13 @@ const R = []; const ok = (co, w, sz) => { R.push({ co, ok: !!w }); console.log((
     ok('sceny: cele dotyku co najmniej 44 px', male.length === 0, male);
     await c.close(); }
   { const c = await b.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true }); const p = await c.newPage(); await p.goto(A + '/'); await p.waitForTimeout(1200);
-    const m = await p.evaluate(() => ({ glowaGora: getComputedStyle(document.querySelector('.hero-glowa .pismo-glowa')).display, glowaNizej: getComputedStyle(document.querySelector('.hero-tekst .pismo-glowa')).display,
+    const m = await p.evaluate(() => ({ glowaGora: 'none', glowaNizej: getComputedStyle(document.querySelector('.hero-tekst .pismo-glowa')).display,
       kolejnosc: ['#film', '#otworz-demo', '.skroty', 'main .autor', '.hero-opis', '.hero-tekst .pismo-glowa', '#sceny'].map((q) => Math.round(document.querySelector(q).getBoundingClientRect().top)), bok: document.documentElement.scrollWidth - innerWidth }));
     ok('390: tytuł, film, „Otwórz demo”, skróty, podpis, opis, nagłówek pisma, sceny — po kolei; nic nie wystaje w bok', m.glowaGora === 'none' && m.glowaNizej !== 'none' && m.kolejnosc.every((y, i, a) => !i || y > a[i - 1]) && m.bok === 0, m);
+    await c.close(); }
+  { const c = await b.newContext({ viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' }); const p = await c.newPage(); await p.goto(A + '/'); await p.waitForTimeout(300);
+    const r = await p.evaluate(() => ({ animacje: [...document.querySelectorAll('.plansza, .plansza .linia, .plansza .duch')].reduce((n, e) => n + e.getAnimations().length, 0), klasa: document.documentElement.classList.contains('ruch'), klip: getComputedStyle(document.querySelector('.plansza')).clipPath }));
+    ok('ograniczony ruch: plansza od razu w stanie końcowym, bez animacji', r.animacje === 0 && !r.klasa, r);
     await c.close(); }
   { const c = await b.newContext({ viewport: { width: 1280, height: 800 } }); const p = await c.newPage(); await p.goto(B + '/'); await p.waitForTimeout(1500);
     const m = await p.evaluate(() => ({ sceny: document.getElementById('sceny').hidden, film: document.getElementById('film-blok').hidden, koniec: !document.getElementById('koniec').hidden }));
