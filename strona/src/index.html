@@ -171,8 +171,8 @@ video::cue { font-family: var(--font); background: rgba(19, 26, 42, .86); color:
 .koniec { display: flex; align-items: center; gap: 12px 18px; flex-wrap: wrap; margin-top: 18px; padding: 18px 20px 20px; background: var(--karta); border-radius: 2px; }
 .koniec[hidden] { display: none; }
 .koniec-postac { flex: none; display: flex; }
-.koniec-postac .postac--pomylka, .koniec--blad .koniec-postac .postac--wskazuje { display: none; }
-.koniec--blad .koniec-postac .postac--pomylka { display: block; }
+.koniec-postac .postac--ostrzega, .koniec--blad .koniec-postac .postac--krok { display: none; }
+.koniec--blad .koniec-postac .postac--ostrzega { display: block; }
 .koniec-tekst { flex: 1 1 14rem; min-width: 0; font-family: var(--font-glowa); font-size: var(--t-wyr); line-height: 1.3; }
 .koniec-akcje { display: flex; align-items: center; gap: 8px 16px; flex-wrap: wrap; flex: 1 0 100%; }
 @media (max-width: 479px) { .koniec { padding: 14px 16px 16px; gap: 10px 12px; } .koniec-postac .postac { width: 48px; height: 48px; } .koniec-tekst { font-size: 1.125rem; } }
@@ -229,6 +229,21 @@ video::cue { font-family: var(--font); background: rgba(19, 26, 42, .86); color:
   .ekrany.stos .ekran[data-poz="prawo"] { z-index: 2; transform: translateX(22%) translateY(40px) rotate(5deg) scale(.84); }
 }
 
+/* Asystent mówi, skąd wie: papierowe pole, zasady jako numerowana lista po lewej, dwa prawdziwe ekrany Profilu po prawej. */
+.pole-papier { background: var(--tlo); }
+.dane-uklad { display: grid; gap: 48px; }
+@media (min-width: 960px) { .dane-uklad { grid-template-columns: minmax(0, 6fr) minmax(0, 6fr); gap: clamp(40px, 5vw, 96px); align-items: center; } }
+.zasady { list-style: none; margin: 32px 0 0; padding: 0; display: grid; gap: 22px; counter-reset: z; }
+.zasady li { position: relative; padding-left: 52px; counter-increment: z; }
+.zasady li::before { content: counter(z); position: absolute; left: 0; top: -.15em; font-family: var(--font-glowa); font-size: 2.25rem; line-height: 1; color: var(--czerwien-ciemna); }
+.zasady h3 { font-size: var(--t-wyr); font-weight: 500; line-height: 1.2; }
+.zasady p { margin-top: 6px; }
+.dane-ekrany { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: clamp(16px, 2.4vw, 32px); align-items: start; }
+.dane-ekrany .ekran-plaski:nth-child(2) { margin-top: clamp(24px, 5vw, 72px); }
+.ekran-plaski { margin: 0; }
+.ekran-plaski img { display: block; width: 100%; height: auto; aspect-ratio: 390 / 640; object-fit: cover; object-position: 50% 0; border-radius: 1px; }
+.ekran-plaski figcaption { margin-top: 12px; font-size: var(--t-drobne); color: var(--szary); }
+
 /* O projekcie: jasne pole o ton ciemniejsze; po lewej teza i podpis autora jak na dokumencie, po prawej fakty, niżej postać. */
 .pole-jasne { background: var(--tlo-2); }
 .o-uklad { display: grid; gap: 48px; }
@@ -249,19 +264,23 @@ video::cue { font-family: var(--font); background: rgba(19, 26, 42, .86); color:
 
 /* Postać Spinki: rozwinięcie znaku, kartka ze spinką bez twarzy. Stan pokazuje postawa kartki, kąt spinki i układ linii. */
 .postac { display: block; overflow: visible; }
-.postac .postac-strzalka, .postac .postac-ptaszek, .postac .postac-skreslenie, .postac .postac-poprawka { display: none; }
+.postac .postac-strzalka, .postac .postac-ptaszek, .postac .postac-luka { display: none; }
 .postac-cialo { transform-box: view-box; transform-origin: 37px 74px; }
 .postac-klips { transform-box: view-box; transform-origin: 27px 28px; transform: rotate(-8deg); }
-.postac--wskazuje .postac-linia-2 { display: none; }
-.postac--wskazuje .postac-strzalka { display: inline; }
-.postac--wskazuje .postac-cialo { transform: rotate(4deg); }
+/* Te same pięć stanów co w aplikacji: słucha, wyjaśnia, ostrzega, następny krok, gotowe. */
+.postac--slucha .postac-klips { transform: translateY(-3px) rotate(-16deg); }
+.postac--slucha .postac-linia { opacity: .35; }
+.postac--wyjasnia .postac-linia { stroke: var(--tusz); }
+.postac--ostrzega .postac-rog { fill: #E59A0B; }
+.postac--ostrzega .postac-linia-2 { display: none; }
+.postac--ostrzega .postac-luka { display: inline; }
+.postac--ostrzega .postac-cialo { transform: rotate(-4deg); }
+.postac--krok .postac-linia-2 { display: none; }
+.postac--krok .postac-strzalka { display: inline; }
+.postac--krok .postac-cialo { transform: rotate(4deg); }
 .postac--gotowe .postac-linia { display: none; }
 .postac--gotowe .postac-ptaszek { display: inline; }
 .postac--gotowe .postac-klips { transform: translateY(-3px) rotate(-18deg); }
-.postac--pomylka .postac-skreslenie, .postac--pomylka .postac-poprawka { display: inline; }
-.postac--pomylka .postac-cialo { transform: rotate(-4deg); }
-.postac--odpoczywa .postac-cialo { transform: rotate(-7deg); }
-.postac--odpoczywa .postac-klips { transform: rotate(-24deg); }
 .postac-blok { grid-column: 1 / -1; display: grid; gap: 28px; padding-top: 8px; }
 @media (min-width: 960px) { .postac-blok { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: clamp(40px, 6vw, 112px); align-items: center; } }
 .postac-blok h3 { font-size: var(--t-wyr); font-weight: 500; line-height: 1.2; }
@@ -295,21 +314,18 @@ video::cue { font-family: var(--font); background: rgba(19, 26, 42, .86); color:
   /* Postać: każdy ruch raz, gdy postać wchodzi w widok albo pojawia się panel końca. Bez pętli i bez podskakiwania w miejscu. */
   .ruch :is(.widoczne, .pokaz) .postac .postac-klips { animation: postac-klips .5s var(--krzywa) .15s both; }
   @keyframes postac-klips { 0% { transform: translateY(-10px) rotate(-26deg); } 70% { transform: translateY(1px) rotate(-6deg); } }
-  .ruch :is(.widoczne, .pokaz) .postac--pojawia .postac-cialo { animation: postac-wejscie .5s var(--krzywa) both; }
-  @keyframes postac-wejscie { from { opacity: .2; transform: translateY(12px); } }
-  .ruch :is(.widoczne, .pokaz) .postac--wskazuje .postac-cialo { animation: postac-pochyl .55s var(--krzywa) .25s both; }
+  .ruch :is(.widoczne, .pokaz) :is(.postac-strzalka, .postac-ptaszek, .postac--wyjasnia .postac-linia) { stroke-dasharray: 1; }
+  .ruch :is(.widoczne, .pokaz) .postac--wyjasnia .postac-linia { animation: postac-rysuj .4s ease-out .25s both; }
+  .ruch :is(.widoczne, .pokaz) .postac--wyjasnia .postac-linia-2 { animation-delay: .33s; }
+  .ruch :is(.widoczne, .pokaz) .postac--wyjasnia .postac-linia-3 { animation-delay: .41s; }
+  .ruch :is(.widoczne, .pokaz) .postac--krok .postac-cialo { animation: postac-pochyl .55s var(--krzywa) .25s both; }
   @keyframes postac-pochyl { from { transform: rotate(0); } 60% { transform: rotate(6deg); } }
-  .ruch :is(.widoczne, .pokaz) :is(.postac-strzalka, .postac-ptaszek, .postac-skreslenie, .postac-poprawka) { stroke-dasharray: 1; }
-  .ruch :is(.widoczne, .pokaz) .postac--wskazuje .postac-strzalka { animation: postac-rysuj .45s var(--krzywa) .45s both; }
+  .ruch :is(.widoczne, .pokaz) .postac--krok .postac-strzalka { animation: postac-rysuj .45s var(--krzywa) .45s both; }
   .ruch :is(.widoczne, .pokaz) .postac--gotowe .postac-ptaszek { animation: postac-rysuj .4s var(--krzywa) .3s both; }
   .ruch :is(.widoczne, .pokaz) .postac--gotowe .postac-cialo { animation: postac-podskok .45s var(--krzywa) .6s both; }
   @keyframes postac-podskok { 40% { transform: translateY(-6px); } }
-  .ruch :is(.widoczne, .pokaz) .postac--pomylka .postac-skreslenie { animation: postac-rysuj .3s ease-out .3s both; }
-  .ruch :is(.widoczne, .pokaz) .postac--pomylka .postac-poprawka { animation: postac-rysuj .35s ease-out .75s both; }
-  .ruch :is(.widoczne, .pokaz) .postac--pomylka .postac-cialo { animation: postac-wzrusz .5s ease .5s both; }
-  @keyframes postac-wzrusz { from { transform: rotate(0); } 35% { transform: rotate(-6deg); } 70% { transform: rotate(-2deg); } }
-  .ruch :is(.widoczne, .pokaz) .postac--odpoczywa .postac-cialo { animation: postac-odchyl .9s var(--krzywa) .3s both; }
-  @keyframes postac-odchyl { from { transform: rotate(0); } }
+  .ruch :is(.widoczne, .pokaz) .postac--ostrzega .postac-cialo { animation: postac-cofnij .5s ease .3s both; }
+  @keyframes postac-cofnij { from { transform: rotate(0); } 50% { transform: rotate(-6deg); } }
   @keyframes postac-rysuj { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
   @media (hover: hover) and (pointer: fine) {
     .btn:hover { transform: translateY(-2px); }
@@ -327,11 +343,12 @@ video::cue { font-family: var(--font); background: rgba(19, 26, 42, .86); color:
 <body>
 <a class="skip" href="#tresc">Przejdź do treści</a>
 <header class="gora">
-<div class="pasek-proto wejscie" style="--i:0"><div class="kontener"><p><strong>Nieoficjalny prototyp konkursowy</strong> · dane fikcyjne · nic nie jest wysyłane</p></div></div>
+<div class="pasek-proto wejscie" style="--i:0"><div class="kontener"><p><strong>Nieoficjalny prototyp konkursowy</strong> · dane fikcyjne · <!--asystent:pasek--></p></div></div>
 <div class="kontener naglowek wejscie" style="--i:0">
   <a class="logo" href="./"><!--znak:bez-odznaki:36--><span translate="no">Spinka</span></a>
   <nav class="nav" aria-label="Strona">
     <a href="#demonstracja">Demonstracja</a>
+    <a class="nav-dalej" href="#dane">Twoje dane</a>
     <a class="nav-dalej" href="#o-projekcie">O projekcie</a>
     <a class="btn" href="aplikacja/">Otwórz demo</a>
   </nav>
@@ -362,7 +379,7 @@ video::cue { font-family: var(--font); background: rgba(19, 26, 42, .86); color:
           <div class="postep" aria-hidden="true"><span class="postep-pasek" id="postep-pasek"></span></div>
         </figure>
         <div class="koniec" id="koniec" hidden>
-          <span class="koniec-postac" aria-hidden="true"><!--postac:wskazuje:64--><!--postac:pomylka:64--></span>
+          <span class="koniec-postac" aria-hidden="true"><!--postac:krok:64--><!--postac:ostrzega:64--></span>
           <p class="koniec-tekst" id="koniec-tekst">Następny krok: sprawdź Spinkę w działaniu.</p>
           <div class="koniec-akcje">
             <a class="btn" id="do-demo" href="aplikacja/">Przejdź do demonstracji</a>
@@ -434,6 +451,32 @@ video::cue { font-family: var(--font); background: rgba(19, 26, 42, .86); color:
     </div>
   </section>
 
+  <section class="sekcja pole-papier" id="dane" aria-labelledby="dane-h">
+    <div class="kontener dane-uklad">
+      <div class="dane-tekst">
+        <h2 id="dane-h" class="odslona">Asystent mówi, skąd wie</h2>
+        <p class="lead odslona" style="--i:1">W Profilu widać, co aplikacja pokazuje, gdzie to trzyma i co trafiłoby do modelu AI: ta sama lista, którą asystent wysyła.</p>
+        <ol class="zasady">
+          <li class="odslona" style="--i:2"><h3>Dane aplikacji osobno, objaśnienie modelu osobno</h3><p>Pod odpowiedzią są karty z prawdziwych rekordów aplikacji: dokument, sprawa i data. Tekst modelu jest podpisany jako objaśnienie.</p></li>
+          <li class="odslona" style="--i:3"><h3>Nie wie, to mówi</h3><p>Gdy w danych czegoś nie ma, asystent to wypisuje i dopytuje, np. czy chodzi o raty kredytu, czy składki OC. Daty spoza danych są odrzucane.</p></li>
+          <li class="odslona" style="--i:4"><h3>Bez serwera nie udaje</h3><p>Gdy model nie jest podłączony, asystent mówi to wprost i proponuje scenariusze demonstracyjne zamiast gotowych odpowiedzi.</p></li>
+        </ol>
+      </div>
+      <div class="dane-ekrany odslona" style="--i:2">
+        <figure class="ekran-plaski">
+          <div class="arkusz"><svg class="klips" viewBox="0 0 12 25" aria-hidden="true" focusable="false"><rect width="12" height="25" rx="6" fill="#C8102E"/><rect x="4.25" y="5" width="3.5" height="14" rx="1.75" fill="#FFFFFF"/></svg>
+            <div class="arkusz-przod"><img src="obrazy/profil-o-prototypie.webp" width="780" height="1520" loading="lazy" decoding="async" alt="Ekran Profilu w prototypie, część „O prototypie”: Spinka to asystent spraw w nieoficjalnej koncepcji aplikacji mObywatel. Co robi: tłumaczy pisma i terminy, pokazuje skutki, przed zmianą pokazuje podsumowanie. Czego nie robi: nie łączy się z urzędem, bankiem ani BIK, niczego nie wysyła do instytucji."></div></div>
+          <figcaption>Profil: co Spinka robi, a czego nie.</figcaption>
+        </figure>
+        <figure class="ekran-plaski">
+          <div class="arkusz"><svg class="klips" viewBox="0 0 12 25" aria-hidden="true" focusable="false"><rect width="12" height="25" rx="6" fill="#C8102E"/><rect x="4.25" y="5" width="3.5" height="14" rx="1.75" fill="#FFFFFF"/></svg>
+            <div class="arkusz-przod"><img src="obrazy/profil-dane-dla-ai.webp" width="780" height="1520" loading="lazy" decoding="async" alt="Ekran Profilu, część „Asystent AI”: stan „Niepodłączony: ta wersja nie ma serwera z modelem AI” i podgląd danych, które trafiłyby do modelu, np. wezwanie z urzędu skarbowego z terminem 7 listopada."></div></div>
+          <figcaption>Profil: stan asystenta i podgląd danych dla modelu.</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
   <section class="sekcja pole-jasne" id="o-projekcie" aria-labelledby="o-h">
     <div class="kontener o-uklad">
       <h2 id="o-h" class="odslona">Nieoficjalna koncepcja, działający prototyp</h2>
@@ -446,21 +489,21 @@ video::cue { font-family: var(--font); background: rgba(19, 26, 42, .86); color:
       </div>
       <dl class="fakty">
         <div class="fakt odslona" style="--i:1"><dt>Dane są fikcyjne</dt><dd>Osoby, dokumenty, numery i instytucje w demonstracji są zmyślone. Nie podajesz żadnych swoich danych.</dd></div>
-        <div class="fakt odslona" style="--i:2"><dt>Nic nie jest wysyłane</dt><dd>To, co wpiszesz albo wybierzesz w demonstracji, zostaje w przeglądarce.</dd></div>
-        <div class="fakt odslona" style="--i:3"><dt>Odpowiedzi z gotowych reguł</dt><dd>Spinka w prototypie korzysta z przygotowanych scenariuszy, nie z modelu AI.</dd></div>
+        <div class="fakt odslona" style="--i:2"><dt>Bez zgody nic nie wychodzi</dt><dd>Scenariusze działają w przeglądarce. Pytanie do modelu AI wychodzi dopiero po Twojej zgodzie, z fikcyjnymi danymi aplikacji i bez danych osobowych.</dd></div>
+        <div class="fakt odslona" style="--i:3"><dt>AI tylko z danych aplikacji</dt><dd>Na pytania własnymi słowami odpowiada model językowy przez serwer projektu, wyłącznie na podstawie danych z aplikacji i ze wskazaniem źródła. <!--asystent:fakt--></dd></div>
         <div class="fakt odslona" style="--i:4"><dt>Decyzja zawsze należy do Ciebie</dt><dd>Przed każdym ważnym krokiem prototyp pokazuje podsumowanie: co się stanie, czego nie zrobi i czy da się to cofnąć.</dd></div>
       </dl>
       <div class="postac-blok">
         <div class="odslona">
           <h3>Spinka nie ma twarzy</h3>
-          <p>Nie udaje rozmówcy ani sztucznej inteligencji. Stan sprawy pokazuje postawą kartki, kątem spinki i układem linii, jak dokument na biurku.</p>
+          <p>Nie udaje rozmówcy, który „myśli”. Stan rozmowy pokazuje jak dokument na biurku: postawą kartki, kątem spinki i układem linii. Te same stany są w aplikacji i w filmie.</p>
         </div>
         <ul class="postac-stany odslona" style="--i:1" aria-label="Spinka w pięciu stanach">
-          <li><!--postac:pojawia:72--><span>Pojawia się przy sprawie</span></li>
-          <li><!--postac:wskazuje:72--><span>Wskazuje następny krok</span></li>
-          <li><!--postac:gotowe:72--><span>Pokazuje, co załatwione</span></li>
-          <li><!--postac:pomylka:72--><span>Mówi wprost, gdy coś nie działa</span></li>
-          <li><!--postac:odpoczywa:72--><span>Odpoczywa, gdy nic nie trzeba robić</span></li>
+          <li><!--postac:slucha:72--><span>Słucha, gdy piszesz</span></li>
+          <li><!--postac:wyjasnia:72--><span>Wyjaśnia na podstawie danych aplikacji</span></li>
+          <li><!--postac:ostrzega:72--><span>Ostrzega, gdy czegoś brakuje albo przed zmianą</span></li>
+          <li><!--postac:krok:72--><span>Wskazuje następny krok</span></li>
+          <li><!--postac:gotowe:72--><span>Gotowe (w demonstracji)</span></li>
         </ul>
       </div>
     </div>
@@ -483,7 +526,7 @@ video::cue { font-family: var(--font); background: rgba(19, 26, 42, .86); color:
         </nav>
         <div class="stopka-noty">
           <p><span translate="no">Spinka</span>: nieoficjalny prototyp konkursowy. Nie jest stroną ani usługą administracji publicznej.</p>
-          <p>Strona nie używa analityki ani plików cookie. Demonstracja pobiera czcionki z Google Fonts.</p>
+          <p>Strona nie używa analityki ani plików cookie. Demonstracja pobiera czcionki z Google Fonts. <!--asystent:stopka--></p>
         </div>
       </div>
     </div>

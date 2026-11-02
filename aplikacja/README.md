@@ -38,73 +38,52 @@ Asystent nazywa się **Spinka** i ma własny znak: dwie kartki sprawy spięte cz
 - **Znak bez twarzy:** spokojny, „urzędowy” charakter i żadnego podobieństwa do maskotek (w szczególności do spinacza z oczami znanego z pakietu biurowego). Spinka to pełny czerwony kształt ze szczeliną, inny niż liniowa ikona spinacza przy dodawaniu pliku.
 - **Stany:** **słucha** (spinka lekko się uchyla, odznaka z falami, pulsują 3 razy), **wyjaśnia** (linie na kartce się wypisują, odznaka „i”), **ostrzega** (bursztynowa odznaka „!” z ciemnym obrysem), **następny krok** (przednia kartka przesuwa się w prawo, odznaka ze strzałką), **gotowe** (spinka się zatrzaskuje, zielona odznaka z ptaszkiem). Obrys kartek `--muted` 7:1 do bieli, spinka `--accent` 5,9:1, znaki na odznakach co najmniej 5,9:1. Ruch 200–300 ms; przy ograniczonym ruchu stan zmienia się od razu. Znak jest ozdobą ukrytą przed czytnikiem; znaczenie niesie tekst. Stan wynika z tego, co właśnie pojawiło się w rozmowie (`moodOf()` w `src/assistant.js`).
 - **Ton:** spokojny i rzeczowy, w drugiej osobie, krótkie zdania, najpierw fakty, potem jeden następny krok; bez wykrzykników i zdrobnień. Hasło żartuje tylko raz, w powitaniu; w podsumowaniach, błędach i na ekranie „Gotowe” go nie ma.
-- **Uczciwość:** pod imieniem zawsze widać, który tryb odpowiada. W pliku statycznym: „Gotowe reguły prototypu, nie AI”, pasek prototypu „dane fikcyjne · nic nie jest wysyłane”, a powitanie mówi: „Odpowiadam według gotowych reguł prototypu. Nie jestem działającą sztuczną inteligencją. Dane są fikcyjne i nic nie jest wysyłane”. Z serwerem prototypu i kluczem Gemini: przełącznik „Tryb AI” i opis w sekcji „Tryb AI”.
+- **Uczciwość:** pod imieniem zawsze widać stan modelu AI. Bez serwera: „Model AI niepodłączony”, pasek prototypu „dane fikcyjne · nic nie jest wysyłane”, a powitanie mówi, że na pytania własnymi słowami asystent nie odpowiada i nic nie wysyła. Z serwerem: przełącznik „Model AI” i „z danych aplikacji”. Szczegóły w sekcji „Asystent: pytania własnymi słowami (AI)”.
 - **Nazwa nie jest zatwierdzona prawnie.** Wstępne rozeznanie z 29.10.2026 (wyszukiwarka internetowa, bez rejestrów UPRP, TMview i EUIPO, które były niedostępne ze środowiska pracy): `docs/nazwa-spinka.md`. Przed użyciem poza konkursem trzeba przeszukać rejestry i skonsultować wynik z rzecznikiem patentowym.
 
-## Asystent: zwykłe pytania
+## Asystent: pytania własnymi słowami (AI)
 
-Oprócz scenariuszy asystent odpowiada na zwykłe pytania. Odpowiedzi powstają na miejscu, więc pojawiają się od razu, bez sztucznego czekania. „Spinka pisze…” pokazuje się tylko wtedy, gdy odpowiedź naprawdę nie jest gotowa po 300 ms (w prototypie praktycznie się to nie zdarza). Gdy odpowiedzi nie da się przygotować, asystent mówi to wprost.
+Runda 28: gotowe reguły, które udawały rozmowę (rozpoznawanie intencji i przygotowane odpowiedzi na „Mam długi?”, „Ile rat…” itd.), zostały **usunięte**. Pytania własnymi słowami obsługuje wyłącznie model językowy przez serwer projektu. Scenariusze krok po kroku (pismo, OC, portfel, nowy dowód, dostęp do danych) zostają: to prowadzone ścieżki demonstracyjne uruchamiane przyciskami, nie rozmowa.
 
-- **„Mam długi?”:** najpierw mówi, że nie widzi wszystkich zobowiązań, nie może tego potwierdzić i nie łączy się z żadnym rejestrem. Potem przegląda tylko to, co jest w aplikacji: jeśli w „Do załatwienia” jest pismo z możliwą kwotą (pole `amount` w `src/data.js`), pokazuje je jako kartę źródła w kształcie koperty: od kogo, tytuł, termin odpowiedzi z liczbą dni, możliwa kwota z warunkiem („około 91 zł, tylko jeśli urząd nie uzna ulgi”), oznaczenie „Dane fikcyjne” i przycisk „Otwórz tę sprawę”, który otwiera dokładnie tę kopertę. Nazywa to „pismem, które może oznaczać dopłatę”, a nie długiem. Gdy takiego pisma nie ma (np. po jego załatwieniu), mówi wprost, że w aplikacji nic nie widać i że to nie znaczy, że zaległości nie ma. Dopytuje: pismo, rachunek czy rata, i podpowiada, gdzie samemu sprawdzić długi (BIK, biura informacji gospodarczej, e-Urząd Skarbowy, eZUS). Pytania „Gdzie sprawdzić długi?”, o rachunek albo o ratę kredytu dostają własne odpowiedzi, a nie powtórkę tej samej. Pytanie zadane w trakcie innej sprawy nie przerywa jej.
-- **Rozpoznawanie intencji, nie pojedynczych słów** (`understand()` w `src/assistant.js`). Osobne tematy: kredyt i raty, płatności, rachunek, dług, OC i ubezpieczenie, pismo, dokument, pojazd i pytanie niejednoznaczne. Kolejność: zgubione dokumenty, potem pytania o pieniądze, dopiero potem sprawy krok po kroku. Samo „auto” czy „samochód” nie uruchamia OC; OC startuje przy słowach OC, ubezpieczenie, polisa, odnowienie.
-- **Raty i kredyt:** „Ile mi zostało rat na auto?” → asystent mówi, że w danych prototypu nie ma kredytu ani leasingu, więc liczby rat nie da się policzyć, i osobnym zdaniem pyta: „Widzę za to polisę OC Toyoty Yaris, ważną do 4 listopada. Czy o nią pytasz?”. Rozróżnia, o co pytasz: liczba rat, kwota raty, termin, ile do spłaty. „Raty” razem z OC albo po rozmowie o OC są niejednoznaczne: asystent mówi, że nie zna rat, i pyta, czy chodzi o raty składki OC, czy o kredyt.
-- **„Co mam do zapłacenia?”:** tylko pozycje, które w danych wyglądają na płatność (dziś: możliwa dopłata z pisma urzędu skarbowego, z kartą źródła), bez OC. Osobno: czego prototyp nie wie (rachunki, raty, inne podatki).
-- **Odpowiedź w trzech częściach:** karta „W danych prototypu (fikcyjnych) / Tego nie wiem / Co możesz zrobić”. Brak danych nigdy nie oznacza, że zobowiązania nie ma. Przyciski prowadzą wyłącznie do istniejących scenariuszy i ekranów (karta sprawy, dokument, scenariusz OC lub pisma).
-- **Kontekst rozmowy:** asystent pamięta ostatni temat. „A ile wynosi rata?” po pytaniu o raty na auto to dalej kredyt na auto (krótko, bez powtarzania karty); „a OC?” albo „zgubiłem portfel” zmienia temat.
-- **OC:** „Czy kończy mi się OC?” uruchamia scenariusz z datą z fikcyjnej polisy i kartą sprawy „Kończy się OC” z przyciskiem do tej koperty. Pytania o cenę albo raty składki dostają odpowiedź, że tych danych nie ma.
-- **Dokumenty:** „Kiedy kończy się mój paszport?” → data ważności z zakładki Dokumenty i karta z przyciskiem „Otwórz dokument”.
-- **Inne pytania:** „Co potrafisz?”, „Ile kosztuje dowód?”, powitania i podziękowania.
-- **Gdy asystent nie rozumie:** nie milczy i nie zgaduje, tylko prosi o doprecyzowanie i podaje przykłady.
-- **Wysyłanie pytania** działa z klawisza Enter i z przycisku „Wyślij”, bez polegania na wysłaniu formularza. Dzięki temu asystent odpowiada także wtedy, gdy prototyp jest osadzony w ramce, która blokuje formularze (np. podgląd artefaktu).
+**Bez serwera** (plik statyczny, GitHub Pages bez funkcji serwerowej): nagłówek „Model AI niepodłączony”. Na wpisane pytanie asystent odpowiada jasnym stanem: „Nie odpowiem na to pytanie: model AI nie jest podłączony… Nie podaję gotowych odpowiedzi zamiast AI”, i daje przyciski do „Do załatwienia”, „Dokumenty” oraz do scenariusza, którego nazwa pasuje do wpisanych słów (np. „Zacznij: Koniec polisy OC”). Słowa kluczowe służą tylko do tej podpowiedzi. Nic nie jest wysyłane.
 
-## Tryb AI: Gemini (opcjonalnie, tylko z serwerem prototypu)
+**Z serwerem** (`server/gemini-adapter.mjs` lokalnie albo `server/funkcja-serwerowa.mjs` dla strony statycznej):
 
-`dist/index.html` otwarty z dysku albo z dowolnego serwera plików (i podgląd artefaktu) działa **wyłącznie na regułach**: nie ma w nim klucza i nie wysyła pytań. Tryb AI działa tylko przez `server/gemini-adapter.mjs` (Node.js 20.12+, bez zależności), który serwuje `dist/` i wstawia `<meta name="assistant-endpoint" content="/api/assistant">`.
+- **Zgoda przed pierwszym wysłaniem:** karta „Wysłać to pytanie do modelu AI?” z listą, co trafia (pytanie, tytuły spraw i dokumentów, krótkie opisy, terminy, statusy, możliwe kwoty) i czego nie ma (imię, nazwisko, PESEL, adres, numery dokumentów, tablice, numer polisy, pełna treść pism, historia rozmowy). Pytanie czeka na „Wyślij do modelu AI”. „Nie wysyłaj” wyłącza wysyłanie do zamknięcia karty. Zgodę można cofnąć w Profilu.
+- **Odpowiedź w dwóch warstwach:** „Objaśnienie modelu AI” (tekst modelu, podpisany) oraz „Dane z aplikacji, na których oparto odpowiedź”: karty z rekordów aplikacji (sprawa, dokument, termin), których treść pochodzi z danych, nie z modelu. Punkty „Z danych aplikacji” mają źródło w nawiasie, „Tego w danych nie ma” mówi, czego brakuje.
+- **Niejednoznaczne pytanie** („raty?”, „Jaki termin?”): model mówi, czego nie wie, i dopytuje (np. „Chodzi o raty kredytu czy o raty składki OC?”) z przyciskami.
+- **Sprawdzenie odpowiedzi** (`server/rdzen.mjs`, `check()`; drugi raz w przeglądarce): źródła i akcje tylko z listy; **każda liczba (data, kwota, liczba dni, rat) i nazwa miesiąca musi pochodzić z rekordu, na który punkt się powołuje**, a w objaśnieniu tylko z rekordów zacytowanych w odpowiedzi. Termin pisma (7.11) podany jako koniec polisy OC (4.11), „14 rat po 650 zł” bez danych, „Sprawdziłem w BIK”, „Ustawiłem przypomnienie”, linki i dane osobowe: odpowiedź odrzucona. Odrzuconej odpowiedzi nie zastępuje gotowy tekst: aplikacja mówi, że odpowiedź nie zgadzała się z danymi, i proponuje zapytać inaczej.
+- **Zmiany stanu tylko po potwierdzeniu:** model może zaproponować otwarcie rekordu albo scenariusz; scenariusz przed każdą zmianą pokazuje podsumowanie z „Potwierdź”.
+- **Błędy:** brak klucza, odrzucony klucz, niedostępny model lub region → stan „niepodłączony” z powodem. Limit dostawcy (429) albo lokalny → „Do HH:MM nie wysyłam pytań”. Brak sieci, przekroczony czas, błąd dostawcy → komunikat i „Zapytaj jeszcze raz”; dwa takie błędy z rzędu wstrzymują AI na 2 minuty. Nigdy odpowiedź z reguł.
 
-**Jak działa**
+## Model AI: konfiguracja, koszty i warunki
 
-- Aplikacja pyta własny serwer o tryb (`GET /api/assistant/status`; to zapytanie nie idzie do Google). W trybie AI każde **wpisane albo podyktowane** pytanie idzie do `POST /api/assistant/answer`. Przyciski z podpowiedziami („Zgubiłem portfel”, „Pismo z urzędu”…) i scenariusze krok po kroku działają lokalnie.
-- Razem z pytaniem serwer dostaje **fikcyjny kontekst demo**: do 16 źródeł (`todo:…`, `doc:…`, `case:…`) z tytułem i krótkimi faktami: terminy z liczbą dni, statusy, możliwe kwoty z warunkiem, następny krok, ustawione przypomnienia. **Nie są wysyłane:** imię, nazwisko, PESEL, adres, numery dokumentów, tablica rejestracyjna, numer polisy, treść pism, zgody ani historia rozmowy. Wyjątek: odpowiedź na pytanie doprecyzowujące zawiera poprzednie pytanie i to dopytanie (bez nich „o kredyt” nie miałoby sensu); następne pytanie już ich nie zawiera. Serwer przyjmuje tylko znane pola (`cleanContext`) i jeszcze raz usuwa wszystko, co wygląda na PESEL, e-mail, telefon, rachunek, kartę, numer dokumentu, tablicę lub numer polisy. Rozmowy nie są zapisywane ani logowane; log serwera zawiera tylko rodzaj zdarzenia.
-- Model (`generateContent`, odpowiedź JSON wg schematu) zwraca: `krotko` (1–2 zdania), `wiem` (każdy punkt ze źródłem), `nie_wiem`, `dalej` (z akcją z listy: otwórz źródło, uruchom scenariusz, brak), a przy niejasnym pytaniu `dopytanie` z najwyżej 3 opcjami. Instrukcja dla modelu: tylko kontekst; nie zgadywać kwot, rat, terminów ani statusów; polisa OC to nie kredyt ani leasing; przy niejednoznacznym pytaniu dopytać; nie udawać, że coś zostało załatwione; po polsku i zwięźle.
-- **Sprawdzenie odpowiedzi** (na serwerze w `check()`, potem jeszcze raz w przeglądarce): źródła tylko z kontekstu, akcje tylko z listy, **każda liczba** w odpowiedzi musi występować w danych demo albo w pytaniu (np. „14 rat po 650 zł” bez takich danych → odrzucone), bez zdań typu „wysłałem”, „złożyłem”, bez linków i danych kontaktowych. Odrzucona odpowiedź oznacza odpowiedź z reguł i komunikat. Nazwy źródeł, karty i przyciski pod odpowiedzią pochodzą z danych aplikacji, nie z tekstu modelu.
-- Przykład: „Ile rat zostało mi na auto?” → „Nie wiem, ile rat zostało, bo w danych demo nie ma kredytu ani leasingu na auto. Widzę tylko polisę OC Toyoty Yaris, ważną do …”, karta „wiem / nie wiem / co dalej”, karta źródła „Toyota Yaris” i przycisk „Zacznij: Koniec polisy OC”. Na samo „raty?” model ma dopytać: kredyt czy składka OC.
+**Architektura.** Klucz API jest tylko na serwerze: zmienna środowiskowa albo `.env` (lokalnie) lub sekret funkcji serwerowej (Cloudflare Workers). Nie trafia do `src/`, `dist/`, HTML, repozytorium ani logów. Rdzeń (`server/rdzen.mjs`: czyszczenie kontekstu, instrukcja dla modelu, schemat JSON, sprawdzenie odpowiedzi, wywołanie Gemini) jest wspólny dla obu serwerów.
 
-**Co widzi użytkownik**
+- **Lokalnie:** `cp .env.example .env` (wpisz `GEMINI_API_KEY`), `node build.mjs`, `node server/gemini-adapter.mjs` → http://127.0.0.1:8080. Serwer wstawia adres `/api/assistant` do strony, sprawdza model przy starcie i ma limity 8/min i 200/dzień.
+- **Strona statyczna + funkcja serwerowa:** `server/funkcja-serwerowa.mjs` (Cloudflare Workers): `cp server/wrangler.toml.example server/wrangler.toml` (adres strony w `DOZWOLONE_ZRODLA`), `npx wrangler secret put GEMINI_API_KEY`, `npx wrangler deploy`, potem `ASSISTANT_ENDPOINT=https://<funkcja>/api/assistant node build.mjs` (adres trafia do `<meta name="assistant-endpoint">`, klucz nie). Funkcja przyjmuje pytania tylko z adresów z `DOZWOLONE_ZRODLA` (CORS) i nie loguje treści. Limity w pamięci funkcji są pomocnicze; docelowo ustaw też regułę limitu zapytań w Cloudflare.
+- Zmienne: `GEMINI_API_KEY`, `GEMINI_MODEL` (domyślnie `gemini-3.1-flash-lite`; nazwy modeli się zmieniają), `GEMINI_PLAN` (`free`/`paid`, tylko do opisu w aplikacji), `AI_MAX_PER_MINUTE`, `AI_MAX_PER_DAY`, `GEMINI_TIMEOUT_MS`, `HOST`, `PORT`, `GEMINI_API_BASE` (tylko testy z atrapą).
 
-- **Przed pierwszym pytaniem do modelu** informacja: „Tryb AI (Google Gemini, bezpłatny poziom). To, co wpiszesz, trafia przez serwer prototypu do Google razem z fikcyjnymi danymi demo z tej aplikacji… Nie wpisuj prawdziwych danych osobowych.” Gdy ktoś zacznie pisać, zanim ją zobaczył (np. ze Startu), informacja pojawia się wtedy, a to pierwsze pytanie zostaje w regułach.
-- Pasek prototypu: „dane fikcyjne · pytania trafiają do Google” (tryb AI) albo „dane fikcyjne · nic nie jest wysyłane” (reguły; krótko, żeby zmieścił się w jednej linii przy 390 px). Pod imieniem asystenta przełącznik **„Tryb AI”** (`role="switch"`) z jednym zdaniem stanu. Wybór pamięta tylko bieżąca karta przeglądarki (sessionStorage). Ponowne włączenie znowu pokazuje informację o wysyłaniu.
-- Pod każdą wysłaną wiadomością: „wysłane do modelu AI (Google Gemini)”; pod odpowiedzią modelu: „Odpowiedź modelu AI, sprawdzona z danymi demo”; podczas czekania: „Spinka pyta model AI…”.
+**Koszty, limity i warunki (stan sprawdzony 2.11.2026; `ai.google.dev` było zablokowane w środowisku pracy, więc źródłem były wyniki wyszukiwarki cytujące warunki Gemini API i cenniki; przed uruchomieniem sprawdź u źródła):**
 
-**Błędy: zawsze odpowiedź z reguł i jasny komunikat**
+- **Warunki dla EOG:** według dodatkowych warunków Gemini API aplikację udostępnianą użytkownikom w EOG, Szwajcarii lub Wielkiej Brytanii wolno opierać **tylko na usługach płatnych** (projekt Google Cloud z aktywnym kontem rozliczeniowym). Bezpłatny poziom nadaje się do lokalnych testów i nagrania pokazu przez autora, nie do publicznej strony dla użytkowników w Polsce.
+- **Dane:** na bezpłatnym poziomie Google może wykorzystywać treści do ulepszania usług (z udziałem ludzi); według warunków dla użytkowników z EOG zasady przetwarzania z usług płatnych obejmują też bezpłatny poziom. Do modelu trafiają wyłącznie fikcyjne dane demonstracyjne.
+- **Limity bezpłatnego poziomu** zależą od modelu i projektu i zmieniają się; aktualne pokazuje Google AI Studio. Serwer ma własne, niższe limity.
+- **Koszt płatnego planu (rząd wielkości):** modele Flash-Lite według cenników to ok. 0,10–0,30 USD za 1 mln tokenów wejścia i 0,40–2,50 USD za 1 mln tokenów wyjścia, zależnie od wersji. Jedno pytanie z kontekstem demo to ok. 2–3 tys. tokenów wejścia i do 1 tys. wyjścia, czyli setne części centa; 1000 pytań to rząd 1–3 USD. Rozliczeń nie włączono w tym projekcie: to decyzja właściciela konta.
 
-| Sytuacja | Co mówi aplikacja | Tryb potem |
-|---|---|---|
-| brak klucza (`GEMINI_API_KEY` puste) | „Tryb regułowy · AI niedostępne: serwer nie ma klucza API” | reguły do restartu serwera |
-| odrzucony klucz, nieznany model, niedostępny region | „…serwer odrzucił klucz API / model jest niedostępny / …w tym regionie” | reguły do restartu serwera |
-| limit dostawcy (429) | „Wyczerpał się limit bezpłatnych zapytań… Do HH:MM odpowiadam według gotowych reguł.” | reguły do godziny z odpowiedzi Google (RetryInfo), pytania w tym czasie nie są wysyłane |
-| lokalny limit serwera | „Serwer prototypu ogranicza liczbę zapytań…” | jak wyżej |
-| brak sieci (serwer → Google), przekroczony czas, błąd dostawcy, odpowiedź niezgodna z danymi | jedno zdanie, co się stało, i odpowiedź z reguł | AI dalej włączone; drugi błąd z rzędu wstrzymuje AI na 2 minuty |
-| przeglądarka bez połączenia z serwerem | „Brak połączenia z serwerem prototypu…” | jak wyżej |
+## Profil (runda 28)
 
-**Uruchomienie**
+Trzy części ze spisem na górze (przyciski przewijają do części i przenoszą fokus na jej nagłówek):
 
-```bash
-node build.mjs
-cp .env.example .env              # uzupełnij GEMINI_API_KEY w pliku .env (plik jest w .gitignore)
-node server/gemini-adapter.mjs    # http://127.0.0.1:8080
-```
+1. **O prototypie:** czym jest Spinka (nieoficjalna koncepcja na mObywatel Challenge, nie usługa administracji), „Co robi” i „Czego nie robi” (nie łączy się z urzędem, bankiem ani BIK, niczego nie wysyła do instytucji, nie zna danych spoza aplikacji), data w prototypie, przewodnik, zmiana osoby, „Koncepcja i projekt aplikacji: Igor M.”.
+2. **Twoje dane:** dane osobowe (fikcyjne, PESEL zakryty), adres i stan zmiany; **„Gdzie są dane”** (sprawdzone w kodzie: sprawy i zmiany tylko w pamięci karty, ustawienia wygody w `localStorage` `proto-sprawy-ustawienia`, wybór i zgoda dla AI w `sessionStorage`, rozmowa tylko na ekranie); **„Asystent AI”**: stan (niepodłączony z powodem albo dostawca, model i stan wysyłania), przełącznik „Wysyłaj pytania do modelu AI” tylko wtedy, gdy model jest podłączony (bez atrap), „Cofnij zgodę”, rozwijany **podgląd danych, które trafiłyby do modelu** (ta sama funkcja, którą asystent wysyła); „Kto ma dostęp do moich danych”, „Wyczyść rozmowę ze Spinką”, „Zacznij demonstrację od nowa” (z potwierdzeniem).
+3. **Wygoda i dostępność:** rozmiar tekstu w trzech stopniach (standardowy, większy 1,18×, największy 1,32×; grupa radiowa ze strzałkami; przycisk „A A” w nagłówku przełącza standardowy ↔ większy), „Ogranicz animacje” (z ustawieniem systemu oznaczonym jako włączone w telefonie), „Wyraźniejsze kontury i opisy” (ciemniejsze linie podziału i tekst pomocniczy). Ustawienia działają od razu w całej aplikacji.
 
-Bez pliku `.env`: `read -rs GEMINI_API_KEY && export GEMINI_API_KEY`, potem wklej klucz (nie pojawi się na ekranie ani w historii powłoki) i uruchom `node server/gemini-adapter.mjs`. Przy starcie serwer pisze, czy klucz jest ustawiony (bez jego treści), i sprawdza, czy model istnieje.
+Dolny pasek bez zmian (Start, Dokumenty, Asystent, Sprawy, Profil).
 
-- Klucz utwórz w Google AI Studio w projekcie **bez podpiętego konta rozliczeniowego** (wtedy działa bezpłatny poziom; nie włączaj rozliczeń). Klucz trzymaj tylko w `.env` albo w zmiennej środowiskowej; nie wpisuj go do `src/`, `dist/`, README ani repozytorium.
-- Zmienne (wzór w `.env.example`): `GEMINI_API_KEY`, `GEMINI_MODEL` (domyślnie `gemini-3.1-flash-lite`; nazwy modeli się zmieniają), `HOST` (domyślnie 127.0.0.1), `PORT`, `AI_MAX_PER_MINUTE` (8), `AI_MAX_PER_DAY` (200), `GEMINI_TIMEOUT_MS` (12000), `GEMINI_API_BASE` (tylko do testów z atrapą).
-- Serwer wysyła stronę z nagłówkiem CSP `connect-src 'self'`: skrypty strony mogą łączyć się tylko z tym serwerem. Wyjątkiem są czcionki z Google Fonts, które strona ładuje od początku projektu (także jako plik statyczny); przeglądarka łączy się wtedy z Google, ale bez treści rozmów.
+## Wariant z postacią Spinki (do oceny)
 
-**Bezpłatny poziom: ograniczenia (stan sprawdzony 28.10.2026, bez gwarancji)**
-
-- Limity (zapytania na minutę i na dzień, tokeny) zależą od modelu i projektu i Google zmienia je bez uprzedzenia; aktualne wartości pokazuje Google AI Studio dla Twojego projektu. Dlatego serwer ma własne, niższe limity i obsługuje 429.
-- Dane: przy bezpłatnym poziomie Google może wykorzystywać przesłane treści i odpowiedzi do ulepszania usług, także z udziałem ludzi; nie wolno wysyłać danych wrażliwych ani osobowych. Według warunków dla użytkowników z EOG, Szwajcarii i Wielkiej Brytanii zasady przetwarzania z usług płatnych obejmują też bezpłatny poziom.
-- Udostępnianie: warunki Gemini API mówią, że aplikację udostępnianą użytkownikom w EOG, Szwajcarii lub Wielkiej Brytanii wolno opierać tylko na usługach płatnych. **Bezpłatny poziom nadaje się więc do lokalnych testów i nagrania pokazu przez autora, a nie do publicznego wdrożenia dla użytkowników w Polsce.** Serwer domyślnie słucha tylko na 127.0.0.1 i ostrzega, gdy ustawisz inny adres. To nie jest porada prawna; przed pokazem publicznym sprawdź aktualne warunki.
+`node build.mjs --wariant-postaci` tworzy dodatkowo `dist/wariant-postaci.html`: w miejscu znaku z odznakami stanu jest postać (kartka ze spinką, bez twarzy; `src/wariant-postaci.js`). Pozy wynikają z tych samych stanów co znak (`moodOf()`): słucha (pisanie), wyjaśnia (odpowiedź), ostrzega (podsumowanie przed zmianą, brak danych, AI niepodłączone), następny krok (wybór w scenariuszu), gotowe (wykonane w demonstracji). Główny `dist/index.html` ma nadal znak.
 
 ## Demonstracyjne wejście
 
@@ -129,9 +108,9 @@ Pionowe przewijanie zostaje, ale każda sekcja ma inną, czytelną formę:
 
 Sekcje pod pierwszym ekranem raz „wjeżdżają” przy pierwszym przewinięciu (320 ms, od 40% krycia, więc w spoczynku nic nie jest ukryte). Bez dodatkowych statystyk i nowych danych.
 
-## Profil
+## Profil: podgląd i pełny profil
 
-Piąta pozycja dolnego paska (ikona osoby).
+Piąta pozycja dolnego paska (ikona osoby). Układ zakładki opisuje sekcja „Profil (runda 28)”.
 
 **Szybki podgląd pod inicjałami TK (Start):** mała karta z falą zabezpieczającą (niebieska: tożsamość): imię i nazwisko, miasto i „osoba fikcyjna”, zamaskowany PESEL (bez możliwości odsłonięcia) i stan zmiany adresu (status, etapy, termin urzędu), a na dole „Zobacz cały profil”. Tylko dane, które już są w prototypie.
 
@@ -148,7 +127,7 @@ Piąta pozycja dolnego paska (ikona osoby).
 - **Adres i meldunek:** adres zameldowania i podsumowanie zmiany adresu: nazwa statusu („Urząd rozpatruje”), cztery odcinki etapów (3 z 4), termin urzędu słowami i przycisk „Sprawdź status”.
 - Fikcyjny PESEL ma celowo błędną cyfrę kontrolną, więc nie może należeć do prawdziwej osoby.
 - Oznaczenie „Dane fikcyjne” i zdanie, że prototyp niczego nie wysyła i nie łączy się z rejestrem.
-- Niżej dotychczasowe ustawienia (większy tekst, ograniczenie animacji), „Kto ma dostęp do moich danych”, opis prototypu, zmiana osoby i „Zacznij od nowa”.
+- Ustawienia, dane dla asystenta AI i opis prototypu: sekcja „Profil (runda 28)”.
 
 ## Pismo
 
@@ -345,13 +324,17 @@ zrzuty/runda-25/  poprawki z audytu przed/po (systemowy „wstecz”, arkusz gł
 zrzuty/runda-26/  poprzednia postać „Pola” przed/po (arkusz stanów 34/44/58 px), Pola w interfejsie (390, 320 z większym tekstem, 1280, wymuszone kolory), tryb AI na atrapie Gemini (informacja, raty, dopytanie, przełącznik, limit 429, brak klucza)
 zrzuty/runda-27/  Spinka: znak i nazwa przed/po (stany, kontekst asystenta, hasło), najważniejsze ekrany przed/po
 src/carousel.js   karuzela po okręgu
-src/assistant.js  rozpoznawanie intencji i kontekst rozmowy, karty pytań, podsumowania, scenariusze
+src/assistant.js  rozmowa: model AI przez serwer albo jasny stan „niepodłączony”, zgoda, karty danych, scenariusze, podsumowania
+src/wariant-postaci.js  postać Spinki zamiast znaku, tylko w dist/wariant-postaci.html (node build.mjs --wariant-postaci)
 src/app.js        ekrany, nawigacja, koperty, ekran startowy, głos, ustawienia
-server/gemini-adapter.mjs  opcjonalny serwer prototypu z trybem AI (patrz „Tryb AI”)
+server/rdzen.mjs           rdzeń asystenta: czyszczenie kontekstu, instrukcja dla modelu, schemat, sprawdzenie odpowiedzi, wywołanie Gemini
+server/gemini-adapter.mjs  lokalny serwer projektu z modelem AI (patrz „Model AI: konfiguracja, koszty i warunki”)
+server/funkcja-serwerowa.mjs, server/wrangler.toml.example  funkcja serwerowa (Cloudflare Workers) dla strony statycznej
 .env.example               wzór ustawień serwera bez sekretu (kopiuj do .env, który jest w .gitignore)
 .gitignore                 ignoruje .env i pliki lokalne
 build.mjs         składa wszystko w dist/index.html i dist/artifact.html
-testy/runda-27/   testy bieżącego buildu: znak i nazwa, zmiana nazwy w src/marka.js, tryb AI na atrapie Gemini, regresja poprawek rundy 25 (./uruchom-testy.sh)
+testy/runda-28/   testy rundy 28: rdzeń asystenta (rdzen-test.mjs), asystent bez serwera i z atrapą Gemini, Profil (asystent-profil-test.js), znak (znak-test.js); atrapa: atrapa-gemini.mjs
+testy/runda-27/   testy rundy 27; regresja poprawek rundy 25 przechodzi na buildzie rundy 28, testy trybu AI i znaku zakładają odpowiedzi z reguł (usunięte w rundzie 28)
 testy/runda-26/   testy buildu rundy 26 (b54aa1f8, „Pola”); na bieżącym buildzie sprawdzenia postaci nie przejdą, bo szukają „Poli”
 testy/logi/       logi pełnych regresji rund 25–27
 docs/             raporty rund 26 i 27, wstępne rozeznanie nazw (nazwy-asystenta/, nazwa-spinka.md)

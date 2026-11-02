@@ -1,8 +1,8 @@
 // Składa stronę projektu w katalogu public/ (statyczne pliki dla dowolnego hostingu).
 //   node build.mjs [--film film-web] [--aplikacja ../aplikacja/dist/index.html]
 //                  [--znak ../aplikacja/docs/znak-spinki] [--bez-filmu]
-// Aplikacja trafia do public/aplikacja/index.html bajt w bajt (build 27 z poprawką animacji godła, MD5 sprawdzane niżej).
-// Film: pliki z katalogu --film (wersja webowa, nie master): spinka-film-v8.mp4, spinka-film-v8-plakat.jpg, spinka-film-v8.pl.vtt.
+// Aplikacja trafia do public/aplikacja/index.html bajt w bajt (runda 28, MD5 sprawdzane niżej; godło bez zmian od rundy 27).
+// Film: pliki z katalogu --film (wersja webowa, nie master): spinka-film-<wersja>.mp4, -plakat.jpg, .pl.vtt, .tekst.txt (domyślnie v9).
 import fs from 'node:fs'; import path from 'node:path'; import crypto from 'node:crypto';
 
 const ROOT = path.dirname(new URL(import.meta.url).pathname);
@@ -12,10 +12,12 @@ const APLIKACJA = path.resolve(ROOT, arg('aplikacja', '../aplikacja/dist/index.h
 const ZNAK = path.resolve(ROOT, arg('znak', '../aplikacja/docs/znak-spinki'));
 const FILM = path.resolve(ROOT, arg('film', 'film-web'));
 const OUT = path.join(ROOT, 'public');
-const APLIKACJA_MD5 = '83d237e0c6d0e28ec90a01296f5ca5c8';
-const PLIKI = { mp4: 'spinka-film-v8.mp4', plakat: 'spinka-film-v8-plakat.jpg', vtt: 'spinka-film-v8.pl.vtt' };
+const APLIKACJA_MD5 = process.env.APLIKACJA_MD5 || '19104791e46ffa036dbbb307ac1070bf'; // runda 28: asystent AI zamiast reguł, nowy Profil
+// Wersja filmu: v9 (prawdziwy ekran aktualnej aplikacji, napisy plansz) domyślnie; v8 zostaje do porównania (--wersja-filmu v8).
+const WERSJA = /^v\d+$/.test(arg('wersja-filmu', 'v9')) ? arg('wersja-filmu', 'v9') : 'v9';
+const PLIKI = { mp4: 'spinka-film-' + WERSJA + '.mp4', plakat: 'spinka-film-' + WERSJA + '-plakat.jpg', vtt: 'spinka-film-' + WERSJA + '.pl.vtt' };
 // Tekst z filmu dla osób, które go nie widzą: jedna plansza w linii, opis obrazu w [nawiasach]. Trafia do strony, nie do public/film.
-const TEKST = 'spinka-film-v8.tekst.txt';
+const TEKST = 'spinka-film-' + WERSJA + '.tekst.txt';
 
 const stop = (m) => { console.error('BŁĄD: ' + m); process.exit(1); };
 const md5 = (b) => crypto.createHash('md5').update(b).digest('hex');
@@ -40,7 +42,7 @@ let html = fs.readFileSync(path.join(ROOT, 'src/index.html'), 'utf8');
 html = html.replace(/<!--znak:([\w-]+):(\d+)-->/g, (_, s, r) => znak(s, +r));
 // Postać Spinki (rozwinięcie znaku: kartka ze spinką, bez twarzy). Jeden rysunek, stan wybiera klasa, ruch jest w CSS strony.
 const POSTAC = fs.readFileSync(path.join(ROOT, 'src/postac/spinka-postac.svg'), 'utf8').replace(/\n\s*/g, '');
-const STANY = ['pojawia', 'spokoj', 'wskazuje', 'gotowe', 'pomylka', 'odpoczywa'];
+const STANY = ['spokoj', 'slucha', 'wyjasnia', 'ostrzega', 'krok', 'gotowe'];
 html = html.replace(/<!--postac:([\w-]+):(\d+)-->/g, (_, s, r) => { if (!STANY.includes(s)) stop('nieznany stan postaci: ' + s); return POSTAC.replace('STAN', s).replace('ROZMIAR', r).replace('ROZMIAR', r); });
 html = html.replace('<!--film:mp4-->', 'film/' + PLIKI.mp4);
 html = html.replace('<!--film:poster-->', jest('plakat') ? ' poster="film/' + PLIKI.plakat + '"' : '');
@@ -50,7 +52,13 @@ const esc = (t) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, 
 const tekst = jest('mp4') && fs.existsSync(path.join(FILM, TEKST)) ? fs.readFileSync(path.join(FILM, TEKST), 'utf8').split('\n').map((l) => l.trim()).filter(Boolean) : [];
 html = html.replace('<!--film:tekst-->', tekst.length ? '<details class="tekst-filmu wejscie" style="--i:6"><summary>Tekst z filmu</summary><ol>' +
   tekst.map((l) => '<li>' + esc(l).replace(/^\[(.*?)\]\s*/, '<span class="opis-obrazu">$1</span> ') + '</li>').join('') + '</ol></details>' : '');
-if (/<!--(znak|film|postac):/.test(html)) stop('zostały niezastąpione znaczniki w src/index.html');
+// Asystent: czy aplikacja ma adres serwera z modelem (ASSISTANT_ENDPOINT przy budowaniu aplikacji). Teksty na stronie mówią prawdę o tej wersji.
+const zSerwerem = /<meta name="assistant-endpoint"/.test(String(app).slice(0, 4000));
+const ASYSTENT = zSerwerem
+  ? { pasek: 'pytania do AI tylko po zgodzie', fakt: 'W tej wersji model jest podłączony; przed pierwszym pytaniem aplikacja pyta o zgodę.', stopka: 'Asystent AI łączy się z modelem przez serwer projektu, tylko po zgodzie.' }
+  : { pasek: 'nic nie jest wysyłane', fakt: 'W tej wersji strony model nie jest podłączony, więc asystent mówi to wprost i nie odpowiada na pytania własnymi słowami.', stopka: 'Ta wersja nie ma serwera z modelem AI: asystent niczego nie wysyła.' };
+html = html.replace(/<!--asystent:(\w+)-->/g, (_, k) => { if (!ASYSTENT[k]) stop('nieznany znacznik asystenta: ' + k); return ASYSTENT[k]; });
+if (/<!--(znak|film|postac|asystent):/.test(html)) stop('zostały niezastąpione znaczniki w src/index.html');
 
 fs.rmSync(OUT, { recursive: true, force: true });
 for (const d of ['aplikacja', 'film', 'fonty', 'obrazy']) fs.mkdirSync(path.join(OUT, d), { recursive: true });
@@ -60,6 +68,8 @@ fs.copyFileSync(path.join(ZNAK, 'spinka-znak-bez-odznaki.svg'), path.join(OUT, '
 for (const f of fs.readdirSync(path.join(ROOT, 'src/fonty'))) fs.copyFileSync(path.join(ROOT, 'src/fonty', f), path.join(OUT, 'fonty', f));
 // Zrzuty prawdziwych ekranów aplikacji do sekcji „Demonstracja” (tworzy je narzedzia/zrzuty-aplikacji.js).
 for (const f of fs.readdirSync(path.join(ROOT, 'src/obrazy'))) fs.copyFileSync(path.join(ROOT, 'src/obrazy', f), path.join(OUT, 'obrazy', f));
+// Podgląd lokalny: wariant aplikacji z postacią Spinki (do oceny, nie do publikacji).
+if (flag('z-wariantem')) { const w = path.join(path.dirname(APLIKACJA), 'wariant-postaci.html'); if (fs.existsSync(w)) fs.copyFileSync(w, path.join(OUT, 'aplikacja/wariant-postaci.html')); else stop('brak ' + w + ' (node build.mjs --wariant-postaci w aplikacji)'); }
 for (const k of Object.keys(PLIKI)) if (jest(k)) fs.copyFileSync(path.join(FILM, PLIKI[k]), path.join(OUT, 'film', PLIKI[k]));
 fs.writeFileSync(path.join(OUT, '.nojekyll'), '');
 

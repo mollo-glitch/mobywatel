@@ -15,8 +15,11 @@
   A.cases = A.casesSeed();
 
   const KEY = 'proto-sprawy-ustawienia';
-  const settings = { bigText: false, reduceMotion: false };
+  // Rozmiar tekstu: 0 standardowy, 1 większy (dawne „bigText”), 2 największy. Kontrast: ciemniejsze linie i opisy.
+  const settings = { bigText: false, reduceMotion: false, textSize: 0, contrast: false };
   try { Object.assign(settings, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch (e) { /* brak pamięci przeglądarki */ }
+  if (![0, 1, 2].includes(settings.textSize)) settings.textSize = settings.bigText ? 1 : 0;
+  settings.bigText = settings.textSize > 0;
   const saveSettings = () => { try { localStorage.setItem(KEY, JSON.stringify(settings)); } catch (e) { /* ignorujemy */ } };
   A.settings = settings;
 
@@ -25,9 +28,13 @@
 
   function applySettings() {
     const r = document.documentElement;
-    r.classList.toggle('big-text', !!settings.bigText);
+    settings.bigText = settings.textSize > 0;
+    r.classList.toggle('big-text', settings.textSize === 1);
+    r.classList.toggle('text-xl', settings.textSize === 2);
+    r.classList.toggle('kontrast', !!settings.contrast);
     r.classList.toggle('reduce-motion', A.reducedMotion());
-    document.querySelectorAll('[data-setting]').forEach((b) => {
+    document.querySelectorAll('[data-text-size]').forEach((b) => { const on = Number(b.dataset.textSize) === settings.textSize; b.setAttribute('aria-checked', on ? 'true' : 'false'); b.tabIndex = on ? 0 : -1; });
+    document.querySelectorAll('[data-setting]:not([data-setting="aiSend"])').forEach((b) => {
       const on = b.dataset.setting === 'reduceMotion' ? A.reducedMotion() : !!settings[b.dataset.setting];
       b.setAttribute('aria-checked', on ? 'true' : 'false');
       if (b.dataset.setting === 'reduceMotion' && mq.matches) {
@@ -40,8 +47,27 @@
     if (aa) aa.setAttribute('aria-pressed', settings.bigText ? 'true' : 'false');
   }
 
+  // Rozmiar tekstu z Profilu (trzy stopnie) albo z przycisku „A A” w nagłówku (standardowy ↔ większy).
+  function setTextSize(v) {
+    settings.textSize = [0, 1, 2].includes(v) ? v : 0;
+    saveSettings();
+    applySettings();
+    A.announce(['Standardowy rozmiar tekstu', 'Większy tekst włączony', 'Największy tekst włączony'][settings.textSize]);
+    carousels.forEach((c) => c.layout && c.layout()); // pas kopert i odsłanianie sekcji nie mają layout()
+  }
+
   let kb = false;
   window.addEventListener('keydown', (e) => { if (e.key === 'Tab' || e.key.startsWith('Arrow')) kb = true; }, true);
+  // Rozmiar tekstu w Profilu to grupa przycisków radiowych: strzałki zmieniają wybór i przenoszą fokus.
+  document.addEventListener('keydown', (e) => {
+    const r = e.target.closest && e.target.closest('[data-text-size]');
+    if (!r || !/^Arrow(Left|Right|Up|Down)$/.test(e.key)) return;
+    e.preventDefault();
+    const next = (Number(r.dataset.textSize) + (/Right|Down/.test(e.key) ? 1 : 2)) % 3;
+    setTextSize(next);
+    const b = document.querySelector('[data-text-size="' + next + '"]');
+    if (b) b.focus();
+  });
   window.addEventListener('pointerdown', () => { kb = false; }, true);
   A.lastInputWasKeyboard = () => kb;
 
@@ -1450,49 +1476,103 @@
     },
 
     more() {
-      const sw = (key, title, sub) =>
-        '<li><button type="button" class="row switch" role="switch" data-setting="' + key + '" aria-checked="false">' +
+      const sw = (key, title, sub, on) =>
+        '<li><button type="button" class="row switch" role="switch" data-setting="' + key + '" aria-checked="' + (on ? 'true' : 'false') + '">' +
           '<span class="row-main"><span class="row-title">' + title + '</span><span class="row-meta sw-sub">' + sub + '</span></span>' +
           '<span class="sw" aria-hidden="true"><i></i></span></button></li>';
       const link = (attrs, icn, title, sub) =>
         '<li><button type="button" class="row" ' + attrs + '><span class="row-ic tone-neutral">' + ic(icn, 24) + '</span><span class="row-main"><span class="row-title">' + title + '</span>' + (sub ? '<span class="row-meta">' + sub + '</span>' : '') + '</span><span class="row-go" aria-hidden="true">' + ic('chevronRight', 20) + '</span></button></li>';
       const P = A.person;
       const adres = A.cases.find((c) => c.id === 'adres' && c.state !== 'demo');
-      // Osobista karta z imieniem i nazwiskiem jako głównym nagłówkiem, potem dwie sekcje danych. Bez tabeli i pól do edycji.
+      const ai = A.chat && A.chat.ai;
+      const ctx = ai ? ai.context() : { zrodla: [] };
       const sec = (id, icn, title, desc, body) =>
         '<section class="me-sec" aria-labelledby="' + id + '">' +
           '<div class="me-sec-head"><span class="me-sec-ic" aria-hidden="true">' + ic(icn, 24) + '</span>' +
-            '<span><h2 id="' + id + '">' + title + '</h2><span class="me-sec-desc">' + desc + '</span></span></div>' + body +
+            '<span><h3 id="' + id + '">' + title + '</h3>' + (desc ? '<span class="me-sec-desc">' + desc + '</span>' : '') + '</span></div>' + body +
         '</section>';
+      // Trzy części profilu jako rozdziały: duży nagłówek, jedno zdanie, treść. Spis na górze przewija do części.
+      const part = (id, n, title, lead, body) =>
+        '<section class="me-part" aria-labelledby="' + id + '">' +
+          '<header class="me-part-head"><span class="me-part-n" aria-hidden="true">' + n + '</span><h2 id="' + id + '" tabindex="-1">' + title + '</h2></header>' +
+          (lead ? '<p class="me-part-lead">' + lead + '</p>' : '') + body +
+        '</section>';
+      const size = settings.textSize || 0;
+      const radio = (v, label) => '<button type="button" role="radio" class="size-opt" data-text-size="' + v + '" aria-checked="' + (size === v ? 'true' : 'false') + '" tabindex="' + (size === v ? '0' : '-1') + '"><span class="size-a" aria-hidden="true" style="font-size:' + [1, 1.18, 1.32][v] + 'em">A</span><span>' + label + '</span></button>';
+      const li = (icn, t) => '<li>' + ic(icn, 20) + '<span>' + t + '</span></li>';
+      const preview = ctx.zrodla.map((z) => '<li><span class="pv-t">' + esc(z.tytul) + '</span><span class="pv-f">' + esc(z.fakty.join(' · ')) + '</span></li>').join('');
+      const aiOn = !!(ai && ai.available());
       return screen('more',
-        '<div class="pad stack">' +
+        '<div class="pad stack me-stack">' +
         '<section class="me-hero sig" aria-labelledby="me-name">' +
           '<span class="avatar me-av" aria-hidden="true">' + esc(P.initials) + '</span>' +
-          '<span class="me-id"><span class="eyebrow">Profil</span><h1 id="me-name">' + esc(P.first + ' ' + P.last) + '</h1><span class="proto-pill">Dane fikcyjne</span></span>' +
+          '<span class="me-id"><span class="eyebrow">Profil</span><h1 id="me-name">' + esc(P.first + ' ' + P.last) + '</h1><span class="proto-pill">Osoba fikcyjna · dane fikcyjne</span></span>' +
         '</section>' +
-        sec('me-personal', 'user', 'Dane osobowe', 'Odsłaniaj numer tylko wtedy, gdy nikt nie patrzy na ekran.',
-          '<dl class="me-fields">' +
-            '<div class="me-wide"><dt>PESEL</dt><dd class="me-pesel"><span class="masked" aria-live="polite" data-mask="' + esc(P.peselMasked) + '" data-full="' + esc(P.pesel) + '">' + esc(P.peselMasked) + '</span>' +
-              '<button type="button" class="btn-text sm" data-act="unmask" aria-pressed="false" data-off="Pokaż PESEL" data-on="Ukryj PESEL">' + ic('eye', 20) + '<span>Pokaż PESEL</span></button></dd></div>' +
-          '</dl>') +
-        sec('me-address', 'home', 'Adres i meldunek', 'Adres zameldowania i stan zgłoszonej zmiany.',
-          '<p class="me-addr">' + P.address.split(', ').map((x) => '<span class="nw">' + esc(x) + '</span>').join('<br>') + '</p>' +
-          (adres ? addressStatus(adres) : '')) +
-        '<p class="me-fine">' + ic('info', 20) + '<span>Osoba i dane są fikcyjne. Prototyp niczego nie wysyła i nie łączy się z żadnym rejestrem.</span></p>' +
-        '<h2>Wygoda i dostępność</h2><ul class="group">' +
-          sw('bigText', 'Większy tekst', 'Powiększa napisy i karty dokumentów.') +
-          sw('reduceMotion', 'Ogranicz animacje', 'Karty zmieniają się od razu, bez przesuwania.') +
-        '</ul>' +
-        '<h2>Twoje dane</h2><ul class="group">' +
-          link('data-go="access"', 'shieldCheck', 'Kto ma dostęp do moich danych', A.consents.filter((c) => c.active).length + ' aktywne dostępy') +
-          link('data-act="cases" data-which="todo"', 'mail', 'Do załatwienia', 'Pisma, terminy i przypomnienia') +
-        '</ul>' +
-        '<h2>O prototypie</h2><ul class="group">' +
-          '<li><div class="row static"><span class="row-ic tone-neutral">' + ic('calendar', 24) + '</span><span class="row-main"><span class="row-title">Data w prototypie: ' + esc(A.demo.label) + '</span><span class="row-meta">Stała na czas pokazu. Wszystkie terminy i „za … dni” liczą się od niej.</span></span></div></li>' +
-          link('data-go="about"', 'info', 'Jak przeklikać ten prototyp', 'Scenariusze i zasady') +
-          link('data-act="switch-profile"', 'user', 'Zmień osobę demonstracyjną', 'Ekran wyboru osoby') +
-          link('data-act="reset"', 'undo', 'Zacznij od nowa', 'Przywraca dane przykładowe i ekran startowy') +
-        '</ul></div>'
+        '<nav class="me-index" aria-label="Części profilu">' +
+          '<button type="button" data-act="me-jump" data-to="me-o"><span class="me-index-n" aria-hidden="true">1</span>O prototypie</button>' +
+          '<button type="button" data-act="me-jump" data-to="me-d"><span class="me-index-n" aria-hidden="true">2</span>Twoje dane</button>' +
+          '<button type="button" data-act="me-jump" data-to="me-w"><span class="me-index-n" aria-hidden="true">3</span>Wygoda i dostępność</button>' +
+        '</nav>' +
+        part('me-o', '1', 'O prototypie', 'Spinka to asystent spraw w <b>nieoficjalnej koncepcji</b> aplikacji mObywatel, przygotowanej na konkurs mObywatel Challenge. To nie jest aplikacja ani usługa administracji publicznej.',
+          '<div class="me-two">' +
+            '<div class="me-can"><h3>Co robi</h3><ul class="me-list">' +
+              li('check', 'Tłumaczy pisma i terminy z tej demonstracji prostym językiem.') +
+              li('check', 'Przy każdej możliwości pokazuje skutek, zanim wybierzesz.') +
+              li('check', 'Przed każdą zmianą pokazuje podsumowanie; decyzja należy do Ciebie.') +
+            '</ul></div>' +
+            '<div class="me-cannot"><h3>Czego nie robi</h3><ul class="me-list">' +
+              li('x', 'Nie łączy się z urzędem, bankiem, BIK ani żadnym rejestrem.') +
+              li('x', 'Niczego nie składa, nie wysyła do instytucji i nie płaci.') +
+              li('x', 'Nie zna danych spoza tej aplikacji; czego w nich nie ma, tego nie wie.') +
+            '</ul></div>' +
+          '</div>' +
+          '<ul class="group">' +
+            '<li><div class="row static"><span class="row-ic tone-neutral">' + ic('calendar', 24) + '</span><span class="row-main"><span class="row-title">Data w prototypie: ' + esc(A.demo.label) + '</span><span class="row-meta">Stała na czas pokazu. Wszystkie terminy i „za … dni” liczą się od niej.</span></span></div></li>' +
+            link('data-go="about"', 'info', 'Jak przeklikać ten prototyp', 'Scenariusze i zasady') +
+            link('data-act="switch-profile"', 'user', 'Zmień osobę demonstracyjną', 'Ekran wyboru osoby') +
+          '</ul>' +
+          '<p class="me-author"><span class="me-author-bar" aria-hidden="true"></span><span>Koncepcja i projekt aplikacji: <b>Igor M.</b></span></p>') +
+        part('me-d', '2', 'Twoje dane', 'Osoba, numery i sprawy w demonstracji są fikcyjne. Tu widać, co aplikacja pokazuje, gdzie to trzyma i co może trafić do asystenta AI.',
+          sec('me-personal', 'user', 'Dane osobowe (fikcyjne)', 'Odsłaniaj numer tylko wtedy, gdy nikt nie patrzy na ekran.',
+            '<dl class="me-fields">' +
+              '<div class="me-wide"><dt>PESEL</dt><dd class="me-pesel"><span class="masked" aria-live="polite" data-mask="' + esc(P.peselMasked) + '" data-full="' + esc(P.pesel) + '">' + esc(P.peselMasked) + '</span>' +
+                '<button type="button" class="btn-text sm" data-act="unmask" aria-pressed="false" data-off="Pokaż PESEL" data-on="Ukryj PESEL">' + ic('eye', 20) + '<span>Pokaż PESEL</span></button></dd></div>' +
+            '</dl>') +
+          sec('me-address', 'home', 'Adres i meldunek', 'Adres zameldowania i stan zgłoszonej zmiany.',
+            '<p class="me-addr">' + P.address.split(', ').map((x) => '<span class="nw">' + esc(x) + '</span>').join('<br>') + '</p>' +
+            (adres ? addressStatus(adres) : '')) +
+          sec('me-store', 'lock', 'Gdzie są dane', '',
+            '<dl class="me-rows">' +
+              '<div><dt>Sprawy, pisma, dokumenty</dt><dd>Wbudowane w aplikację. Twoje zmiany, np. ustawione przypomnienia, są tylko w pamięci tej karty i znikają po jej odświeżeniu.</dd></div>' +
+              '<div><dt>Rozmowa ze Spinką</dt><dd>Tylko na ekranie. Nie jest nigdzie zapisywana ani wysyłana w całości.</dd></div>' +
+              '<div><dt>Wygoda i dostępność</dt><dd>Zapisane w tej przeglądarce (pamięć lokalna), żeby działały po powrocie.</dd></div>' +
+              '<div><dt>Wybór i zgoda dla asystenta AI</dt><dd>Tylko w tej karcie (pamięć sesji), do jej zamknięcia.</dd></div>' +
+            '</dl>') +
+          sec('me-ai', 'assistant', 'Asystent AI', '',
+            '<p class="me-ai-status" data-ai-status>' + esc(ai ? ai.statusText() : 'Niepodłączony.') + '</p>' +
+            (aiOn ? '<ul class="group quiet">' + sw('aiSend', 'Wysyłaj pytania do modelu AI', 'Bez tego Spinka nie odpowiada na pytania własnymi słowami; scenariusze działają dalej.', ai.sending()) + '</ul>' +
+              (ai.consented() ? '<button type="button" class="btn-text" data-act="ai-revoke">' + ic('undo', 20) + 'Cofnij zgodę na wysyłanie</button>' : '')
+              : '<p class="me-ai-how">Żeby asystent odpowiadał na pytania, potrzebny jest serwer projektu z modelem językowym i kluczem API. Klucz nigdy nie trafia do aplikacji w przeglądarce.</p>') +
+            '<details class="me-preview"><summary>Co trafiłoby do modelu: podgląd</summary>' +
+              '<p class="sub">Razem z pytaniem: data w prototypie i ' + ctx.zrodla.length + ' pozycji z aplikacji, każda z tytułem i krótkim opisem. To ta sama lista, którą asystent wysyła.</p>' +
+              '<ul class="pv-list">' + preview + '</ul>' +
+              '<p class="sub"><b>Nie trafiają:</b> imię, nazwisko, PESEL, adres, numery dokumentów, tablice rejestracyjne, numer polisy, pełna treść pism (oryginały) ani historia rozmowy.</p>' +
+            '</details>') +
+          '<ul class="group">' +
+            link('data-go="access"', 'shieldCheck', 'Kto ma dostęp do moich danych', A.consents.filter((c) => c.active).length + ' aktywne dostępy (przykładowe)') +
+            link('data-act="chat-clear"', 'assistant', 'Wyczyść rozmowę ze Spinką', 'Usuwa rozmowę z ekranu; sprawy zostają') +
+            link('data-act="reset"', 'undo', 'Zacznij demonstrację od nowa', 'Przywraca dane przykładowe i ekran startowy') +
+          '</ul>') +
+        part('me-w', '3', 'Wygoda i dostępność', 'Działa od razu w całej aplikacji i zostaje w tej przeglądarce.',
+          '<section class="me-sec me-size" aria-labelledby="ts-h"><h3 id="ts-h">Rozmiar tekstu</h3>' +
+            '<div class="size-seg" role="radiogroup" aria-labelledby="ts-h">' + radio(0, 'Standardowy') + radio(1, 'Większy') + radio(2, 'Największy') + '</div>' +
+            '<p class="text-sample"><span class="ts-k">Przykład</span>Kończy się OC: Toyota Yaris. Polisa kończy się ' + esc(T.fmtLong(A.dates.ocEnd)) + '.</p>' +
+          '</section>' +
+          '<ul class="group">' +
+            sw('reduceMotion', 'Ogranicz animacje', 'Karty zmieniają się od razu, bez przesuwania.', A.reducedMotion()) +
+            sw('contrast', 'Wyraźniejsze kontury i opisy', 'Ciemniejsze linie podziału i tekst pomocniczy.', !!settings.contrast) +
+          '</ul>') +
+        '</div>'
       );
     },
 
@@ -2296,11 +2376,14 @@
     if (d.go) { A.nav(d.go, d.id ? { id: pick && t.contains(pick) ? pick.dataset.pick : d.id } : {}); return; }
     if (d.copy) { copy(d.copy, t); return; }
     if (d.toast) { A.toast(d.toast); return; }
+    if (d.setting === 'aiSend') { A.chat.ai.toggle(); return; }
+    if (d.textSize) { setTextSize(Number(d.textSize)); return; }
     if (d.setting) {
       settings[d.setting] = !settings[d.setting];
       saveSettings();
       applySettings();
       if (d.setting === 'reduceMotion') A.toast(settings.reduceMotion ? 'Animacje ograniczone. Karty zmieniają się od razu.' : 'Animacje włączone.');
+      if (d.setting === 'contrast') A.announce(settings.contrast ? 'Wyraźniejsze kontury włączone' : 'Wyraźniejsze kontury wyłączone');
       return;
     }
     if (d.seg) { segTo(t); return; }
@@ -2443,11 +2526,21 @@
       case 'voice-sample': Voice.confirm(t.dataset.text, true); break;
       case 'chat-reset': A.chat.reset(); A.toast('Zaczęliśmy nową rozmowę.'); break;
       case 'big-text':
-        settings.bigText = !settings.bigText;
-        saveSettings();
-        applySettings();
-        A.announce(settings.bigText ? 'Większy tekst włączony' : 'Większy tekst wyłączony');
-        carousels.forEach((c) => c.layout && c.layout()); // pas kopert i odsłanianie sekcji nie mają layout()
+        setTextSize(settings.textSize ? 0 : 1);
+        break;
+      case 'me-jump': {
+        const h = document.getElementById(t.dataset.to);
+        if (h) { h.scrollIntoView({ block: 'start', behavior: A.reducedMotion() ? 'auto' : 'smooth' }); h.focus({ preventScroll: true }); }
+        break;
+      }
+      case 'ai-revoke':
+        A.chat.ai.revokeConsent();
+        A.toast('Zgoda cofnięta. Przed następnym pytaniem do modelu AI zapytam ponownie.');
+        t.remove();
+        break;
+      case 'chat-clear':
+        A.chat.reset();
+        A.toast('Rozmowa wyczyszczona. Sprawy i ustawienia zostały bez zmian.');
         break;
       case 'due': {
         const open = t.getAttribute('aria-expanded') !== 'true';

@@ -7,6 +7,8 @@ import vm from 'node:vm';
 const root = dirname(fileURLToPath(import.meta.url));
 const src = (f) => readFileSync(join(root, 'src', f), 'utf8');
 
+// --wariant-postaci: dodatkowo dist/wariant-postaci.html z postacią Spinki zamiast znaku (do oceny; główny build bez zmian).
+const WARIANT = process.argv.includes('--wariant-postaci');
 const scripts = ['marka.js', 'data.js', 'icons.js', 'carousel.js', 'assistant.js', 'app.js'];
 
 // Ikony w statycznym HTML wstawiamy tą samą funkcją, której używa aplikacja.
@@ -64,12 +66,25 @@ const js = '<script>\n' + scripts.map((f) => `/* ${f} */\n` + src(f)).join('\n')
 const headOut = head.replace('<!--STYLE-->', style).trim();
 const bodyOut = body.replace('<!--SCRIPTS-->', js).trim();
 
+// Adres serwera asystenta (funkcja serwerowa dla strony statycznej): tylko z ASSISTANT_ENDPOINT przy budowaniu, tylko https.
+// Bez niego build nie ma adresu i asystent mówi, że model AI nie jest podłączony. Klucz API nigdy nie trafia do buildu.
+const endpoint = (process.env.ASSISTANT_ENDPOINT || '').trim();
+if (endpoint && !/^https:\/\/[\w.-]+(:\d+)?(\/[\w\/-]*)?$/.test(endpoint)) throw new Error('ASSISTANT_ENDPOINT musi być adresem https bez parametrów, np. https://spinka-asystent.example.workers.dev/api/assistant');
+const endpointMeta = endpoint ? '<meta name="assistant-endpoint" content="' + escHtml(endpoint) + '">\n' : '';
+
 mkdirSync(join(root, 'dist'), { recursive: true });
 writeFileSync(join(root, 'dist', 'artifact.html'), headOut + '\n' + bodyOut + '\n');
 writeFileSync(
   join(root, 'dist', 'index.html'),
-  '<!doctype html>\n<html lang="pl">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n' +
+  '<!doctype html>\n<html lang="pl">\n<head>\n<meta charset="utf-8">\n' + endpointMeta + '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n' +
     headOut + '\n</head>\n<body>\n' + bodyOut + '\n</body>\n</html>\n'
 );
+if (WARIANT) {
+  const jsW = '<script>\n' + ['marka.js', 'data.js', 'icons.js', 'wariant-postaci.js', 'carousel.js', 'assistant.js', 'app.js'].map((f) => `/* ${f} */\n` + src(f)).join('\n') + '</script>';
+  writeFileSync(join(root, 'dist', 'wariant-postaci.html'),
+    '<!doctype html>\n<html lang="pl">\n<head>\n<meta charset="utf-8">\n' + endpointMeta + '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n' +
+      headOut + '\n</head>\n<body>\n' + body.replace('<!--SCRIPTS-->', jsW).trim() + '\n</body>\n</html>\n');
+  console.log('dist/wariant-postaci.html (postać Spinki zamiast znaku, do oceny)');
+}
 const kb = (s) => (Buffer.byteLength(s) / 1024).toFixed(1) + ' KB';
-console.log('dist/index.html', kb(readFileSync(join(root, 'dist', 'index.html'), 'utf8')));
+console.log('dist/index.html', kb(readFileSync(join(root, 'dist', 'index.html'), 'utf8')) + (endpoint ? ' | asystent: ' + endpoint : ' | asystent: bez serwera (AI niepodłączone)'));

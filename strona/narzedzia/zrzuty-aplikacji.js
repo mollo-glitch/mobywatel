@@ -1,4 +1,4 @@
-// Zrzuty prawdziwych ekranów aplikacji do sekcji „Demonstracja” (strona/src/obrazy/*.webp), z działającego buildu.
+// Zrzuty prawdziwych ekranów aplikacji do sekcji „Demonstracja” i „Twoje dane” (strona/src/obrazy/*.webp), z działającego buildu.
 // Nie zmienia aplikacji: otwiera ją jak użytkownik, telefon 390 px, DPR 2, ograniczony ruch (stany końcowe, bez klatek pośrednich).
 //   node strona/narzedzia/zrzuty-aplikacji.js http://127.0.0.1:8450/   (adres, pod którym działa aplikacja/dist)
 // Wymaga Playwright z Chromium i Pythona z Pillow (zapis WebP).
@@ -28,6 +28,14 @@ const zapisz = (png, nazwa) => execFileSync('python3', ['-I', '-c', 'import sys;
   { const { ctx, p } = await nowy(); await p.locator('button', { hasText: 'Zobacz, co zrobić' }).first().tap(); await p.waitForTimeout(700);
     await p.locator('#envd button', { hasText: 'Przypomnij 2 dni przed końcem polisy' }).tap(); await p.waitForTimeout(900);
     await p.screenshot({ path: tmp }); zapisz(tmp, 'przypomnienie'); await ctx.close(); }
+  // 4. Profil, część „O prototypie”: co Spinka robi i czego nie robi.
+  { const { ctx, p } = await nowy(); await p.tap('.tabbar [data-tab=more]'); await p.waitForTimeout(700);
+    await p.evaluate(() => { const h = document.getElementById('me-o'); const sc = document.querySelector('#main > .screen'); sc.scrollTop = h.getBoundingClientRect().top - sc.getBoundingClientRect().top + sc.scrollTop - 16; }); await p.waitForTimeout(400);
+    await p.screenshot({ path: tmp }); zapisz(tmp, 'profil-o-prototypie'); await ctx.close(); }
+  // 5. Profil, „Twoje dane”: asystent AI i podgląd danych, które trafiłyby do modelu (generowany w aplikacji, bez serwera).
+  { const { ctx, p } = await nowy(); await p.tap('.tabbar [data-tab=more]'); await p.waitForTimeout(700);
+    await p.evaluate(() => { const d = document.querySelector('.me-preview'); d.open = true; const h = document.getElementById('me-ai'); const sc = document.querySelector('#main > .screen'); sc.scrollTop = h.getBoundingClientRect().top - sc.getBoundingClientRect().top + sc.scrollTop - 24; }); await p.waitForTimeout(400);
+    await p.screenshot({ path: tmp }); zapisz(tmp, 'profil-dane-dla-ai'); await ctx.close(); }
   await b.close();
   for (const f of fs.readdirSync(OUT)) console.log(f, (fs.statSync(path.join(OUT, f)).size / 1024).toFixed(0) + ' KB');
 })();

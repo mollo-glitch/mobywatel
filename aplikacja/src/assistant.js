@@ -21,119 +21,21 @@
   const sleep = (ms) => new Promise((r) => setTimeout(r, A.reducedMotion() ? 0 : ms));
   const guard = (my) => { if (my !== run) throw ABORT; };
 
-  /* ---------- rozpoznawanie intencji ---------- */
+  /* ---------- scenariusze demonstracyjne: tylko podpowiedź, nie odpowiedź ---------- */
 
+  // Asystent nie interpretuje pytań regułami. Słowa kluczowe służą wyłącznie do podpowiedzenia, który scenariusz
+  // demonstracyjny pasuje do wpisanego tekstu (przycisk „Zacznij”), gdy model AI nie jest podłączony.
   const norm = (s) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ł/g, 'l');
-
-  // Każdy temat ma własny wzorzec (tekst po norm(): małe litery, bez polskich znaków).
-  // Ogólne słowa o aucie są tylko cechą pytania, a nie tematem: same nie uruchamiają scenariusza OC.
-  const P = {
-    portfel: /portfel|zgubi|zgubl|ukradl|ukradzi|kradziez|skradzi|zastrz|zginal|zginel|stracil(em|am)? (dowod|dokument)/,
-    nowyDowod: /nowy dowod|wyrobi\w* (nowy |nowego )?dowod|wymien\w* dowod|dowod\w* .*(wazn|konczy|traci)|(konczy|traci|wygasa)\w* .*dowod(?! rejestr)|wniosek o dowod|odnowi\w* dowod/,
-    pismo: /pism|\blist\b|list z|list od|skarbow|wezwani|decyzj|upomnieni|nie rozumiem|urzad\w* (przyslal|napisal)/,
-    dane: /dane|udostep|zgod|kto widzi|kto ma dostep|dostep do|prywatn|rodo/,
-    insurance: /\boc\b|\bac\b|autocasco|ubezpiecz|polis|zielon\w* kart/,
-    loan: /\brat(a|e|y|ach|ami|om)?\b|\bratk|ratal|kredyt|pozycz|finansowan|leasing|splat|splac/,
-    credit: /kredyt|pozycz|leasing|finansowan/,
-    pay: /do zaplac|do zaplaty|zaplacenia|zaplacic|do oplac|platnosc|\boplat[ay]?\b|ile (mam|musze) (za)?plac|co (mam|musze) (za)?plac/,
-    bill: /rachun|faktur|za prad|\bprad\w*|za gaz|\bgaz\b|za telefon|abonament|czynsz|za wode/,
-    debt: /dlug|zadluz|zaleglos|komornik|windykac|nie ?zaplac|nie ?oplac|jestem winien|wierzyciel/,
-    registry: /\b(bik|krd|big|erif)\b|infomonitor|rejestr\w* dluznik/,
-    document: /paszport|prawo jazdy|prawk|ekuz|karta duzej rodziny|\bkdr\b|dowod rejestracyjn|dowod osobist|\bdowod\b|dokument/,
-    vehicle: /\bauto\b|\bauta\b|\bautem\b|\bautu\b|samochod|pojazd|yaris|toyot|\bwoz\b|wozem/,
-    idCost: /(ile kosztuje|koszt|oplat|platny|darmow|bezplatn).*dowod|dowod\w*.*(koszt|oplat|platny|darmow|bezplatn)/,
-    help: /co potrafisz|w czym (mozesz|pomozesz)|jak (to )?dziala|^pomoc|pomoz mi\b|co umiesz/,
-    greet: /^(czesc|dzien dobry|dobry wieczor|hej|witaj|siema|halo)\b/,
-    thanks: /dziek|dzieki/,
-    unsupported: /800|meldun|przeprowadz|mandat|recept|slub|urodzi|emerytur|zasilek|szczepi|wybory|glosowa/
+  const SCEN_P = {
+    portfel: /portfel|zgubi|zgubl|ukradl|ukradzi|kradziez|skradzi|zastrz|zginal|zginel/,
+    nowyDowod: /nowy dowod|wyrobi\w* (nowy |nowego )?dowod|wymien\w* dowod|wniosek o dowod|odnowi\w* dowod/,
+    pismo: /pism|wezwani|skarbow|urzad\w* (przyslal|napisal)/,
+    oc: /\boc\b|polis|ubezpiecz/,
+    dane: /kto widzi|kto ma dostep|dostep do (moich |twoich )?danych|udostep|zgod/
   };
-
-  // O co dokładnie pyta: liczba rat, kwota, termin, saldo, koszt, ważność albo nowy dokument.
-  function askOf(t) {
-    if (/\bile\b[^.?!]*\brat\b|liczb\w* rat/.test(t)) return 'count';
-    if (/do splaty|do splacenia|saldo|ile (jeszcze )?(musze )?(oddac|splacic)|zostalo do/.test(t)) return 'balance';
-    if (/wynosi|wysokosc|kwot|ile (place|zaplace)|jaka (jest )?rat|ile za rat/.test(t)) return 'amount';
-    if (/ile kosztuje|\bcen[aey]\b|koszt|skladk/.test(t)) return 'cost';
-    if (/wyrobi|nowy|nowego|zlozyc wniosek|wniosek o/.test(t)) return 'new';
-    if (/kiedy|termin|nastepn|ktorego|wazn|konczy|traci|wygasa/.test(t)) return 'date';
-    return null;
-  }
-
-  function docOf(t) {
-    if (/paszport/.test(t)) return 'paszport';
-    if (/prawo jazdy|prawk/.test(t)) return 'prawko';
-    if (/ekuz/.test(t)) return 'ekuz';
-    if (/karta duzej rodziny|\bkdr\b/.test(t)) return 'kdr';
-    if (/dowod rejestracyjn/.test(t)) return 'pojazd';
-    if (/dowod osobist|\bdowod\b/.test(t)) return 'dowod';
-    return null;
-  }
-
-  // Doprecyzowanie poprzedniego pytania: „A ile wynosi rata?”, „a kiedy?”, „i co dalej?”.
-  const isFollowUp = (t) => /^(a|i|to|oraz|no to|a co|a jak|a czy)\b/.test(t) ||
-    (t.split(/\s+/).length <= 4 && /\b(ile|kiedy|jak|gdzie|czy|co|jaka|jaki)\b/.test(t));
-
-  // Pamięć rozmowy: ostatni temat i jego cechy. Pozwala zrozumieć doprecyzowanie, a przy zmianie tematu
-  // nowa wiadomość ma pierwszeństwo.
-  let mem = null;
-  const remember = (intent, slots) => { mem = { intent: intent, slots: Object.assign({}, slots || {}) }; };
-
-  /*
-   * Kolejność ma znaczenie: bezpieczeństwo dokumentów, potem konkretne pytania o pieniądze (raty, płatności,
-   * długi, rachunki), dopiero potem sprawy prowadzone krok po kroku. „Ile rat na auto” to pytanie o kredyt,
-   * nie o OC; „raty” razem z OC (albo po rozmowie o OC) są niejednoznaczne, więc asystent dopyta.
-   */
-  function understand(text, memo) {
-    const t = norm(text);
-    const has = (k) => P[k].test(t);
-    const s = { vehicle: has('vehicle'), insurance: has('insurance'), ask: askOf(t) };
-    const prev = memo && memo.intent;
-    const follow = !!prev && isFollowUp(t);
-    const r = (intent, extra) => Object.assign({ intent: intent, slots: s, text: text, follow: follow }, extra || {});
-
-    if (has('idCost')) return r('idCost');
-    if (has('portfel')) return r('scenario', { scenario: 'portfel' });
-    if (has('loan')) {
-      // Doprecyzowanie rozmowy o ratach dziedziczy jej cechy (np. że chodzi o auto).
-      if (follow && /^(loan|loanOrInsurance)$/.test(prev)) { s.vehicle = s.vehicle || !!memo.slots.vehicle; s.again = true; }
-      const aboutOc = s.insurance || /^(oc|ocInfo|ocRaty)$/.test(prev || '');
-      return r(!has('credit') && aboutOc ? 'loanOrInsurance' : 'loan');
-    }
-    if (has('registry') || (/\b(gdzie|jak)\b/.test(t) && /sprawdz|zobacz|znajd|dowie/.test(t) && (has('debt') || has('pay')))) return r('where');
-    if (has('pay')) {
-      if (s.insurance) { s.ask = s.ask || 'cost'; return r('ocInfo'); }
-      return r('pay');
-    }
-    // „Nieopłacony rachunek za prąd” to pytanie o rachunek, nie o dług.
-    if (has('bill') && !has('pismo')) return r('bill');
-    if (has('debt')) return r('debt');
-
-    const sc = ['pismo', 'nowyDowod', 'dane'].filter(has);
-    if (s.insurance && s.ask !== 'cost') sc.push('oc');
-    if (sc.length === 1) return r('scenario', { scenario: sc[0] });
-    if (sc.length > 1) return r('choose', { alts: sc });
-    if (s.insurance) return r('ocInfo');
-    if (has('document')) return r('document', { doc: docOf(t) });
-    if (has('help')) return r('help');
-    if (has('greet')) return r('greet');
-    if (has('thanks')) return r('thanks');
-
-    if (follow) {
-      // Bez własnego tematu: czytamy wiadomość razem z poprzednią. Nowe cechy (np. „kiedy”) mają pierwszeństwo.
-      const slots = Object.assign({}, memo.slots, { vehicle: s.vehicle || !!memo.slots.vehicle, ask: s.ask || memo.slots.ask || null, again: true });
-      if (/^(loan|loanOrInsurance|ocInfo|ocRaty|pay|debt|bill|document)$/.test(prev)) return Object.assign(r(prev, { doc: memo.slots.doc }), { slots: slots });
-      if (prev === 'oc') return Object.assign(r('ocInfo'), { slots: slots });
-      if (SC[prev]) return r('confirmTopic', { scenario: prev });
-    }
-    if (s.vehicle) return r('vehicle');
-    if (has('unsupported')) return r('unsupported');
-    return r('unknown');
-  }
-
-  // Zgodność wstecz: lista scenariuszy, które pasują do tekstu.
   function detect(text) {
-    const u = understand(text, null);
-    return u.intent === 'scenario' ? [u.scenario] : u.intent === 'choose' ? u.alts : [];
+    const t = norm(String(text || ''));
+    return Object.keys(SCEN_P).filter((k) => SCEN_P[k].test(t));
   }
 
   /* ---------- widok rozmowy ---------- */
@@ -144,13 +46,13 @@
     const s = A.node(
       '<section class="screen chat" aria-labelledby="chat-h" aria-describedby="chat-sub">' +
         '<div class="chat-head pad">' +
-          // Asystent (nazwa z src/marka.js) i jego znak. Pod imieniem zawsze widać, który tryb odpowiada: w pliku statycznym gotowe reguły
-          // (nie AI); z serwerem prototypu przełącznik „Tryb AI” i jedno zdanie, co wtedy wychodzi z przeglądarki (AI.paint).
+          // Asystent (nazwa z src/marka.js) i jego znak. Pod imieniem zawsze widać, czy model AI jest podłączony: bez serwera
+          // „niepodłączony” i scenariusze demonstracyjne; z serwerem przełącznik „Model AI” i jedno zdanie stanu (AI.paint).
           // „Dane fikcyjne” mówi pasek prototypu nad ekranem i powitanie, więc tu się nie powtarza: krótkie zdanie mieści się
           // obok postaci i nie zabiera wysokości rozmowie na małym telefonie.
           '<div class="chat-who">' + A.znak(44, 'slucha', true, 'assistant', 24) +
             '<div class="chat-name"><h1 id="chat-h" tabindex="-1">Zapytaj ' + esc(M.biernik) + '</h1>' +
-            '<p class="chat-sub" id="chat-sub">Gotowe reguły prototypu, nie AI</p></div></div>' +
+            '<p class="chat-sub" id="chat-sub">Model AI niepodłączony</p></div></div>' +
           '<button type="button" class="btn-text" data-act="chat-reset" aria-label="Nowa rozmowa">' + ic('plus', 20) + '<span class="narrow-hide">Nowa rozmowa</span></button>' +
         '</div>' +
         '<div class="stepper pad" id="stepper" hidden>' +
@@ -194,7 +96,7 @@
   function moodOf(node) {
     if (!node || !node.matches || node.matches('.msg.me')) return null;
     if (node.matches('.st-ok')) return 'gotowe';
-    if (node.matches('.st-err, .qcard.summary')) return 'ostrzega';
+    if (node.matches('.st-err, .st-off, .qcard.summary, .icard.consent')) return 'ostrzega';
     if (node.matches('.st-cancel')) return 'slucha';
     if (node.matches('.qcard, .quick.bound')) return 'krok'; // pytanie w karcie albo odpowiedzi do wyboru w scenariuszu
     if (node.matches('.msg.bot, .icard')) return 'wyjasnia';
@@ -264,7 +166,7 @@
    * cancel = anulowane (krzyżyk, szary). Oczekiwanie pokazuje whileWaiting() (kropki i opis, na co czekamy).
    * Ikona jest ozdobna; znaczenie niesie tekst („Ustawione…”, „Nie udało się…”, „Anulowane…”).
    */
-  const STATE_IC = { ok: 'check', err: 'alert', cancel: 'x' };
+  const STATE_IC = { ok: 'check', err: 'alert', cancel: 'x', off: 'info' };
   function botState(kind, html) {
     return append(A.node('<div class="msg bot st st-' + kind + '"><div class="bubble"><span class="st-ic" aria-hidden="true">' + ic(STATE_IC[kind], 20) + '</span><span>' + html + '</span></div></div>'));
   }
@@ -588,14 +490,16 @@
     append(wrap);
   }
 
+  // Przykładowe sprawy pod powitaniem: każdy przycisk uruchamia scenariusz demonstracyjny.
   function freeChips(list) {
-    const wrap = A.node('<div class="quick" role="group" aria-label="Przykładowe sprawy">' +
+    const wrap = A.node('<div class="quick" role="group" aria-label="Scenariusze demonstracyjne">' +
       list.map((c) => '<button type="button" class="chip">' + esc(c) + '</button>').join('') + '</div>');
     wrap.addEventListener('click', (e) => {
       const b = e.target.closest('.chip');
       if (!b) return;
       wrap.remove();
-      send(b.textContent, { local: true });
+      const id = detect(b.textContent)[0];
+      if (id) start(id, {}); else send(b.textContent);
     });
     append(wrap);
   }
@@ -1135,31 +1039,23 @@
     stopPending();
     const my = ++run;
     current = { id: id, title: sc.title, total: sc.steps, step: 0, label: '', done: false };
-    remember(id, { vehicle: id === 'oc', insurance: id === 'oc' });
     A.ensureRoute('chat', { noIntro: true });
     if (el.log.children.length) divider('Nowa sprawa: ' + sc.title);
     sc.fn(my, preset || {}).catch((e) => { if (e !== ABORT) failed(e); });
   }
 
-  /* ---------- zwykłe pytania (odpowiedzi bez scenariusza) ---------- */
-
-  const EXAMPLES = ['Zgubiłem portfel', 'Pismo z urzędu', 'Mam długi?', 'Kończy się OC', 'Co potrafisz?'];
+  /* ---------- pytania własnymi słowami: tylko model AI albo jasny stan „niepodłączony” ---------- */
 
   function failed(err) {
     if (err) console.error(err);
-    botState('err', 'Nie udało mi się przygotować odpowiedzi. To błąd po mojej stronie, nie Twój. Spróbuj jeszcze raz albo wybierz przykład:');
-    freeChips(EXAMPLES);
+    botState('err', 'Nie udało mi się pokazać odpowiedzi. To błąd po mojej stronie, nie Twój. Spróbuj jeszcze raz albo wybierz scenariusz:');
+    freeChips(A.suggestions);
   }
 
-  // Wszystko, co asystent mówi o sprawach i dokumentach, pochodzi z danych prototypu (fikcyjnych).
+  // Karty danych pochodzą z rekordów aplikacji (fikcyjnych), nigdy z tekstu modelu.
   const todo = (id) => (A.todo || []).find((t) => t.id === id);
   const docById = (id) => (A.docs || []).find((d) => d.id === id);
-  const docRow = (d, label) => { const r = d && (d.rows || []).find((x) => x[0] === label); return r ? r[1] : null; };
-  const policy = () => {
-    const d = docById('pojazd');
-    if (!d) return null;
-    return { car: d.name, plate: docRow(d, 'Numer rejestracyjny'), insurer: docRow(d, 'Ubezpieczenie OC'), end: A.dates.ocEnd };
-  };
+  const caseById = (id) => (A.cases || []).find((c) => c.id === id);
 
   /*
    * Karta źródła: pismo lub termin z „Do załatwienia” (od kogo, tytuł, termin, możliwa kwota) z przyciskiem,
@@ -1169,7 +1065,7 @@
     const n = T.inDays(t.due);
     return '<article class="src-card" aria-labelledby="src-' + t.id + '">' +
       '<svg class="env-flap" viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden="true" focusable="false"><path d="M0 0 L50 36 L100 0 Z"/></svg>' +
-      '<p class="src-k">' + ic(t.icon === 'car' ? 'car' : 'letter', 20) + '<span>Źródło w aplikacji: Do załatwienia</span><span class="src-demo">Dane fikcyjne</span></p>' +
+      '<p class="src-k">' + ic(t.icon === 'car' ? 'car' : 'letter', 20) + '<span>Dane z aplikacji: Do załatwienia</span><span class="src-demo">Dane fikcyjne</span></p>' +
       '<p class="src-from">' + esc(t.kind + ' · ' + t.from) + '</p>' +
       '<h2 class="src-title" id="src-' + t.id + '">' + esc(t.title) + '</h2>' +
       '<dl class="src-facts">' +
@@ -1184,7 +1080,7 @@
   function docCard(d) {
     const tone = d.status && /^(ok|warn|danger|info)$/.test(d.status.tone) ? d.status.tone : 'neutral';
     return '<article class="src-card src-doc" aria-labelledby="srcd-' + d.id + '">' +
-      '<p class="src-k">' + ic(d.icon || 'card', 20) + '<span>Źródło w aplikacji: Dokumenty</span><span class="src-demo">Dane fikcyjne</span></p>' +
+      '<p class="src-k">' + ic(d.icon || 'card', 20) + '<span>Dane z aplikacji: Dokumenty</span><span class="src-demo">Dane fikcyjne</span></p>' +
       '<p class="src-from">' + esc(d.eyebrow) + '</p>' +
       '<h2 class="src-title" id="srcd-' + d.id + '">' + esc(d.name) + '</h2>' +
       '<dl class="src-facts"><div><dt>' + esc(d.key) + '</dt><dd>' + esc(d.value) + (d.status ? ' <span class="pill pill-' + tone + '">' + esc(d.status.text) + '</span>' : '') + '</dd></div></dl>' +
@@ -1192,310 +1088,119 @@
     '</article>';
   }
 
-  const showSources = (list) => { if (list.length) append(A.node('<div class="src-list">' + list.join('') + '</div>')); };
+  // Karta sprawy z zakładki Sprawy: status i termin z danych.
+  function caseCard(c) {
+    return '<article class="src-card src-case" aria-labelledby="srcc-' + c.id + '">' +
+      '<p class="src-k">' + ic('cases', 20) + '<span>Dane z aplikacji: Sprawy</span><span class="src-demo">Dane fikcyjne</span></p>' +
+      '<h2 class="src-title" id="srcc-' + c.id + '">' + esc(c.title) + '</h2>' +
+      '<dl class="src-facts"><div><dt>Status</dt><dd>' + esc(c.statusText) + '</dd></div>' +
+        (c.due ? '<div><dt>' + esc(c.dueWhat ? c.dueWhat.charAt(0).toUpperCase() + c.dueWhat.slice(1) : 'Termin') + '</dt><dd>' + esc(T.fmtLong(c.due)) + '</dd></div>' : '') + '</dl>' +
+      '<button type="button" class="btn secondary wide split src-go" data-act="cases" data-which="progress"><span>Zobacz w „Sprawach”</span>' + ic('chevronRight', 20) + '</button>' +
+    '</article>';
+  }
 
-  // Odpowiedź w trzech częściach: co jest w danych prototypu, czego prototyp nie wie i co można zrobić dalej.
+  const showSources = (list) => {
+    if (list.length) append(A.node('<div class="src-list"><p class="src-list-h">' + ic('cases', 20) + '<span>Dane z aplikacji, na których oparto odpowiedź</span></p>' + list.join('') + '</div>'));
+  };
+
+  // Odpowiedź modelu w trzech częściach: co model wyczytał z danych aplikacji (ze źródłem), czego w danych nie ma, co dalej.
   function knowCard(o) {
     const row = (cls, icon, k, v) => v ? '<div class="know-row ' + cls + '"><dt class="know-k">' + ic(icon, 20) + '<span>' + k + '</span></dt><dd>' + v + '</dd></div>' : '';
     append(A.node('<div class="icard know"><dl>' +
-      row('k-have', 'check', 'W danych prototypu (fikcyjnych)', o.have) +
-      row('k-miss', 'info', 'Tego nie wiem', o.miss) +
+      row('k-have', 'check', 'Z danych aplikacji (fikcyjnych)', o.have) +
+      row('k-miss', 'info', 'Tego w danych nie ma', o.miss) +
       row('k-next', 'arrowRight', 'Co możesz zrobić', o.next) +
     '</dl></div>'));
   }
 
-  /* „Mam długi?”: najpierw jasno, czego asystent nie wie; potem tylko pisma z aplikacji z możliwą kwotą. */
-  async function answerDebts() {
-    remember('debt', {});
-    const found = (A.todo || []).filter((t) => t.group === 'todo' && t.amount && t.due);
-    await sayFree('Nie widzę wszystkich Twoich zobowiązań, więc nie mogę potwierdzić, czy masz długi. Ten prototyp nie łączy się z żadnym rejestrem. Mogę przejrzeć tylko pisma i sprawy, które są w tej aplikacji.');
-    if (found.length) {
-      await sayFree(found.length === 1
-        ? 'W aplikacji jest jedno pismo, które może oznaczać dopłatę. To nie jest potwierdzony dług: kwota zależy od decyzji urzędu.'
-        : 'W aplikacji są pisma, które mogą oznaczać dopłatę. To nie są potwierdzone długi: kwoty zależą od decyzji urzędów.');
-      showSources(found.map(sourceCard));
-    } else {
-      await sayFree('W tej aplikacji nie widzę żadnego pisma ani sprawy, które wskazywałyby na zaległość. To nie znaczy, że jej nie ma: tego nie sprawdzę.');
-    }
-    await sayFree('Czy chodzi o konkretne pismo, rachunek czy ratę?');
-    actionChips([
-      { label: 'Pismo', go: () => start('pismo', {}) },
-      { label: 'Rachunek', go: answerBill },
-      { label: 'Ratę kredytu', go: () => answerLoan({ ask: null }) },
-      { label: 'Gdzie sprawdzić długi?', go: answerWhere }
-    ]);
+  // Przyciski prowadzące do miejsc w aplikacji (bez zmiany stanu) i do scenariuszy (te mają własne potwierdzenia).
+  function placeChips(ids) {
+    const list = [
+      { label: 'Do załatwienia', go: () => A.nav('cases', { seg: 'todo' }) },
+      { label: 'Dokumenty', go: () => A.nav('docs') }
+    ].concat(ids.map((k) => ({ label: 'Zacznij: ' + SC[k].title, go: () => start(k, {}) })));
+    actionChips(list);
   }
 
-  /* „Co mam do zapłacenia?”: tylko pozycje, które w danych wyglądają na płatność. Bez OC, jeśli pytanie nie dotyczy ubezpieczenia. */
-  async function answerPay() {
-    remember('pay', {});
-    const found = (A.todo || []).filter((t) => t.group === 'todo' && t.amount && t.due);
-    if (found.length) {
-      await sayFree(found.length === 1
-        ? 'W danych prototypu widzę jedną pozycję, która może oznaczać płatność. To nie jest rachunek do zapłacenia, tylko możliwa dopłata:'
-        : 'W danych prototypu widzę ' + found.length + ' pozycje, które mogą oznaczać płatność. To nie są rachunki do zapłacenia, tylko możliwe dopłaty:');
-      showSources(found.map(sourceCard));
-    } else {
-      await sayFree('W danych prototypu nie widzę nic, co wyglądałoby na płatność do zrobienia.');
-    }
-    knowCard({
-      have: found.length ? found.map((t) => esc(t.title) + ' (' + esc(t.from) + '): ' + esc(t.amount.text) + ', ' + esc(t.amount.when) + '.').join(' ') : 'Dokumenty, pisma i sprawy urzędowe bez kwot do zapłaty.',
-      miss: 'Rachunki za prąd, gaz czy telefon, raty kredytów, inne podatki i opłaty. Prototyp nie łączy się z bankiem, firmami ani e-Urzędem Skarbowym, więc brak danych nie znaczy, że nic nie musisz płacić.',
-      next: found.length ? 'Odpowiedz na pismo w terminie, żeby urząd mógł uznać ulgę. Rachunki i raty sprawdzisz u ich wystawców i w banku.' : 'Rachunki i raty sprawdzisz u ich wystawców i w banku, a podatki w e-Urzędzie Skarbowym.'
-    });
-    const acts = found.filter((t) => t.action && t.action.run).map((t) => ({ label: t.actionLabel, go: () => start(t.action.run, t.action.preset || {}) }));
-    actionChips(acts.concat([{ label: 'Gdzie sprawdzić płatności?', go: answerWhere }]));
-  }
-
-  async function answerBill() {
-    remember('bill', {});
-    await sayFree('Rachunków za prąd, gaz czy telefon ta aplikacja nie widzi, bo wystawiają je firmy, a nie urzędy.');
-    knowCard({
-      have: 'Pisma i sprawy z urzędów. Żadnych rachunków od firm.',
-      miss: 'Kwoty i terminy rachunków. Brak danych nie znaczy, że rachunku nie ma.',
-      next: 'Kwotę i termin sprawdzisz na samym rachunku albo w serwisie firmy. Jeśli to pismo z urzędu, wyjaśnię je krok po kroku.'
-    });
-    freeChips(['Pismo z urzędu', 'Gdzie sprawdzić długi?']);
-  }
-
-  /*
-   * Raty i kredyt. W danych prototypu nie ma żadnej umowy kredytu ani leasingu, więc asystent mówi, czego nie wie,
-   * zamiast podawać datę końca OC. Polisę może wspomnieć osobnym zdaniem, jako coś innego niż rata.
-   */
-  async function answerLoan(sl, opt) {
-    sl = sl || {};
-    opt = opt || {};
-    remember('loan', sl);
-    const p = policy();
-    const veh = !!sl.vehicle;
-    const onCar = veh ? ' na auto' : '';
-    const again = !!sl.again;
-    const lead = {
-      count: (again ? 'Liczby rat też nie znam' : 'Nie wiem, ile rat Ci zostało') + '. W danych prototypu nie ma żadnego kredytu ani leasingu' + onCar + ', więc nie da się tego policzyć.',
-      amount: (again ? 'Kwoty raty też nie znam' : 'Nie znam kwoty raty') + '. W danych prototypu nie ma umowy kredytu ani leasingu' + onCar + ', z której mógłbym ją odczytać.',
-      date: (again ? 'Terminu raty też nie znam' : 'Nie znam terminu następnej raty') + '. W danych prototypu nie ma harmonogramu spłat żadnego kredytu' + onCar + '.',
-      balance: (again ? 'Kwoty do spłaty też nie znam' : 'Nie wiem, ile zostało do spłaty') + '. W danych prototypu nie ma żadnego kredytu ani leasingu' + onCar + ', więc nie da się tego policzyć.'
-    }[sl.ask] || 'Nie widzę żadnego kredytu ani rat' + onCar + '. W danych prototypu nie ma umów z bankami ani firmami leasingowymi.';
-    // Doprecyzowanie: karta „wiem / nie wiem / co dalej” jest już wyżej w rozmowie, więc wystarczy jedno zdanie.
-    if (again) { await sayFree(lead + ' Sprawdzisz to w umowie albo w aplikacji banku.'); actionChips([{ label: 'Gdzie sprawdzić kredyty?', go: answerWhere }]); return; }
-    await sayFree(lead);
-    knowCard({
-      have: veh && p ? esc(p.car) + ' (' + esc(p.plate) + ') z polisą OC ważną do ' + esc(T.fmtShort(p.end)) + '. Polisa to ubezpieczenie, nie rata.' : 'Dokumenty, pisma i sprawy urzędowe. Żadnych umów z bankami.',
-      miss: 'Kredyt' + onCar + ': liczba rat, kwota raty, termin, saldo. Prototyp nie łączy się z bankiem ani z BIK, więc brak danych nie znaczy, że kredytu nie ma.',
-      next: 'Sprawdź umowę albo aplikację banku. Wszystkie kredyty na Twoje nazwisko pokaże raport BIK.'
-    });
-    if (veh && p && !again && !opt.noPolicy) {
-      await sayFree('Widzę za to polisę OC Toyoty Yaris, ważną do ' + esc(T.fmtShort(p.end)) + '. Czy o nią pytasz?');
-      actionChips([
-        { label: 'Tak, o polisę OC', go: () => start('oc', {}) },
-        { label: 'Nie, o kredyt', go: answerWhere }
-      ]);
-    } else {
-      actionChips([{ label: 'Gdzie sprawdzić kredyty?', go: answerWhere }]);
-    }
-  }
-
-  // „Raty” przy OC: mogą znaczyć raty składki albo kredyt. Asystent mówi, czego nie wie, i dopytuje.
-  async function answerLoanOrInsurance(sl) {
-    remember('loanOrInsurance', sl);
-    const p = policy();
-    const what = { count: 'Nie znam liczby rat', amount: 'Nie znam kwoty raty', date: 'Nie znam terminu raty', balance: 'Nie wiem, ile zostało do spłaty' }[sl.ask] || 'Nie znam żadnych Twoich rat';
-    await sayFree(what + ': w danych prototypu nie ma kredytu ani informacji o ratach.' + (p ? ' Jest tylko polisa OC Toyoty Yaris, ważna do ' + esc(T.fmtShort(p.end)) + '.' : ''));
-    await sayFree('Chodzi Ci o raty składki OC czy o kredyt?');
-    actionChips([
-      { label: 'Raty składki OC', go: () => answerOcInfo(Object.assign({}, sl, { ask: 'raty' })) },
-      { label: 'Kredyt', go: () => answerLoan(Object.assign({}, sl, { insurance: false }), { noPolicy: true }) }
-    ]);
-  }
-
-  // Pytania o polisę poza scenariuszem: koszt, raty składki, termin. Tylko to, co jest w danych polisy.
-  async function answerOcInfo(sl) {
-    sl = sl || {};
-    const p = policy();
-    const t = todo('oc');
-    remember(sl.ask === 'raty' ? 'ocRaty' : 'ocInfo', sl);
-    if (!p) { await sayFree('W danych prototypu nie ma żadnej polisy, więc nic o niej nie powiem.'); return; }
-    const left = ', za ' + T.dni(T.inDays(p.end));
-    if (sl.ask === 'raty') await sayFree('Nie wiem, czy składkę OC płacisz w ratach ani ile ich zostało. W danych polisy jest tylko ubezpieczyciel i koniec ochrony: ' + esc(T.fmtLong(p.end)) + left + '.');
-    else if (sl.ask === 'cost' || sl.ask === 'amount') await sayFree('Nie znam ceny nowej polisy ani wysokości składki: w danych prototypu ich nie ma. Wiem tylko, że obecna polisa kończy się ' + esc(T.fmtOn(p.end)) + left + '.');
-    else await sayFree('Polisa OC Toyoty Yaris kończy się ' + esc(T.fmtOn(p.end)) + left + '.');
-    if (t) showSources([sourceCard(t)]);
-    knowCard({
-      have: 'Polisa OC: ' + esc(p.car) + ' (' + esc(p.plate) + '), ubezpieczyciel ' + esc(p.insurer) + ', koniec ochrony ' + esc(T.fmtShort(p.end)) + '.',
-      miss: 'Wysokość składki, cena przedłużenia i to, czy płacisz w ratach.',
-      next: 'Kwotę poda ubezpieczyciel w propozycji przedłużenia. Mogę pokazać, co zrobić przed końcem polisy.'
-    });
-    actionChips([{ label: 'Co zrobić przed końcem OC?', go: () => start('oc', {}) }]);
-  }
-
-  // Pytanie o auto bez tematu: nie zgadujemy, tylko dopytujemy o konkretną sprawę.
-  async function answerVehicle() {
-    remember('vehicle', { vehicle: true });
-    await sayFree('Nie chcę zgadywać. Co chcesz sprawdzić w sprawie auta?');
-    actionChips([
-      { label: 'Ubezpieczenie OC', go: () => start('oc', {}) },
-      { label: 'Kredyt lub raty', go: () => answerLoan({ vehicle: true, ask: null }, { noPolicy: true }) },
-      { label: 'Dokument pojazdu', go: () => answerDocument({ doc: 'pojazd', slots: {} }) }
-    ]);
-  }
-
-  // Dokumenty: dane z zakładki Dokumenty i działania przypisane do dokumentu (np. „Dokończ wniosek o nowy dowód”).
-  async function answerDocument(u) {
-    const d = u.doc ? docById(u.doc) : null;
-    remember('document', Object.assign({}, u.slots, { doc: u.doc || null }));
-    if (d) {
-      const ask = u.slots && u.slots.ask;
-      // „Kiedy kończy się paszport?”: odpowiedź wprost z pola „Ważny do”, potem karta dokumentu.
-      await sayFree(ask === 'new' && d.id !== 'dowod'
-        ? 'Wniosku o nowy dokument tego rodzaju ten prototyp nie prowadzi. Pokażę dokument, który masz w aplikacji:'
-        : ask === 'date' && /^Ważn/.test(d.key)
-        ? esc(d.name) + ': ' + esc(d.key.toLowerCase()) + ' <b>' + esc(d.value) + '</b> (dane fikcyjne).'
-        : 'Oto dane z aplikacji (fikcyjne):');
-      showSources([docCard(d)]);
-      const acts = (d.actions || []).filter((a) => a.run || a.go).slice(0, 2).map((a) => ({ label: a.label, go: () => (a.run ? start(a.run, a.preset || {}) : A.nav(a.go)) }));
-      if (acts.length) actionChips(acts);
-      return;
-    }
-    await sayFree('W aplikacji masz te dokumenty (fikcyjne):');
-    append(A.node('<div class="icard"><ul class="facts">' + A.docs.map((x) =>
-      '<li>' + ic(x.icon || 'card', 20) + '<span><b>' + esc(x.name) + '</b> · ' + esc(x.key) + ': ' + esc(x.value) + '</span></li>').join('') + '</ul></div>'));
-    actionChips([{ label: 'Pokaż dokumenty', go: () => A.nav('docs') }]);
-  }
-
-  async function answerWhere() {
-    remember('where', {});
-    botNow('Prototyp nie łączy się z żadnym rejestrem, więc tego nie sprawdzi za Ciebie. Możesz to zrobić sam:');
-    append(A.node('<div class="icard"><ul class="facts">' +
-      '<li>' + ic('card', 20) + '<span><b>Kredyty i pożyczki:</b> raport w Biurze Informacji Kredytowej (BIK).</span></li>' +
-      '<li>' + ic('letter', 20) + '<span><b>Niezapłacone faktury zgłoszone przez firmy:</b> biura informacji gospodarczej, np. KRD, BIG InfoMonitor, ERIF.</span></li>' +
-      '<li>' + ic('building', 20) + '<span><b>Podatki:</b> swoje rozliczenia i płatności sprawdzisz w e-Urzędzie Skarbowym.</span></li>' +
-      '<li>' + ic('info', 20) + '<span><b>Składki, jeśli prowadzisz firmę:</b> w serwisie eZUS.</span></li>' +
-      '</ul></div>'));
-    await sayFree('Jeśli boisz się, że ktoś posłużył się Twoimi danymi, możesz zastrzec numer PESEL. Pomóc w czymś jeszcze?');
-    freeChips(['Zgubiłem portfel', 'Pismo z urzędu', 'Co potrafisz?']);
-  }
-
-  async function answerIdCost() {
-    const c = A.cases && A.cases.find((x) => x.id === 'nowy-dowod' && x.state !== 'demo');
-    await sayFree('Wydanie dowodu osobistego jest bezpłatne. Wniosek składasz osobiście w urzędzie gminy, bo urzędnik pobiera odciski palców.' + (c ? ' Twój wniosek o nowy dowód jest już zaczęty.' : ''));
-    if (c) actionChips([{ label: 'Dokończ wniosek o dowód', go: () => start('nowyDowod', { resume: true }) }, { label: 'Nie teraz', go: () => sayFree('Dobrze. Wniosek czeka w zakładce Sprawy → W toku.') }]);
-  }
-
-  async function answerHelp() {
-    await sayFree('Pomagam załatwiać sprawy urzędowe krok po kroku. W tym prototypie możesz np. zabezpieczyć dokumenty po zgubieniu portfela, zrozumieć pismo z urzędu, sprawdzić, co zrobić, gdy kończy się OC, zobaczyć, kto ma dostęp do Twoich danych, albo dokończyć wniosek o dowód. Zanim cokolwiek wyślę, pokażę podsumowanie i poproszę o potwierdzenie.');
-    freeChips(EXAMPLES.filter((x) => x !== 'Co potrafisz?'));
-  }
-
-  // Niejasne pytanie: nie milczę i nie zgaduję, tylko proszę o doprecyzowanie i daję przykłady.
-  function answerUnknown() {
-    return sayFree('Nie jestem pewien, o co pytasz, więc nie będę zgadywać. Napisz to innymi słowami, np. „dostałem pismo z urzędu skarbowego” albo „kończy mi się OC”, albo wybierz przykład:')
-      .then(() => freeChips(EXAMPLES));
-  }
-
-  function chooseScenario(alts) {
-    const my = ++run;
-    stopPending();
-    current = null;
-    el.stepper.hidden = true;
-    say(my, 'Nie chcę zgadywać. O którą sprawę chodzi?')
-      .then(() => chips(my, alts.map((h) => ({ id: h, label: SC[h].title }))))
-      .then((id) => start(id, {}))
-      .catch((e) => { if (e !== ABORT) failed(e); });
-  }
-
-  // Odpowiedź na rozpoznaną intencję. Przyciski prowadzą wyłącznie do istniejących scenariuszy i ekranów.
-  function route(u) {
-    const free = (w) => { whileWaiting(w).catch(failed); };
-    switch (u.intent) {
-      case 'idCost': return free(answerIdCost());
-      case 'scenario': return start(u.scenario, {});
-      case 'choose': return chooseScenario(u.alts);
-      case 'confirmTopic':
-        return free(sayFree('Czy pytasz dalej o sprawę „' + esc(SC[u.scenario].title) + '”?').then(() => actionChips([
-          { label: 'Tak, wróć do tej sprawy', go: () => start(u.scenario, {}) },
-          { label: 'Nie, o coś innego', go: answerUnknown }
-        ])));
-      case 'loan': return free(answerLoan(u.slots));
-      case 'loanOrInsurance': return free(answerLoanOrInsurance(u.slots));
-      case 'ocInfo': return free(answerOcInfo(u.slots));
-      case 'ocRaty': return free(answerOcInfo(Object.assign({}, u.slots, { ask: 'raty' })));
-      case 'where': return free(answerWhere());
-      case 'pay': return free(answerPay());
-      case 'debt': return free(answerDebts());
-      case 'bill': return free(answerBill());
-      case 'document': return free(answerDocument(u));
-      case 'vehicle': return free(answerVehicle());
-      case 'help': return free(answerHelp());
-      case 'greet': return free(sayFree('Dzień dobry! Napisz własnymi słowami, co chcesz załatwić, albo wybierz przykład.').then(() => freeChips(EXAMPLES)));
-      case 'thanks': return free(sayFree('Proszę bardzo. Jeśli będziesz czegoś potrzebować, po prostu napisz.'));
-      case 'unsupported':
-        return free(sayFree('To ważna sprawa, ale ten prototyp jej jeszcze nie pokazuje. W gotowej aplikacji poprowadziłbym Cię przez nią tak samo: wyjaśnienie, wybór, podsumowanie i Twoje potwierdzenie. Możesz zobaczyć, jak to działa, na jednej z tych spraw:').then(() => freeChips(EXAMPLES)));
-      case 'handled': return;
-      default: return free(answerUnknown());
-    }
+  // Model AI nie jest dostępny: mówimy to wprost i nie podajemy gotowej odpowiedzi zamiast niego.
+  function offline(q) {
+    const why = AI.reasonText();
+    const ids = detect(q).slice(0, 2);
+    botState('off', (AI.available() ? '<b>Nie wysłałem tego pytania do modelu AI</b> (' + esc(why) + '). ' : '<b>Nie odpowiem na to pytanie: model AI nie jest podłączony</b> (' + esc(why || 'brak serwera z modelem') + '). ') +
+      'Nie podaję gotowych odpowiedzi zamiast AI. ' + (AI.available() ? 'Wysyłanie włączysz przełącznikiem pod moim imieniem albo w Profilu.' : 'Do odpowiedzi potrzebny jest serwer projektu z modelem językowym; szczegóły są w Profilu, w części „Twoje dane”.') +
+      '<span class="st-next">Możesz sam sprawdzić dane w aplikacji albo przejść ' + (ids.length ? 'pasujący ' : '') + 'scenariusz demonstracyjny (bez AI):</span>');
+    placeChips(ids.length ? ids : ['pismo', 'oc']);
   }
 
   let asked = 0; // numer ostatniej wiadomości; spóźniona odpowiedź modelu na starszą wiadomość jest pomijana
   function send(text, opts) {
     A.ensureRoute('chat', { noIntro: true });
-    const mine = userSays(text, opts);
+    const q = String(text || '').trim();
+    if (!q) return;
+    const mine = userSays(q, opts);
     const n = ++asked;
-    try {
-      const u = understand(text, mem);
-      // Tryb AI: wpisane pytania idą do modelu; przyciski z podpowiedziami (opts.local) zostają w regułach.
-      if (AI.active() && !(opts && opts.local)) {
-        // Informacja o wysyłaniu zawsze przed pierwszym pytaniem do modelu; to pytanie zostaje jeszcze w regułach.
-        if (!AI.told()) { AI.disclose(); route(u); return; }
-        whileWaiting(AI.answer(text, mine), M.imie + ' pyta model AI…').then((r) => {
+    AI.ready.then(() => {
+      if (n !== asked) return;
+      if (!AI.active()) { offline(q); return; }
+      const go = () => {
+        if (n !== asked) return;
+        whileWaiting(AI.answer(q, mine), M.imie + ' pyta model AI…').then((r) => {
           if (n !== asked) return;
-          if (r.ok) AI.render(r).catch(failed); else { AI.fallback(r); route(u); }
-        }, () => { if (n === asked) { AI.fallback({ error: 'server' }); route(u); } });
-        return;
-      }
-      route(u);
-    } catch (err) {
-      failed(err);
-    }
+          if (r.ok) AI.render(r).catch(failed); else AI.problem(r, q);
+        }, () => { if (n === asked) AI.problem({ error: 'server' }, q); });
+      };
+      // Zgoda przed pierwszym wysłaniem: pytanie czeka, dopóki ktoś nie wybierze „Wyślij do modelu AI”.
+      if (!AI.consented()) AI.askConsent(q, go); else go();
+    }).catch(failed);
   }
 
   /*
-   * Tryb AI (opcjonalny): model Gemini przez serwer prototypu (server/gemini-adapter.mjs).
-   * Działa tylko, gdy serwer wstawi do strony <meta name="assistant-endpoint" content="/api/assistant">. Plik statyczny
-   * i podgląd artefaktu niczego nie wysyłają (tryb regułowy). Do serwera trafiają tylko: wpisane pytanie, po dopytaniu
-   * poprzednie pytanie i fikcyjny kontekst demo (tytuły, terminy, statusy, możliwe kwoty) — bez imienia, PESEL-u,
-   * adresu, numerów dokumentów, tablic rejestracyjnych i polis. Przyciski z podpowiedziami działają lokalnie.
-   * Odpowiedź modelu jest sprawdzana na serwerze i jeszcze raz tutaj: źródła tylko z kontekstu, liczby tylko z danych demo.
-   * Każdy błąd (brak klucza, limit, brak sieci, czas, błąd dostawcy) kończy się odpowiedzią z reguł i komunikatem,
-   * który tryb odpowiada. Wybór trybu pamięta tylko bieżąca karta (sessionStorage).
+   * Model AI (Gemini) przez serwer projektu: lokalny server/gemini-adapter.mjs albo funkcja serwerowa
+   * (server/funkcja-serwerowa.mjs) pod adresem wpisanym przy budowaniu. Bez serwera asystent nie odpowiada
+   * na pytania własnymi słowami i mówi to wprost; scenariusze demonstracyjne działają lokalnie.
+   * Do serwera trafiają tylko: pytanie, po dopytaniu poprzednie pytanie, i fikcyjny kontekst demo (tytuły, krótkie opisy,
+   * terminy, statusy, możliwe kwoty) — bez imienia, PESEL-u, adresu, numerów dokumentów, tablic rejestracyjnych, polis i pełnej treści pism.
+   * Pierwsze wysłanie wymaga zgody (do zamknięcia karty). Odpowiedź jest sprawdzana na serwerze i tutaj: źródła tylko
+   * z kontekstu, a każda liczba i nazwa miesiąca tylko z tego rekordu, na który odpowiedź się powołuje.
    */
   const AI = (() => {
     const m = document.querySelector('meta[name="assistant-endpoint"]');
-    const base = m && /^\/[\w\/-]+$/.test(m.content) ? m.content.replace(/\/+$/, '') : null;
-    const REASON = { no_key: 'serwer nie ma klucza API', bad_key: 'serwer odrzucił klucz API', model_unavailable: 'model jest niedostępny', region: 'model jest niedostępny w tym regionie', server: 'brak połączenia z serwerem prototypu' };
-    const SOON = { timeout: 'Model AI nie odpowiedział w wyznaczonym czasie', network: 'Serwer prototypu nie połączył się z modelem AI (brak sieci)', server: 'Brak połączenia z serwerem prototypu', provider: 'Dostawca modelu AI zwrócił błąd', invalid: 'Odpowiedź modelu AI nie zgadzała się z danymi demo' };
-    const st = { status: base ? 'checking' : 'static', reason: null, on: true, pausedUntil: 0, why: '', fails: 0, told: false, clarify: null, timer: 0 };
-    try { if (sessionStorage.getItem('asystent-ai') === 'off') st.on = false; } catch (e) { /* bez pamięci sesji: domyślnie włączony */ }
+    const raw = m ? String(m.content || '').trim() : '';
+    const base = /^\/[\w\/-]+$/.test(raw) || /^https:\/\/[\w.-]+(:\d+)?(\/[\w\/-]*)?$/.test(raw) ? raw.replace(/\/+$/, '') : null;
+    const cred = base && /^https:/.test(base) ? 'omit' : 'same-origin';
+    const REASON = { static: 'ta wersja nie ma serwera z modelem AI', no_key: 'serwer projektu nie ma klucza API', bad_key: 'serwer odrzucił klucz API', model_unavailable: 'model jest niedostępny', region: 'model jest niedostępny w tym regionie', server: 'brak połączenia z serwerem projektu', origin: 'serwer nie przyjmuje pytań z tej strony', off: 'wysyłanie pytań do modelu AI jest wyłączone' };
+    const SOON = { timeout: 'Model AI nie odpowiedział w wyznaczonym czasie', network: 'Serwer projektu nie połączył się z modelem AI (brak sieci)', server: 'Brak połączenia z serwerem projektu', provider: 'Dostawca modelu AI zwrócił błąd', invalid: 'Odpowiedź modelu AI nie zgadzała się z danymi aplikacji, więc jej nie pokazuję' };
+    const st = { status: base ? 'checking' : 'static', reason: base ? null : 'static', on: true, pausedUntil: 0, why: '', fails: 0, consent: false, clarify: null, timer: 0, provider: 'Google Gemini', plan: 'free', model: '' };
+    try { if (sessionStorage.getItem('asystent-ai') === 'off') st.on = false; if (sessionStorage.getItem('asystent-ai-zgoda') === 'tak') st.consent = true; } catch (e) { /* bez pamięci sesji */ }
+    const remember = (k, v) => { try { sessionStorage.setItem(k, v); } catch (e) { /* bez pamięci sesji */ } };
 
     const hhmm = (t) => new Date(t).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
     const paused = () => Date.now() < st.pausedUntil;
     const available = () => st.status === 'ai';
     const active = () => available() && st.on && !paused();
+    const reasonKey = () => (!available() ? st.reason : !st.on ? 'off' : null);
 
-    // Pasek prototypu i zdanie pod imieniem zawsze mówią, który tryb teraz odpowiada.
+    // Pasek prototypu i zdanie pod imieniem zawsze mówią, czy pytania trafiają do modelu AI.
     function paint() {
       const bar = document.querySelector('.proto-bar p');
-      if (bar && base) bar.innerHTML = '<strong>Prototyp</strong> · dane fikcyjne · ' + (active() ? 'pytania trafiają do Google' : 'nic nie jest wysyłane');
+      if (bar && base) bar.innerHTML = '<strong>Prototyp</strong> · dane fikcyjne · ' + (active() ? 'pytania trafiają do modelu AI' : 'nic nie jest wysyłane');
+      document.querySelectorAll('[data-ai-status]').forEach((x) => { x.textContent = statusText(); });
+      document.querySelectorAll('[data-setting="aiSend"]').forEach((b) => { b.setAttribute('aria-checked', st.on ? 'true' : 'false'); });
       const sub = el.screen && el.screen.querySelector('#chat-sub');
       if (!sub) return;
       const hadFocus = !!(document.activeElement && document.activeElement.classList.contains('ai-switch'));
-      if (!base) sub.textContent = 'Gotowe reguły prototypu, nie AI';
-      else if (st.status === 'checking') sub.textContent = 'Sprawdzam, czy tryb AI jest dostępny…';
-      else if (!available()) sub.textContent = 'Tryb regułowy · AI niedostępne: ' + (REASON[st.reason] || 'błąd serwera');
+      if (st.status === 'checking') sub.textContent = 'Sprawdzam model AI…';
+      else if (!available()) sub.textContent = 'Model AI niepodłączony';
       else {
-        sub.innerHTML = '<button type="button" class="ai-switch" role="switch" aria-checked="' + st.on + '"><span class="ai-knob" aria-hidden="true"></span>Tryb AI</button> <span>' +
-          (!st.on ? '· wyłączony, odpowiadają reguły' : paused() ? '· wstrzymany do ' + hhmm(st.pausedUntil) + ' (' + esc(st.why) + '), odpowiadają reguły' : '· pytania trafiają do Google') + '</span>';
+        sub.innerHTML = '<button type="button" class="ai-switch" role="switch" aria-checked="' + st.on + '"><span class="ai-knob" aria-hidden="true"></span>Model AI</button> <span>' +
+          (!st.on ? '· wyłączony' : paused() ? '· wstrzymany do ' + hhmm(st.pausedUntil) : '· z danych aplikacji') + '</span>';
         if (hadFocus) sub.querySelector('.ai-switch').focus();
       }
+    }
+    function statusText() {
+      if (st.status === 'checking') return 'Sprawdzam, czy model AI jest podłączony…';
+      if (!available()) return 'Niepodłączony: ' + (REASON[st.reason] || 'brak serwera') + '. Pytania własnymi słowami nie są wysyłane.';
+      return st.provider + (st.model ? ', model ' + st.model : '') + ' przez serwer projektu. ' + (!st.on ? 'Wysyłanie wyłączone.' : paused() ? 'Wstrzymany do ' + hhmm(st.pausedUntil) + '.' : 'Wysyłanie włączone' + (st.consent ? ', zgoda udzielona.' : ', przed pierwszym pytaniem zapytam o zgodę.'));
     }
 
     function pause(sec, why) {
@@ -1506,29 +1211,53 @@
       paint();
     }
 
-    function disclose() {
-      st.told = true;
-      botNow('<b>Tryb AI (Google Gemini, bezpłatny poziom).</b> To, co wpiszesz, trafia przez serwer prototypu do Google razem z fikcyjnymi danymi demo z tej aplikacji: tytułami, terminami i statusami spraw. Nie wpisuj prawdziwych danych osobowych. Odpowiadam tylko na podstawie danych demo; czego w nich nie ma, tego nie wiem. Przyciski z podpowiedziami działają bez AI.');
+    function disclosure() {
+      return 'Pytanie i fikcyjne dane z tej aplikacji (tytuły spraw i dokumentów, krótkie opisy, terminy, statusy, możliwe kwoty) trafią przez serwer projektu do ' + esc(st.provider) + '. ' +
+        'Nie trafiają: imię, nazwisko, PESEL, adres, numery dokumentów, tablice rejestracyjne, numer polisy, pełna treść pism ani historia rozmowy. ' +
+        'Jak dostawca przetwarza te dane, określają jego warunki' + (st.plan === 'free' ? ' (bezpłatny poziom)' : '') + '. Nie wpisuj prawdziwych danych osobowych.';
+    }
+    // Zgoda przed pierwszym pytaniem do modelu. „Nie wysyłaj” wyłącza wysyłanie do zamknięcia karty.
+    function askConsent(q, go) {
+      const card = A.node('<div class="icard consent" role="group" aria-labelledby="cz-h-' + (++qid) + '">' +
+        '<p class="consent-h" id="cz-h-' + qid + '"><b>Wysłać to pytanie do modelu AI?</b></p><p>' + disclosure() + '</p>' +
+        '<div class="q-actions"><button type="button" class="btn primary" data-v="tak">Wyślij do modelu AI</button><button type="button" class="btn secondary" data-v="nie">Nie wysyłaj</button></div></div>');
+      card.addEventListener('click', (e) => {
+        const b = e.target.closest('[data-v]');
+        if (!b || card.classList.contains('answered')) return;
+        card.classList.add('answered');
+        // Po decyzji karta zwija się do jednego zdania, żeby odpowiedź była od razu widoczna.
+        card.innerHTML = '<p class="consent-done">' + ic(b.dataset.v === 'tak' ? 'check' : 'x', 20) + '<span>' + (b.dataset.v === 'tak' ? 'Zgoda udzielona: pytania trafiają do modelu AI do zamknięcia karty.' : 'Nie wysłano do modelu AI.') + '</span></p>';
+        if (b.dataset.v === 'tak') { st.consent = true; remember('asystent-ai-zgoda', 'tak'); paint(); go(); return; }
+        st.on = false; remember('asystent-ai', 'off'); paint();
+        botState('cancel', 'Nie wysłałem pytania. Wysyłanie do modelu AI jest wyłączone do zamknięcia karty; włączysz je przełącznikiem pod moim imieniem albo w Profilu.');
+        offline(q);
+      });
+      append(card);
     }
 
     function toggle() {
       st.on = !st.on;
-      try { sessionStorage.setItem('asystent-ai', st.on ? 'on' : 'off'); } catch (e) { /* bez pamięci sesji */ }
+      remember('asystent-ai', st.on ? 'on' : 'off');
       paint();
       if (!el.log || !el.log.children.length) return;
-      if (active()) disclose();
-      else botNow('<b>Tryb regułowy.</b> Odpowiadam według gotowych reguł prototypu. Nic nie jest wysyłane.');
+      botNow(st.on ? '<b>Wysyłanie do modelu AI włączone.</b> ' + (st.consent ? 'Pytania wpisane własnymi słowami trafią do modelu razem z fikcyjnymi danymi aplikacji.' : 'Przed pierwszym pytaniem zapytam o zgodę.') : '<b>Wysyłanie do modelu AI wyłączone.</b> Nic nie wysyłam; scenariusze demonstracyjne działają bez AI.');
     }
 
-    // Status serwera: tylko zapytanie do własnego serwera, nic nie trafia do Google.
+    // Status serwera: tylko zapytanie do serwera projektu, nic nie trafia do dostawcy modelu.
     const ready = !base ? Promise.resolve() : (() => {
       const ctl = new AbortController();
       const timer = setTimeout(() => ctl.abort(), 5000);
-      return fetch(base + '/status', { cache: 'no-store', credentials: 'same-origin', signal: ctl.signal })
+      return fetch(base + '/status', { cache: 'no-store', credentials: cred, signal: ctl.signal })
         .then((r) => (r.ok ? r.json() : Promise.reject(new Error('status'))))
-        .then((j) => { st.status = j && j.mode === 'ai' ? 'ai' : 'rules'; st.reason = (j && j.reason) || null; if (j && j.pausedFor > 0) pause(j.pausedFor, 'limit zapytań'); })
-        .catch(() => { st.status = 'rules'; st.reason = 'server'; })
-        .then(() => { clearTimeout(timer); paint(); if (el.log && el.log.children.length && active() && !st.told) disclose(); });
+        .then((j) => {
+          st.status = j && j.mode === 'ai' ? 'ai' : 'off'; st.reason = (j && j.reason) || (st.status === 'ai' ? null : 'server');
+          if (j && typeof j.provider === 'string') st.provider = j.provider.slice(0, 40);
+          if (j && typeof j.model === 'string') st.model = j.model.slice(0, 40);
+          if (j && (j.plan === 'free' || j.plan === 'paid')) st.plan = j.plan;
+          if (j && j.pausedFor > 0) pause(j.pausedFor, 'limit zapytań');
+        })
+        .catch(() => { st.status = 'off'; st.reason = 'server'; })
+        .then(() => { clearTimeout(timer); paint(); });
     })();
 
     // Fikcyjny kontekst demo: tylko pola z listy. Bez osoby, numerów dokumentów, tablic, polis i treści pism.
@@ -1539,7 +1268,7 @@
     function demoContext() {
       const z = [];
       (A.todo || []).forEach((t) => {
-        const f = [t.kind === 'Pismo' ? 'Od: ' + t.from : null, t.what, t.due ? 'Termin: ' + when(t.due) : null, t.dueNote,
+        const f = [t.kind === 'Pismo' ? 'Od: ' + t.from : null, t.what, t.due ? (t.dueLabel || 'Termin') + ': ' + when(t.due) : null, t.dueNote,
           t.amount ? 'Możliwa kwota: ' + t.amount.text + ', ' + t.amount.when : null, t.why, t.next, t.reminder ? 'Przypomnienie ustawione na ' + T.fmt(t.reminder) : null];
         z.push({ id: 'todo:' + t.id, rodzaj: t.group === 'info' ? 'informacja' : t.kind === 'Pismo' ? 'pismo' : 'termin', tytul: t.title, fakty: f.filter(Boolean) });
       });
@@ -1554,8 +1283,11 @@
       return { dzis: iso(T.today), dzis_slownie: T.fmtLong(T.today) + ' ' + T.today.getFullYear(), zrodla: z.slice(0, 16) };
     }
 
-    // Drugie sprawdzenie w przeglądarce (pierwsze robi serwer): kształt, źródła z kontekstu, liczby z danych demo.
+    // Drugie sprawdzenie w przeglądarce (pierwsze robi serwer): kształt, źródła z kontekstu i — najważniejsze —
+    // każda liczba (data, kwota, liczba dni) i nazwa miesiąca tylko z tego rekordu, na który odpowiedź się powołuje.
+    const MIES = /stycz\w*|lut\w*|mar(?:ca|zec)|kwie\w*|maj\w*|czerw\w*|lip\w*|sierp\w*|wrze\w*|paździer\w*|listopad\w*|grud\w*/gi;
     const nums = (s) => (String(s).match(/\d+(?:[.,:]\d+)*/g) || []).reduce((acc, t) => acc.concat(t.split(/[.,:]/)), []).map((x) => String(parseInt(x, 10)));
+    const months = (s) => (String(s).match(MIES) || []).map((x) => x.toLowerCase().slice(0, 4));
     const arr = (v) => (Array.isArray(v) ? v : []);
     function accept(a, ctx, asked) {
       if (!a || ['odpowiedz', 'dopytanie', 'poza_zakresem'].indexOf(a.rodzaj) < 0 || typeof a.krotko !== 'string' || !a.krotko.trim()) return null;
@@ -1567,18 +1299,28 @@
         pytanie: typeof a.pytanie === 'string' ? a.pytanie : '',
         opcje: arr(a.opcje).filter((x) => typeof x === 'string' && x.trim()).slice(0, 3)
       };
-      const ids = ctx.zrodla.map((z) => z.id);
+      const byId = {};
+      ctx.zrodla.forEach((z) => { byId[z.id] = z.tytul + ' ' + z.fakty.join(' '); });
       if (out.rodzaj === 'dopytanie' && !out.pytanie.trim()) return null;
-      if (out.wiem.some((w) => !arr(w.zrodla).length || w.zrodla.some((x) => ids.indexOf(x) < 0))) return null;
-      const okNums = {};
-      nums([ctx.dzis, ctx.dzis_slownie, asked].concat(ctx.zrodla.map((z) => z.tytul + ' ' + z.fakty.join(' '))).join(' ')).forEach((n) => { okNums[n] = true; });
-      const texts = [out.krotko, out.pytanie].concat(out.wiem.map((w) => w.tekst), out.nie_wiem, out.dalej.map((d) => d.tekst), out.opcje);
-      if (texts.some((t) => nums(t).some((n) => !okNums[n]))) return null;
+      if (out.wiem.some((w) => !arr(w.zrodla).length || w.zrodla.some((x) => !byId[x]))) return null;
+      const baseText = [ctx.dzis, ctx.dzis_slownie, asked].join(' ');
+      const fits = (t, ids) => {
+        const pool = baseText + ' ' + ids.map((x) => byId[x] || '').join(' ');
+        const okN = {}; nums(pool).forEach((n) => { okN[n] = true; });
+        const okM = {}; months(pool).forEach((x) => { okM[x] = true; });
+        return nums(t).every((n) => okN[n]) && months(t).every((x) => okM[x]);
+      };
+      if (out.wiem.some((w) => !fits(w.tekst, w.zrodla))) return null;
+      const cited = [];
+      out.wiem.forEach((w) => w.zrodla.forEach((x) => { if (cited.indexOf(x) < 0) cited.push(x); }));
+      out.dalej.forEach((d) => { const x = d.akcja.indexOf('otworz:') === 0 ? d.akcja.slice(7) : null; if (x && byId[x] && cited.indexOf(x) < 0) cited.push(x); });
+      const rest = [out.krotko, out.pytanie].concat(out.nie_wiem, out.dalej.map((d) => d.tekst), out.opcje);
+      if (rest.some((t) => !fits(t, cited))) return null;
       return out;
     }
 
     async function answer(text, bubble) {
-      if (bubble) bubble.querySelector('.bubble').insertAdjacentHTML('beforeend', '<span class="said remote">' + ic('info', 20) + 'wysłane do modelu AI (Google Gemini)</span>');
+      if (bubble) bubble.querySelector('.bubble').insertAdjacentHTML('beforeend', '<span class="said remote">' + ic('info', 20) + 'wysłane do modelu AI (' + esc(st.provider) + ')</span>');
       const ctx = demoContext();
       const earlier = st.clarify;
       st.clarify = null;
@@ -1587,7 +1329,7 @@
       const ctl = new AbortController();
       const timer = setTimeout(() => ctl.abort(), 20000);
       try {
-        const res = await fetch(base + '/answer', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: ctl.signal, credentials: 'same-origin', cache: 'no-store' });
+        const res = await fetch(base + '/answer', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: ctl.signal, credentials: cred, cache: 'no-store' });
         let j = null;
         try { j = await res.json(); } catch (e) { j = null; }
         if (res.ok && j && j.odpowiedz) {
@@ -1603,30 +1345,35 @@
       }
     }
 
-    // Każdy błąd: odpowiedź z reguł i jedno zdanie, dlaczego. Trwałe powody wyłączają tryb AI do odświeżenia strony.
-    function fallback(r) {
+    // Błąd: jedno zdanie, co się stało, przycisk „Zapytaj jeszcze raz” i drogi bez AI. Nigdy odpowiedź z gotowych reguł.
+    function problem(r, q) {
       const e = r && r.error;
       if (REASON[e] && e !== 'server') {
-        st.status = 'rules'; st.reason = e; paint();
-        return botState('err', 'Tryb AI jest niedostępny: ' + REASON[e] + '. Odpowiadam według gotowych reguł i nic więcej nie wysyłam.');
+        st.status = 'off'; st.reason = e; paint();
+        offline(q);
+        return;
       }
+      let msg;
       if (e === 'limit' || e === 'local_limit') {
-        pause(r.retryAfter, e === 'limit' ? 'limit bezpłatnego poziomu' : 'limit serwera prototypu');
-        return botState('err', (e === 'limit' ? 'Wyczerpał się limit bezpłatnych zapytań do modelu AI.' : 'Serwer prototypu ogranicza liczbę zapytań do modelu AI.') + ' Do ' + hhmm(st.pausedUntil) + ' odpowiadam według gotowych reguł.');
+        pause(r.retryAfter, e === 'limit' ? 'limit dostawcy' : 'limit serwera projektu');
+        msg = (e === 'limit' ? 'Wyczerpał się limit zapytań do modelu AI.' : 'Serwer projektu ogranicza liczbę zapytań do modelu AI.') + ' Do ' + hhmm(st.pausedUntil) + ' nie wysyłam pytań.';
+      } else if (e === 'invalid') {
+        // Treść niezgodna z danymi to nie awaria: nie wstrzymujemy AI, można zapytać inaczej.
+        msg = SOON.invalid + '. Możesz zapytać inaczej albo sprawdzić dane w aplikacji.';
+      } else {
+        st.fails++;
+        if (st.fails >= 2) { st.fails = 0; pause(120, 'powtarzające się błędy'); msg = (SOON[e] || 'Model AI nie odpowiedział') + ', drugi raz z rzędu. Do ' + hhmm(st.pausedUntil) + ' nie wysyłam pytań.'; }
+        else msg = (SOON[e] || 'Model AI nie odpowiedział') + '.';
       }
-      st.fails++;
-      if (st.fails >= 2) {
-        st.fails = 0;
-        pause(120, 'powtarzające się błędy');
-        return botState('err', (SOON[e] || 'Tryb AI nie zadziałał') + ', drugi raz z rzędu. Do ' + hhmm(st.pausedUntil) + ' odpowiadam według gotowych reguł.');
-      }
-      return botState('err', (SOON[e] || 'Tryb AI nie zadziałał') + '. Tę odpowiedź podaję według gotowych reguł.');
+      botState('err', esc(msg) + ' Nie zastępuję tej odpowiedzi gotowym tekstem.');
+      const list = active() ? [{ label: 'Zapytaj jeszcze raz', go: () => send(q) }] : [];
+      actionChips(list.concat([{ label: 'Do załatwienia', go: () => A.nav('cases', { seg: 'todo' }) }, { label: 'Dokumenty', go: () => A.nav('docs') }]));
     }
 
     // Nazwy źródeł i przyciski pochodzą z danych aplikacji, nie z tekstu modelu.
     function sourceName(x) {
       const id = x.slice(x.indexOf(':') + 1);
-      const o = x.indexOf('todo:') === 0 ? todo(id) : x.indexOf('doc:') === 0 ? docById(id) : (A.cases || []).find((c) => c.id === id);
+      const o = x.indexOf('todo:') === 0 ? todo(id) : x.indexOf('doc:') === 0 ? docById(id) : caseById(id);
       return o ? (o.title || o.name) : null;
     }
     function askChips(list) {
@@ -1636,19 +1383,18 @@
     }
     async function render(r) {
       const a = r.a;
-      mem = null;
-      await sayFree(esc(a.krotko) + '<span class="said remote ai-tag">' + ic('info', 20) + 'Odpowiedź modelu AI, sprawdzona z danymi demo</span>');
+      await sayFree('<span class="ai-tag" >' + ic('info', 20) + 'Objaśnienie modelu AI</span>' + esc(a.krotko));
       if (a.rodzaj === 'dopytanie') {
         await sayFree(esc(a.pytanie));
         st.clarify = { pytanie: r.q, dopytanie: a.pytanie };
         if (a.opcje.length) askChips(a.opcje);
         return;
       }
-      if (a.rodzaj === 'poza_zakresem') { freeChips(EXAMPLES); return; }
+      if (a.rodzaj === 'poza_zakresem') { freeChips(A.suggestions); return; }
       const li = (list) => (list.length ? '<ul class="know-list">' + list.map((x) => '<li>' + x + '</li>').join('') + '</ul>' : '');
       if (a.wiem.length || a.nie_wiem.length || a.dalej.length) {
         knowCard({
-          have: li(a.wiem.map((w) => { const n = w.zrodla.map(sourceName).filter(Boolean); return esc(w.tekst) + (n.length ? ' <span class="know-src">(' + esc(n.join(', ')) + ')</span>' : ''); })),
+          have: li(a.wiem.map((w) => { const n = w.zrodla.map(sourceName).filter(Boolean); return esc(w.tekst) + (n.length ? ' <span class="know-src">(źródło: ' + esc(n.join(', ')) + ')</span>' : ''); })),
           miss: li(a.nie_wiem.map(esc)),
           next: li(a.dalej.map((d) => esc(d.tekst)))
         });
@@ -1660,6 +1406,7 @@
         const id = x.slice(x.indexOf(':') + 1);
         if (x.indexOf('todo:') === 0) { const t = todo(id); return t && t.due ? sourceCard(t) : null; }
         if (x.indexOf('doc:') === 0) { const d = docById(id); return d ? docCard(d) : null; }
+        if (x.indexOf('case:') === 0) { const c = caseById(id); return c ? caseCard(c) : null; }
         return null;
       }).filter(Boolean).slice(0, 2));
       const scen = [];
@@ -1668,20 +1415,20 @@
     }
 
     return {
-      on: !!base, ready: ready, active: active, available: available, paint: paint, toggle: toggle, disclose: disclose,
-      told: () => st.told, checking: () => st.status === 'checking', reasonText: () => REASON[st.reason] || '',
-      answer: answer, render: render, fallback: fallback, context: demoContext
+      on: !!base, ready: ready, active: active, available: available, paint: paint, toggle: toggle,
+      consented: () => st.consent, askConsent: askConsent, statusText: statusText, disclosure: disclosure,
+      checking: () => st.status === 'checking', reasonText: () => (available() && st.on && paused() ? 'model AI jest wstrzymany do ' + hhmm(st.pausedUntil) + ' (' + st.why + ')' : REASON[reasonKey()] || ''), sending: () => st.on,
+      revokeConsent: () => { st.consent = false; try { sessionStorage.removeItem('asystent-ai-zgoda'); } catch (e) { /* bez pamięci sesji */ } paint(); },
+      answer: answer, render: render, problem: problem, context: demoContext
     };
   })();
 
   function intro() {
     if (el.log.children.length) return;
-    botNow('Dzień dobry, tu ' + esc(M.imie) + ', przewodnik po tym prototypie.' + (M.haslo ? ' ' + esc(M.haslo) : '') + ' Napisz albo powiedz własnymi słowami, co się stało, np. „zgubiłem portfel” albo „dostałem pismo i nie wiem, o co chodzi”.');
-    botNow('Zanim cokolwiek wyślę lub zmienię, pokażę podsumowanie. Decyzja zawsze należy do Ciebie.');
-    if (AI.active()) AI.disclose();
-    else if (AI.checking()) botNow('Sprawdzam, czy tryb AI jest dostępny. Do tego czasu odpowiadam według gotowych reguł i nic nie wysyłam.');
-    else botNow('Odpowiadam według gotowych reguł prototypu. Nie jestem działającą sztuczną inteligencją. Dane są fikcyjne i nic nie jest wysyłane.' +
-      (AI.available() ? ' Tryb AI możesz włączyć przełącznikiem pod moim imieniem.' : AI.on && AI.reasonText() ? ' Tryb AI jest niedostępny: ' + AI.reasonText() + '.' : ''));
+    botNow('Dzień dobry, tu ' + esc(M.imie) + '.' + (M.haslo ? ' ' + esc(M.haslo) : '') + ' Pomagam zrozumieć sprawy w tej demonstracji: pisma, terminy i dokumenty. Dane są fikcyjne.');
+    if (AI.active()) botNow('Na pytania wpisane własnymi słowami odpowiada model AI (' + esc(AI.statusText().split(' przez')[0]) + '), tylko na podstawie danych z tej aplikacji. Czego w nich nie ma, tego nie wiem. Zanim cokolwiek zmienię, pokażę podsumowanie; decyzja należy do Ciebie.');
+    else if (AI.checking()) { const c = botNow('Sprawdzam, czy model AI jest podłączony. Do tego czasu nic nie wysyłam.'); c.setAttribute('data-checking', ''); AI.ready.then(() => { if (!c.isConnected) return; c.removeAttribute('data-checking'); c.querySelector('.bubble').innerHTML = AI.active() ? 'Model AI jest podłączony (' + esc(AI.statusText().split(' przez')[0]) + '). Na pytania własnymi słowami odpowiada na podstawie danych z tej aplikacji; przed pierwszym pytaniem zapytam o zgodę.' : 'Model AI nie jest podłączony (' + esc(AI.reasonText()) + '), więc na pytania własnymi słowami nie odpowiadam i nic nie wysyłam. Możesz przejść scenariusz demonstracyjny.'; }); }
+    else botNow('W tej wersji model AI ' + (AI.available() ? 'jest wyłączony' : 'nie jest podłączony') + ', więc na pytania własnymi słowami nie odpowiadam i nic nie wysyłam. Możesz przejść scenariusz demonstracyjny: prowadzę go krok po kroku i przed każdą zmianą pokazuję podsumowanie.');
     freeChips(A.suggestions);
     mood('slucha');
   }
@@ -1689,8 +1436,8 @@
   function reset() {
     stopPending();
     run++;
+    asked++;
     current = null;
-    mem = null;
     el.log.innerHTML = '';
     el.stepper.hidden = true;
     intro();
@@ -1709,6 +1456,8 @@
     focusInput: () => el.input && el.input.focus(),
     setInput: (v) => { if (el.input) { el.input.value = v; el.input.focus(); } },
     detect: detect,
-    understand: (text) => understand(text, mem)
+    // Dla Profilu: stan modelu AI, podgląd danych, które trafiłyby do modelu, przełącznik wysyłania i cofnięcie zgody.
+    ai: { ready: AI.ready, statusText: AI.statusText, context: AI.context, available: AI.available, sending: AI.sending, consented: AI.consented,
+      toggle: AI.toggle, revokeConsent: AI.revokeConsent, disclosure: AI.disclosure, paint: AI.paint }
   };
 })(window.APP);

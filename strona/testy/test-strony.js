@@ -5,7 +5,7 @@ const { chromium } = require('playwright'); const fs = require('fs'); const cryp
 const [, , P1, P2, AXE_PATH] = process.argv;
 const A = 'http://127.0.0.1:' + P1; const B = 'http://127.0.0.1:' + P2;
 const AXE = fs.readFileSync(AXE_PATH || require.resolve('axe-core/axe.min.js'), 'utf8');
-const APLIKACJA_MD5 = '83d237e0c6d0e28ec90a01296f5ca5c8';
+const APLIKACJA_MD5 = '19104791e46ffa036dbbb307ac1070bf';
 const R = []; const ok = (co, w, sz) => R.push({ co, ok: !!w, sz });
 const H = { 320: 568, 390: 844, 1280: 800 };
 const axe = async (p) => { await p.addScriptTag({ content: AXE }); return p.evaluate(async () => (await axe.run(document.querySelector('.ruch .odslona:not(.widoczne)') ? { exclude: [['.ruch .odslona:not(.widoczne)']] } : document, { runOnly: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'best-practice'] })).violations.map((v) => v.id + ' (' + v.nodes.length + ')')); };
@@ -65,8 +65,8 @@ const czekaj = (p, fn, ms) => p.waitForFunction(fn, null, { timeout: ms || 20000
     const k = await p.evaluate(() => { const d = document.getElementById('do-demo'); const r = d.getBoundingClientRect();
       return { widoczny: !document.getElementById('koniec').hidden, wOknie: r.top >= 0 && r.bottom <= innerHeight, href: d.href, tekst: d.textContent, fokus: document.activeElement.id, pomin: document.getElementById('film-pod').hidden, ogl: document.getElementById('ogloszenie').textContent }; });
     ok('koniec: wyraźny przycisk „Przejdź do demonstracji” w oknie, prowadzi do /aplikacja/; „Pomiń film” znika', k.widoczny && k.wOknie && k.href === A + '/aplikacja/' && k.tekst === 'Przejdź do demonstracji' && k.pomin, k);
-    const pk = await p.evaluate(() => ({ wskazuje: getComputedStyle(document.querySelector('#koniec .postac--wskazuje')).display, pomylka: getComputedStyle(document.querySelector('#koniec .postac--pomylka')).display, ukryta: document.querySelector('.koniec-postac').getAttribute('aria-hidden') }));
-    ok('koniec: postać Spinki wskazuje następny krok (poza „pomyłka” ukryta), ukryta przed czytnikiem', pk.wskazuje === 'block' && pk.pomylka === 'none' && pk.ukryta === 'true', pk);
+    const pk = await p.evaluate(() => ({ krok: getComputedStyle(document.querySelector('#koniec .postac--krok')).display, ostrzega: getComputedStyle(document.querySelector('#koniec .postac--ostrzega')).display, ukryta: document.querySelector('.koniec-postac').getAttribute('aria-hidden') }));
+    ok('koniec: postać Spinki w stanie „następny krok” (poza „ostrzega” ukryta), ukryta przed czytnikiem', pk.krok === 'block' && pk.ostrzega === 'none' && pk.ukryta === 'true', pk);
     ok('koniec: pasek pełny, komunikat dla czytnika, fokus na przycisku (gdy nie był na innym elemencie)', (await pasek(p)).pasek === 1 && /skończył/.test(k.ogl) && k.fokus === 'do-demo', { ...k, pasek: await pasek(p) });
     await p.click('#jeszcze-raz'); await p.waitForTimeout(900);
     const j = await p.evaluate(() => { const v = document.getElementById('film'); return { czas: v.currentTime, gra: !v.paused, panel: !document.getElementById('koniec').hidden, fokus: document.activeElement.id }; });
@@ -115,7 +115,7 @@ const czekaj = (p, fn, ms) => p.waitForFunction(fn, null, { timeout: ms || 20000
   // 4. Klawiatura: link „Przejdź do treści” na początku, widoczny fokus, „Pomiń film” osiągalny Tabem.
   { const { ctx, p } = await nowa(1280); await p.goto(A + '/'); await p.waitForTimeout(500);
     const kroki = [];
-    for (let i = 0; i < 16; i++) { await p.keyboard.press('Tab'); kroki.push(await p.evaluate(() => { const e = document.activeElement; const cs = getComputedStyle(e); const r = e.getBoundingClientRect();
+    for (let i = 0; i < 20; i++) { await p.keyboard.press('Tab'); kroki.push(await p.evaluate(() => { const e = document.activeElement; const cs = getComputedStyle(e); const r = e.getBoundingClientRect();
       return { el: e.tagName.toLowerCase() + (e.id ? '#' + e.id : '') + (e.className ? '.' + String(e.className).split(' ')[0] : ''), tekst: (e.textContent || '').trim().slice(0, 30), obwodka: cs.outlineStyle + ' ' + cs.outlineWidth, widoczny: r.top >= 0 && r.bottom <= innerHeight && r.width > 0 }; })); }
     const linki = kroki.filter((k) => k.el.startsWith('a'));
     ok('klawiatura: pierwszy Tab to „Przejdź do treści”, widoczny', kroki[0].tekst === 'Przejdź do treści' && kroki[0].widoczny, kroki[0]);
@@ -193,6 +193,17 @@ const czekaj = (p, fn, ms) => p.waitForFunction(fn, null, { timeout: ms || 20000
       const v = await axe(p); ok(w + ' px: axe bez naruszeń (cała strona po odsłonięciu sekcji)', v.length === 0, v); }
     await ctx.close(); }
 
+  // 5c'. Treści o asystencie zgodne z buildem aplikacji (tu: bez serwera z modelem), sekcja z prawdziwymi ekranami Profilu, film v9.
+  { const { ctx, p } = await nowa(1440); await p.goto(A + '/'); await p.waitForTimeout(400);
+    const t = await p.evaluate(() => ({ pasek: document.querySelector('.pasek-proto').textContent, fakty: [...document.querySelectorAll('.fakt dt')].map((d) => d.textContent), faktAI: [...document.querySelectorAll('.fakt')].find((f) => /AI tylko z danych/.test(f.textContent)).textContent,
+      stopka: document.querySelector('.stopka-noty').textContent, regul: /gotowych reguł|gotowe reguły/i.test(document.body.innerText), sekcja: (document.querySelector('#dane-h') || {}).textContent,
+      ekrany: [...document.querySelectorAll('#dane img')].map((i) => i.getAttribute('src')), film: document.querySelector('#film source').getAttribute('src'), plakat: document.querySelector('#film').getAttribute('poster'), napisy: document.querySelector('#film track').getAttribute('src') }));
+    ok('treści o asystencie zgodne z wersją bez serwera: pasek „nic nie jest wysyłane”, fakt „AI tylko z danych aplikacji” mówi, że model nie jest podłączony; nigdzie „gotowe reguły”',
+      /nic nie jest wysyłane/.test(t.pasek) && t.fakty.includes('AI tylko z danych aplikacji') && t.fakty.includes('Bez zgody nic nie wychodzi') && /model nie jest podłączony/.test(t.faktAI) && /nie ma serwera z modelem AI/.test(t.stopka) && !t.regul, t);
+    ok('sekcja „Asystent mówi, skąd wie” z dwoma prawdziwymi ekranami Profilu', t.sekcja === 'Asystent mówi, skąd wie' && t.ekrany.join() === 'obrazy/profil-o-prototypie.webp,obrazy/profil-dane-dla-ai.webp', t);
+    ok('strona używa filmu v9 (plakat, napisy); v8 zostaje w źródłach do porównania', /spinka-film-v9\.mp4$/.test(t.film) && /v9-plakat/.test(t.plakat) && /v9\.pl\.vtt$/.test(t.napisy), t);
+    await ctx.close(); }
+
   // 5d. Typografia i postać: antykwa w nagłówkach bez ciężkich pogrubień, pięć stanów postaci, ruch postaci tylko bez „ograniczaj animacje”.
   { const { ctx, p, log } = await nowa(1440); await p.goto(A + '/'); await p.evaluate(() => document.fonts.ready); await p.waitForTimeout(400);
     const t = await p.evaluate(() => ({ fonty: [...document.fonts].filter((f) => f.status === 'loaded').map((f) => f.family.replace(/"/g, '')),
@@ -201,16 +212,16 @@ const czekaj = (p, fn, ms) => p.waitForFunction(fn, null, { timeout: ms || 20000
     ok('typografia: nagłówki w Poltawski Nowy (waga najwyżej 500), tekst w Atkinson Hyperlegible Next, nic w wadze 700+; font wczytany z własnego adresu',
       t.fonty.includes('Poltawski Nowy') && t.naglowki.every((n) => n[1] === 'Poltawski Nowy' && n[2] <= 500) && t.tekst === 'Atkinson Hyperlegible Next' && t.pogrubione.length === 0 && !log.zadania.some((u) => /plex/i.test(u)), t);
     const st = await p.evaluate(() => [...document.querySelectorAll('.postac-stany li')].map((li) => [li.querySelector('svg').getAttribute('class').replace('postac postac--', ''), li.textContent.trim(), li.querySelector('svg').getAttribute('aria-hidden')]));
-    ok('postać: pięć stanów w „O projekcie” (pojawia, wskazuje, gotowe, pomyłka, odpoczywa) z podpisami; rysunki ukryte przed czytnikiem',
-      st.map((x) => x[0]).join() === 'pojawia,wskazuje,gotowe,pomylka,odpoczywa' && st.every((x) => x[1].length > 10 && x[2] === 'true'), st);
+    ok('postać: te same pięć stanów co w aplikacji (słucha, wyjaśnia, ostrzega, następny krok, gotowe) z podpisami; rysunki ukryte przed czytnikiem',
+      st.map((x) => x[0]).join() === 'slucha,wyjasnia,ostrzega,krok,gotowe' && st.every((x) => x[1].length > 10 && x[2] === 'true'), st);
     await p.evaluate(() => document.querySelector('.postac-blok').scrollIntoView({ block: 'center' })); await p.waitForTimeout(300);
-    const ruch = await p.evaluate(() => [...document.querySelectorAll('.postac-stany .postac-cialo, .postac-stany .postac-strzalka, .postac-stany .postac-ptaszek')].map((e) => getComputedStyle(e).animationName).filter((n) => n !== 'none'));
+    const ruch = await p.evaluate(() => [...document.querySelectorAll('.postac-stany .postac-cialo, .postac-stany .postac-klips, .postac-stany .postac-strzalka, .postac-stany .postac-ptaszek, .postac-stany .postac-linia')].map((e) => getComputedStyle(e).animationName).filter((n) => n !== 'none'));
     await p.waitForTimeout(1800);
     const poRuchu = await p.evaluate(() => [...document.querySelectorAll('.postac-stany .postac-cialo, .postac-stany .postac-klips')].map((e) => e.getAnimations().filter((a) => a.playState === 'running').length).reduce((a, b) => a + b, 0));
     ok('postać: przy wejściu w widok każdy stan gra swój ruch raz, po ok. 1,5 s wszystko stoi (bez pętli)', ruch.length >= 5 && poRuchu === 0, { ruch, poRuchu }); await ctx.close(); }
   { const { ctx, p } = await nowa(1440, { reducedMotion: 'reduce' }); await p.goto(A + '/'); await p.evaluate(() => document.querySelector('.postac-blok').scrollIntoView({ block: 'center' })); await p.waitForTimeout(300);
     const r = await p.evaluate(() => ({ animacje: [...document.querySelectorAll('.postac *')].map((e) => getComputedStyle(e).animationName).filter((n) => n !== 'none'),
-      strzalka: getComputedStyle(document.querySelector('.postac-stany .postac--wskazuje .postac-strzalka')).display, ptaszek: getComputedStyle(document.querySelector('.postac-stany .postac--gotowe .postac-ptaszek')).display }));
+      strzalka: getComputedStyle(document.querySelector('.postac-stany .postac--krok .postac-strzalka')).display, ptaszek: getComputedStyle(document.querySelector('.postac-stany .postac--gotowe .postac-ptaszek')).display }));
     ok('postać, ograniczony ruch: od razu pozy końcowe (strzałka, ptaszek), bez żadnej animacji', r.animacje.length === 0 && r.strzalka !== 'none' && r.ptaszek !== 'none', r); await ctx.close(); }
 
   { const bok = {}; for (const w of [320, 360, 390, 480, 600, 719, 720, 768, 959, 960, 1024, 1100, 1280, 1440, 1920, 2560]) {
@@ -223,7 +234,7 @@ const czekaj = (p, fn, ms) => p.waitForFunction(fn, null, { timeout: ms || 20000
     const e = await p.evaluate(() => ({ film: document.getElementById('film-blok').hidden, panel: !document.getElementById('koniec').hidden, tekst: document.getElementById('koniec-tekst').textContent,
       powtorka: document.getElementById('jeszcze-raz').hidden, fokus: document.activeElement === document.body, scroll: scrollY, cta: document.getElementById('do-demo').getBoundingClientRect().bottom <= innerHeight }));
     e.postac = await p.evaluate(() => [...document.querySelectorAll('#koniec .postac')].filter((x) => getComputedStyle(x).display !== 'none').map((x) => x.getAttribute('class')).join());
-    ok(w + ' px bez filmu: zamiast odtwarzacza komunikat i „Przejdź do demonstracji” na pierwszym ekranie, postać w stanie „pomyłka”; fokus i przewinięcie bez zmian', /postac--pomylka/.test(e.postac) && !/wskazuje/.test(e.postac) && e.film && e.panel && /niedostępny/.test(e.tekst) && e.powtorka && e.fokus && e.scroll === 0 && e.cta, e);
+    ok(w + ' px bez filmu: zamiast odtwarzacza komunikat i „Przejdź do demonstracji” na pierwszym ekranie, postać w stanie „ostrzega”; fokus i przewinięcie bez zmian', /postac--ostrzega/.test(e.postac) && !/postac--krok/.test(e.postac) && e.film && e.panel && /niedostępny/.test(e.tekst) && e.powtorka && e.fokus && e.scroll === 0 && e.cta, e);
     const v = await axe(p); ok(w + ' px bez filmu: axe bez naruszeń', v.length === 0, v); await ctx.close(); }
 
   await b.close();

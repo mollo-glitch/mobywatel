@@ -1,0 +1,15 @@
+# Wzór konfiguracji funkcji serwerowej asystenta (Cloudflare Workers). Skopiuj do wrangler.toml (plik jest w .gitignore).
+# Klucz NIE trafia tutaj: ustaw go poleceniem `npx wrangler secret put GEMINI_API_KEY`.
+name = "spinka-asystent"
+main = "funkcja-serwerowa.mjs"
+compatibility_date = "2026-10-01"
+
+[vars]
+# Adresy stron, z których funkcja przyjmuje pytania (bez ukośnika na końcu), rozdzielone przecinkami.
+DOZWOLONE_ZRODLA = "https://mollo-glitch.github.io"
+GEMINI_MODEL = "gemini-3.1-flash-lite"
+# free = bezpłatny poziom (tylko testy autora; warunki Gemini API nie pozwalają udostępniać go użytkownikom w EOG),
+# paid = projekt Google Cloud z aktywnym kontem rozliczeniowym.
+GEMINI_PLAN = "free"
+AI_MAX_PER_MINUTE = "8"
+AI_MAX_PER_DAY = "200"

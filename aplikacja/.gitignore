@@ -2,8 +2,13 @@
 .env
 .env.*
 !.env.example
+# Konfiguracja funkcji serwerowej z adresami konta (wzór: server/wrangler.toml.example); klucz jest sekretem Cloudflare.
+server/wrangler.toml
+.wrangler/
 
 # Zależności i pliki systemowe
 node_modules/
 .DS_Store
 *.log
+# Wariant z postacią Spinki: build do oceny (node build.mjs --wariant-postaci), nie część głównego buildu.
+dist/wariant-postaci.html

@@ -48,6 +48,8 @@
   --font: "Atkinson Hyperlegible Next", "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   /* Drugi krój tylko dla głównych nagłówków; tekst, dane i cyfry zostają w Atkinson. */
   --font-head: "IBM Plex Sans", var(--font);
+  /* Krój Spinki: ten sam co na stronie projektu (antykwa Półtawskiego). Tylko w warstwie Spinki: rozmowa, Profil, zgoda. */
+  --font-spinka: "Poltawski Nowy", Georgia, "Times New Roman", serif;
   --text-scale: 1;
   /* Sygnatura: trzy splecione fale jak w druku zabezpieczającym dokumentów i wnętrzu kopert bezpiecznych. */
   --sig-wave: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='12' viewBox='0 0 120 12'%3E%3Cpath d='M0 6 L2 7.11 L4 8.12 L6 8.91 L8 9.42 L10 9.6 L12 9.42 L14 8.91 L16 8.12 L18 7.11 L20 6 L22 4.89 L24 3.88 L26 3.09 L28 2.58 L30 2.4 L32 2.58 L34 3.09 L36 3.88 L38 4.89 L40 6 L42 7.11 L44 8.12 L46 8.91 L48 9.42 L50 9.6 L52 9.42 L54 8.91 L56 8.12 L58 7.11 L60 6 L62 4.89 L64 3.88 L66 3.09 L68 2.58 L70 2.4 L72 2.58 L74 3.09 L76 3.88 L78 4.89 L80 6 L82 7.11 L84 8.12 L86 8.91 L88 9.42 L90 9.6 L92 9.42 L94 8.91 L96 8.12 L98 7.11 L100 6 L102 4.89 L104 3.88 L106 3.09 L108 2.58 L110 2.4 L112 2.58 L114 3.09 L116 3.88 L118 4.89 L120 6 M0 9.12 L2 8.41 L4 7.46 L6 6.38 L8 5.25 L10 4.2 L12 3.32 L14 2.71 L16 2.42 L18 2.48 L20 2.88 L22 3.59 L24 4.54 L26 5.62 L28 6.75 L30 7.8 L32 8.68 L34 9.29 L36 9.58 L38 9.52 L40 9.12 L42 8.41 L44 7.46 L46 6.38 L48 5.25 L50 4.2 L52 3.32 L54 2.71 L56 2.42 L58 2.48 L60 2.88 L62 3.59 L64 4.54 L66 5.62 L68 6.75 L70 7.8 L72 8.68 L74 9.29 L76 9.58 L78 9.52 L80 9.12 L82 8.41 L84 7.46 L86 6.38 L88 5.25 L90 4.2 L92 3.32 L94 2.71 L96 2.42 L98 2.48 L100 2.88 L102 3.59 L104 4.54 L106 5.62 L108 6.75 L110 7.8 L112 8.68 L114 9.29 L116 9.58 L118 9.52 L120 9.12 M0 2.88 L2 2.48 L4 2.42 L6 2.71 L8 3.32 L10 4.2 L12 5.25 L14 6.38 L16 7.46 L18 8.41 L20 9.12 L22 9.52 L24 9.58 L26 9.29 L28 8.68 L30 7.8 L32 6.75 L34 5.62 L36 4.54 L38 3.59 L40 2.88 L42 2.48 L44 2.42 L46 2.71 L48 3.32 L50 4.2 L52 5.25 L54 6.38 L56 7.46 L58 8.41 L60 9.12 L62 9.52 L64 9.58 L66 9.29 L68 8.68 L70 7.8 L72 6.75 L74 5.62 L76 4.54 L78 3.59 L80 2.88 L82 2.48 L84 2.42 L86 2.71 L88 3.32 L90 4.2 L92 5.25 L94 6.38 L96 7.46 L98 8.41 L100 9.12 L102 9.52 L104 9.58 L106 9.29 L108 8.68 L110 7.8 L112 6.75 L114 5.62 L116 4.54 L118 3.59 L120 2.88' fill='none' stroke='black' stroke-width='1'/%3E%3C/svg%3E");
@@ -55,6 +57,9 @@
   --gutter-r: max(16px, env(safe-area-inset-right, 0px));
 }
 html.big-text { --text-scale: 1.18; }
+html.text-xl { --text-scale: 1.32; }
+/* Wyraźniejsze kontury i opisy (Profil → Wygoda i dostępność): ciemniejsze linie podziału, tekst pomocniczy i tła tonowe. */
+html.kontrast { --muted: #2B3346; --line: #7A8396; --neutral-soft: #D3D9E3; --env-line: #8A93A6; --shadow: 0 0 0 1px #7A8396; }
 
 html { height: 100%; box-sizing: border-box; font-size: calc(100% * var(--text-scale)); -webkit-text-size-adjust: 100%; }
 *, *::before, *::after { box-sizing: border-box; }
@@ -1077,3 +1082,65 @@ button.row:active { background: var(--neutral-soft); }
 .chat-sub { margin: 1px 0 0; font-size: .8125rem; line-height: 1.3; color: var(--muted); font-weight: 600; }
 .ask-one-ic .postac { width: 34px; height: 34px; }
 .done-ic .postac { width: 58px; height: 58px; }
+
+/* ---------- Runda 28: asystent (AI albo jasny stan „niepodłączony”), Profil w trzech częściach ---------- */
+.chat-name h1 { font-family: var(--font-spinka); font-weight: 500; letter-spacing: -.005em; }
+.st-off .st-ic { background: var(--info-soft); color: var(--info); }
+.st-off .bubble { border-color: var(--info-soft); }
+.ai-tag { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; color: var(--info); font-size: .8125rem; font-weight: 700; }
+.ai-tag .ic { flex: none; }
+.src-list-h { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: .875rem; font-weight: 700; }
+.src-list-h .ic { flex: none; color: var(--accent-text); }
+.know-src { color: var(--muted); font-size: .9375rem; }
+.icard.consent { border-left: 4px solid var(--accent); }
+.consent-h { font-family: var(--font-spinka); font-size: 1.1875rem; }
+.icard.consent .q-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.icard.consent.answered { padding: 10px 14px; border-left-color: var(--line); box-shadow: none; }
+.consent-done { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: .9375rem; }
+.consent-done .ic { flex: none; }
+
+.me-stack { gap: 20px; }
+.me-index { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.me-index button { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-height: 64px; padding: 10px 10px 10px 12px; border-left: 3px solid var(--line); background: var(--surface); border-radius: 4px 12px 12px 4px; text-align: left; font-weight: 700; font-size: .9375rem; line-height: 1.2; }
+.me-index button:hover { border-left-color: var(--accent); }
+.me-index-n { font-family: var(--font-spinka); font-size: 1.25rem; font-weight: 500; color: var(--accent-text); line-height: 1; }
+.me-part { display: flex; flex-direction: column; gap: 14px; padding-top: 6px; scroll-margin-top: 12px; }
+.me-part-head { display: flex; align-items: baseline; gap: 12px; padding-bottom: 8px; border-bottom: 3px solid var(--ink); }
+.me-part-n { font-family: var(--font-spinka); font-size: 2.25rem; line-height: .9; color: var(--accent-text); }
+.me-part-head h2 { font-family: var(--font-spinka); font-weight: 500; font-size: 1.625rem; line-height: 1.1; }
+.me-part-lead { font-size: 1.0625rem; line-height: 1.5; }
+.me-sec h3 { margin: 0; font-size: 1.125rem; }
+.me-two { display: grid; gap: 12px; }
+@media (min-width: 560px) { .me-two { grid-template-columns: 1fr 1fr; } }
+.me-two > div { padding: 14px 14px 16px; background: var(--surface); border-radius: 4px 16px 16px 4px; border-left: 4px solid var(--ok); }
+.me-two > .me-cannot { border-left-color: var(--accent); }
+.me-two h3 { font-size: 1.0625rem; margin-bottom: 8px; }
+.me-list { display: flex; flex-direction: column; gap: 8px; }
+.me-list li { display: flex; gap: 8px; align-items: flex-start; line-height: 1.4; }
+.me-list .ic { flex: none; margin-top: 1px; }
+.me-can .ic { color: var(--ok); }
+.me-cannot .ic { color: var(--accent-text); }
+.me-author { display: flex; align-items: stretch; gap: 10px; font-size: 1.0625rem; }
+.me-author-bar { flex: none; width: 4px; border-radius: 1px; background: var(--accent); }
+.me-rows { display: flex; flex-direction: column; gap: 10px; }
+.me-rows dt { font-weight: 700; }
+.me-rows dd { margin-top: 2px; color: var(--muted); line-height: 1.45; }
+.me-ai-status { padding: 10px 12px; border-radius: 12px; background: var(--info-soft); line-height: 1.45; }
+.me-ai-how { color: var(--muted); line-height: 1.45; }
+.me-preview summary { display: flex; align-items: center; min-height: 44px; font-weight: 700; cursor: pointer; }
+.me-preview > .sub { margin: 4px 0 8px; color: var(--muted); line-height: 1.45; }
+.pv-list { display: flex; flex-direction: column; gap: 8px; max-height: 320px; overflow: auto; padding: 10px 12px; background: var(--bg); border-radius: 12px; }
+.pv-list li { display: flex; flex-direction: column; gap: 1px; font-size: .9375rem; line-height: 1.4; }
+.pv-t { font-weight: 700; }
+.pv-f { color: var(--muted); }
+.size-seg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.size-opt { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 64px; padding: 8px 4px; border-radius: 12px; border: 2px solid var(--line); background: var(--surface); font-size: .875rem; font-weight: 600; }
+.size-opt[aria-checked="true"] { border-color: var(--ink); background: var(--neutral-soft); }
+.size-a { font-family: var(--font-spinka); font-weight: 500; line-height: 1; }
+.text-sample { padding: 12px 14px; border-left: 4px solid var(--warn-mark); background: var(--bg); border-radius: 4px 12px 12px 4px; line-height: 1.45; }
+.ts-k { display: block; color: var(--muted); font-size: .8125rem; font-weight: 700; }
+.reduce-motion .me-index button, .reduce-motion .size-opt { transition: none; }
+.text-xl .size-seg, .big-text .size-seg { grid-template-columns: 1fr; }
+.text-xl .size-opt, .big-text .size-opt { flex-direction: row; justify-content: flex-start; gap: 12px; min-height: 52px; padding: 8px 14px; }
+.st-next { display: block; margin-top: 8px; }
+@media (max-width: 379px) { .me-index { grid-template-columns: 1fr; } .me-index button { flex-direction: row; align-items: center; gap: 10px; min-height: 48px; } }

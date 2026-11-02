@@ -29,7 +29,7 @@ Bez frameworka, bez analityki, bez plików cookie, bez zależności w przegląda
 
 ## Film
 
-Strona oczekuje w `film-web/` trzech plików (wersja webowa, nie master):
+Strona oczekuje w `film-web/` plików wybranej wersji filmu (domyślnie v9; `node build.mjs --wersja-filmu v8` buduje z v8). Wersja webowa, nie master:
 
 | Plik | Co to jest |
 |---|---|
