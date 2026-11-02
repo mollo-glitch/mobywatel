@@ -5,7 +5,7 @@ const { chromium } = require('playwright'); const fs = require('fs'); const cryp
 const [, , P1, P2, AXE_PATH] = process.argv;
 const A = 'http://127.0.0.1:' + P1; const B = 'http://127.0.0.1:' + P2;
 const AXE = fs.readFileSync(AXE_PATH || require.resolve('axe-core/axe.min.js'), 'utf8');
-const APLIKACJA_MD5 = '61c2912275be841d8bc7c7d7a0767f7f';
+const APLIKACJA_MD5 = '83d237e0c6d0e28ec90a01296f5ca5c8';
 const R = []; const ok = (co, w, sz) => R.push({ co, ok: !!w, sz });
 const H = { 320: 568, 390: 844, 1280: 800 };
 const axe = async (p) => { await p.addScriptTag({ content: AXE }); return p.evaluate(async () => (await axe.run(document, { runOnly: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'best-practice'] })).violations.map((v) => v.id + ' (' + v.nodes.length + ')')); };
@@ -21,7 +21,7 @@ const czekaj = (p, fn, ms) => p.waitForFunction(fn, null, { timeout: ms || 20000
 
   // 1. Pierwszy ekran przy 320, 390, 1280: nazwa, hasło, film i „Pomiń film” bez przewijania; nic nie wystaje w bok; axe.
   for (const w of [320, 390, 1280]) {
-    const { ctx, p, log } = await nowa(w); await p.goto(A + '/'); await p.waitForTimeout(800);
+    const { ctx, p, log } = await nowa(w); await p.goto(A + '/'); await p.waitForTimeout(1200);
     const m = await p.evaluate(() => { const r = (s) => document.querySelector(s).getBoundingClientRect();
       const nazwaWidoczna = [document.querySelector('h1'), document.querySelector('.logo')].some((e) => { const q = e.getBoundingClientRect(); return q.width > 2 && q.height > 2 && /Spinka/.test(e.textContent) && q.bottom <= innerHeight; });
       return { h1: document.querySelector('h1').textContent, nazwaWidoczna, haslo: document.querySelector('.haslo').textContent, otworz: r('#otworz-demo').bottom, pismo: r('a[href="aplikacja/#pismo"]').bottom, oc: r('a[href="aplikacja/#oc"]').bottom,
@@ -78,6 +78,36 @@ const czekaj = (p, fn, ms) => p.waitForFunction(fn, null, { timeout: ms || 20000
     const an = await p.evaluate(() => getComputedStyle(document.getElementById('koniec')).animationName);
     ok('ograniczony ruch: panel końca pojawia się bez animacji', an === 'none', an); await ctx.close(); }
 
+  // 3b. Ruch strony: wejście pierwszego ekranu, odsłanianie sekcji przy przewijaniu, reakcja na najechanie; podpis autora.
+  { const { ctx, p, log } = await nowa(1280); await p.goto(A + '/'); await p.waitForTimeout(150);
+    const start = await p.evaluate(() => ({ ruch: document.documentElement.classList.contains('ruch'), animacje: [...document.querySelectorAll('.wejscie')].map((e) => getComputedStyle(e).animationName),
+      ukryteNizej: [...document.querySelectorAll('.odslona')].filter((e) => e.getBoundingClientRect().top > innerHeight && +getComputedStyle(e).opacity === 0).length }));
+    ok('ruch: elementy pierwszego ekranu wchodzą animacją (pojawienie), sekcje poniżej czekają na przewinięcie', start.ruch && start.animacje.length >= 6 && start.animacje.every((n) => n === 'pojawienie') && start.ukryteNizej > 0, start);
+    await p.waitForTimeout(900);
+    const pierwszy = await p.evaluate(() => [...document.querySelectorAll('.wejscie')].map((e) => +getComputedStyle(e).opacity));
+    for (let y = 0; y <= 4000; y += 300) { await p.mouse.wheel(0, 300); await p.waitForTimeout(120); }
+    await p.waitForTimeout(900);
+    const po = await p.evaluate(() => ({ niewidoczne: [...document.querySelectorAll('.odslona')].filter((e) => +getComputedStyle(e).opacity < 1 || !e.classList.contains('widoczne')).map((e) => e.textContent.trim().slice(0, 30)) }));
+    ok('ruch: po wejściu pierwszy ekran w pełni widoczny, po przewinięciu cała treść odsłonięta', pierwszy.every((o) => o === 1) && po.niewidoczne.length === 0, { pierwszy, ...po });
+    await p.evaluate(() => scrollTo(0, 0)); await p.waitForTimeout(400);
+    await p.hover('#otworz-demo'); await p.waitForTimeout(400);
+    const hover = await p.evaluate(() => ({ btn: getComputedStyle(document.getElementById('otworz-demo')).transform, logo: getComputedStyle(document.querySelector('.logo svg > g:nth-of-type(2)')).transform }));
+    await p.hover('.logo'); await p.waitForTimeout(400);
+    hover.logoPoNajechaniu = await p.evaluate(() => getComputedStyle(document.querySelector('.logo svg > g:nth-of-type(2)')).transform);
+    ok('ruch: najechanie unosi przycisk o 2 px, spinka w logo uchyla się (-8°)', /matrix\(1, 0, 0, 1, 0, -2\)/.test(hover.btn) && hover.logo === 'none' && /^matrix\(0\.99/.test(hover.logoPoNajechaniu), hover);
+    const autor = await p.evaluate(() => { const a = document.querySelector('main .autor'); const f = document.querySelector('.stopka'); const r = a.getBoundingClientRect();
+      return { glowna: a.textContent.trim(), wOknie: r.bottom <= innerHeight, stopka: f.textContent.includes('Koncepcja i projekt aplikacji: Igor M.') }; });
+    ok('podpis „Koncepcja i projekt aplikacji: Igor M.” widoczny na pierwszym ekranie (1280) i w stopce', autor.glowna === 'Koncepcja i projekt aplikacji: Igor M.' && autor.wOknie && autor.stopka, autor);
+    ok('ruch bez błędów strony', log.bledy.length === 0, log.bledy); await ctx.close(); }
+  { const { ctx, p } = await nowa(390, { hasTouch: true, isMobile: true }); await p.goto(A + '/'); await p.waitForTimeout(1200);
+    const a = await p.evaluate(() => { const r = document.querySelector('main .autor').getBoundingClientRect(); return r.bottom <= innerHeight; });
+    ok('podpis autora widoczny na pierwszym ekranie przy 390 px', a); await ctx.close(); }
+  for (const w of [320, 1280]) {
+    const { ctx, p } = await nowa(w, { reducedMotion: 'reduce' }); await p.goto(A + '/'); await p.waitForTimeout(100);
+    const r = await p.evaluate(() => ({ ruch: document.documentElement.classList.contains('ruch'), animacje: [...document.querySelectorAll('.wejscie')].map((e) => getComputedStyle(e).animationName).filter((n) => n !== 'none'),
+      niewidoczne: [...document.querySelectorAll('.wejscie, .odslona')].filter((e) => +getComputedStyle(e).opacity < 1 || getComputedStyle(e).transform !== 'none').length }));
+    ok(w + ' px, ograniczony ruch: od razu cała treść widoczna, bez animacji wejścia i odsłaniania', !r.ruch && r.animacje.length === 0 && r.niewidoczne === 0, r); await ctx.close(); }
+
   // 4. Klawiatura: link „Przejdź do treści” na początku, widoczny fokus, „Pomiń film” osiągalny Tabem.
   { const { ctx, p } = await nowa(1280); await p.goto(A + '/'); await p.waitForTimeout(500);
     const kroki = [];
@@ -90,7 +120,7 @@ const czekaj = (p, fn, ms) => p.waitForFunction(fn, null, { timeout: ms || 20000
       && kroki.findIndex((k) => k.tekst === 'Otwórz demo') < kroki.findIndex((k) => k.el.startsWith('video')), kroki.map((k) => k.el + ' ' + k.tekst));
     await ctx.close(); }
 
-  // 5. „Pomiń film” prowadzi do prawdziwej demonstracji (build 27 bez zmian); bezpośredni adres na telefonie i komputerze.
+  // 5. „Pomiń film” prowadzi do prawdziwej demonstracji (sprawdzony build aplikacji, bajt w bajt); bezpośredni adres na telefonie i komputerze.
   { const { ctx, p } = await nowa(390, { hasTouch: true, isMobile: true }); await p.goto(A + '/'); await p.waitForTimeout(500);
     await p.tap('.pomin'); await p.waitForURL(A + '/aplikacja/'); await p.waitForSelector('#entry:not([hidden])', { timeout: 20000 });
     ok('telefon: dotknięcie „Pomiń film” otwiera demonstrację (ekran wejścia aplikacji)', (await p.title()) === 'Co chcesz załatwić?'); await ctx.close(); }
@@ -110,7 +140,7 @@ const czekaj = (p, fn, ms) => p.waitForFunction(fn, null, { timeout: ms || 20000
     await p.tap('#otworz-demo'); await p.waitForURL(A + '/aplikacja/'); await p.waitForSelector('#entry:not([hidden])', { timeout: 20000 });
     ok('320 px: „Otwórz demo” otwiera demonstrację od ekranu wejścia', (await p.title()) === 'Co chcesz załatwić?'); await ctx.close(); }
   { const html = await (await fetch(A + '/aplikacja/')).arrayBuffer();
-    ok('/aplikacja/ to build 27 bajt w bajt (MD5 ' + APLIKACJA_MD5.slice(0, 8) + ')', crypto.createHash('md5').update(Buffer.from(html)).digest('hex') === APLIKACJA_MD5); }
+    ok('/aplikacja/ to sprawdzony build aplikacji bajt w bajt (MD5 ' + APLIKACJA_MD5.slice(0, 8) + ')', crypto.createHash('md5').update(Buffer.from(html)).digest('hex') === APLIKACJA_MD5); }
   for (const w of [390, 1280]) {
     const { ctx, p, log } = await nowa(w, w === 390 ? { hasTouch: true, isMobile: true } : {});
     await p.goto(A + '/aplikacja/'); await p.waitForSelector('#entry:not([hidden])', { timeout: 20000 });

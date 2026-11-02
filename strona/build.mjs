@@ -1,7 +1,7 @@
 // Składa stronę projektu w katalogu public/ (statyczne pliki dla dowolnego hostingu).
 //   node build.mjs [--film film-web] [--aplikacja ../aplikacja/dist/index.html]
 //                  [--znak ../aplikacja/docs/znak-spinki] [--bez-filmu]
-// Aplikacja trafia do public/aplikacja/index.html bajt w bajt (build 27, MD5 sprawdzane niżej).
+// Aplikacja trafia do public/aplikacja/index.html bajt w bajt (build 27 z poprawką animacji godła, MD5 sprawdzane niżej).
 // Film: pliki z katalogu --film (wersja webowa, nie master): spinka-film-v8.mp4, spinka-film-v8-plakat.jpg, spinka-film-v8.pl.vtt.
 import fs from 'node:fs'; import path from 'node:path'; import crypto from 'node:crypto';
 
@@ -12,7 +12,7 @@ const APLIKACJA = path.resolve(ROOT, arg('aplikacja', '../aplikacja/dist/index.h
 const ZNAK = path.resolve(ROOT, arg('znak', '../aplikacja/docs/znak-spinki'));
 const FILM = path.resolve(ROOT, arg('film', 'film-web'));
 const OUT = path.join(ROOT, 'public');
-const APLIKACJA_MD5 = '61c2912275be841d8bc7c7d7a0767f7f';
+const APLIKACJA_MD5 = '83d237e0c6d0e28ec90a01296f5ca5c8';
 const PLIKI = { mp4: 'spinka-film-v8.mp4', plakat: 'spinka-film-v8-plakat.jpg', vtt: 'spinka-film-v8.pl.vtt' };
 // Tekst z filmu dla osób, które go nie widzą: jedna plansza w linii, opis obrazu w [nawiasach]. Trafia do strony, nie do public/film.
 const TEKST = 'spinka-film-v8.tekst.txt';
@@ -20,9 +20,9 @@ const TEKST = 'spinka-film-v8.tekst.txt';
 const stop = (m) => { console.error('BŁĄD: ' + m); process.exit(1); };
 const md5 = (b) => crypto.createHash('md5').update(b).digest('hex');
 
-// Aplikacja: tylko zweryfikowany build 27.
+// Aplikacja: tylko zweryfikowany build (runda 27 z poprawką animacji godła przy wejściu).
 const app = fs.readFileSync(APLIKACJA);
-if (md5(app) !== APLIKACJA_MD5) stop('aplikacja ma MD5 ' + md5(app) + ', oczekiwano ' + APLIKACJA_MD5 + ' (build 27): ' + APLIKACJA);
+if (md5(app) !== APLIKACJA_MD5) stop('aplikacja ma MD5 ' + md5(app) + ', oczekiwano ' + APLIKACJA_MD5 + ': ' + APLIKACJA);
 
 // Film: wersja webowa; bez niej build przerywa, chyba że podano --bez-filmu (strona pokaże wtedy, że film jest niedostępny).
 const jest = (k) => fs.existsSync(path.join(FILM, PLIKI[k]));
@@ -44,7 +44,7 @@ html = html.replace('<!--film:preload-plakatu-->', jest('plakat') ? '<link rel="
 html = html.replace('<!--film:track-->', jest('vtt') ? '<track kind="captions" srclang="pl" label="Polski" src="film/' + PLIKI.vtt + '" default>' : '');
 const esc = (t) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const tekst = jest('mp4') && fs.existsSync(path.join(FILM, TEKST)) ? fs.readFileSync(path.join(FILM, TEKST), 'utf8').split('\n').map((l) => l.trim()).filter(Boolean) : [];
-html = html.replace('<!--film:tekst-->', tekst.length ? '<details class="tekst-filmu"><summary>Tekst z filmu</summary><ol>' +
+html = html.replace('<!--film:tekst-->', tekst.length ? '<details class="tekst-filmu wejscie" style="--i:6"><summary>Tekst z filmu</summary><ol>' +
   tekst.map((l) => '<li>' + esc(l).replace(/^\[(.*?)\]\s*/, '<span class="opis-obrazu">$1</span> ') + '</li>').join('') + '</ol></details>' : '');
 if (/<!--(znak|film):/.test(html)) stop('zostały niezastąpione znaczniki w src/index.html');
 

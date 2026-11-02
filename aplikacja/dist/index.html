@@ -5889,6 +5889,15 @@ window.APP = window.APP || {};
       name.style.opacity = '1';
     }
 
+    // Czerwony kwadrat jako tło samego znaku (ten sam kształt co clip-path tła), a godło przycięte do tego kwadratu.
+    // Od tej chwili ramka i orzeł poruszają się jednym transformem, więc nie mogą się rozjechać.
+    function asIcon(g, red, emblem) {
+      emblem.style.background = getComputedStyle(red).backgroundColor;
+      emblem.style.borderRadius = (100 * g.R / g.I) + '%';
+      emblem.style.overflow = 'hidden';
+      red.style.visibility = 'hidden';
+    }
+
     function reset(red, emblem, layers, name) {
       anims.forEach((a) => a.cancel());
       anims = [];
@@ -5897,6 +5906,7 @@ window.APP = window.APP || {};
       emblem.style.transform = '';
       emblem.style.background = '';
       emblem.style.borderRadius = '';
+      emblem.style.overflow = '';
       layers.forEach((l) => { l.style.opacity = ''; l.style.transform = ''; });
       name.style.clipPath = '';
       name.style.opacity = '';
@@ -5970,9 +5980,11 @@ window.APP = window.APP || {};
         if (!fast) await fontsReady(sp);
         g = geometry(sp, name);
         place(g, emblem, name);
-        // 5) ikona przesuwa się w lewo, po prawej odsłania się nazwa
+        // 5) ikona przesuwa się w lewo, po prawej odsłania się nazwa. Czerwony kwadrat jedzie razem z godłem jako tło
+        // tego samego elementu: osobne animacje (clip-path tła i transform godła) potrafiły się na chwilę rozjechać
+        // i orzeł wystawał poza czerwoną ramkę.
+        asIcon(g, red, emblem);
         await Promise.all([
-          play(red, [{ clipPath: inset(g, g.cx) }, { clipPath: inset(g, g.cx - g.d) }], { duration: 440, easing: 'cubic-bezier(.65,0,.35,1)' }),
           play(emblem, [{ transform: 'translateX(0px) scale(' + (g.I / g.E) + ')' }, { transform: 'translateX(' + (-g.d) + 'px) scale(' + (g.I / g.E) + ')' }], { duration: 440, easing: 'cubic-bezier(.65,0,.35,1)' }),
           play(name, [{ clipPath: 'inset(0 100% 0 0)', opacity: 0.4, transform: 'translateX(-10px)' }, { clipPath: 'inset(0 0% 0 0)', opacity: 1, transform: 'none' }], { duration: 380, delay: 250, easing: 'cubic-bezier(.2,.8,.2,1)' })
         ]);
@@ -6013,9 +6025,7 @@ window.APP = window.APP || {};
       const tx = m.left - sr.left + m.width / 2;
       const ty = m.top - sr.top + m.height / 2;
       // Czerwony kwadrat leci razem z godłem jako tło tego samego elementu (sam transform), żeby warstwy się nie rozjechały.
-      emblem.style.background = getComputedStyle(red).backgroundColor;
-      emblem.style.borderRadius = (100 * g.R / g.I) + '%';
-      red.style.visibility = 'hidden';
+      asIcon(g, red, emblem);
       // Treść pod spodem pojawia się dopiero za przelatującym znakiem: dolne części od połowy lotu, górna (tuż pod
       // nagłówkiem) na samym końcu. Dzięki temu napis nie przelatuje nad innym tekstem.
       const gateEl = host.closest('.gate');

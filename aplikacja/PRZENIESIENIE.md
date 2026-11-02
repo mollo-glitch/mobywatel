@@ -1,4 +1,4 @@
-# Przeniesienie projektu: runda 27 (build 61c29122)
+# Przeniesienie projektu: runda 27 (build 83d237e0, z poprawką animacji godła)
 
 Rozpakuj do **nowego, pustego katalogu**. Nie nadpisuj rundy 26 (`b54aa1f8…`) ani lokalnej wersji v10: to osobne wersje.
 
@@ -6,8 +6,12 @@ Rozpakuj do **nowego, pustego katalogu**. Nie nadpisuj rundy 26 (`b54aa1f8…`) 
 
 | Plik | MD5 | SHA-256 |
 |---|---|---|
-| `dist/index.html` | `61c2912275be841d8bc7c7d7a0767f7f` | `fa3250a3296d4dd6a091866608b1c210e06f92f014154e85f5477051ee72fe41` |
-| `dist/artifact.html` | `6bf3bfe8c3781e1d9100ad23b8d35e0b` | `26455bd1a1a02b3d39a27f2df086982969655bac279cc839d87fcf09ca204d9b` |
+| `dist/index.html` | `83d237e0c6d0e28ec90a01296f5ca5c8` | `c2226372986e086d1c46bfd3bbd19995c28540a9e04a7234ef165d0e2217d673` |
+| `dist/artifact.html` | `baeaf5d9a6f600b2d2cfcfc814172b4e` | `554c8c693bf478cdbff9b7b4e5dc3223be6cc4238e2f14de755fd685dcd6d7ec` |
+
+Zmiana względem buildu `61c29122…` (runda 27): tylko animacja wejścia. Przy przesunięciu ikony w lewo czerwony kwadrat
+jest tłem samego znaku, a godło jest przycięte do kwadratu (`asIcon` w `src/app.js`), więc orzeł nie wystaje już na chwilę
+poza ramkę. Treść, scenariusze i pozostałe ekrany bez zmian; pakiet `testy/runda-27/` przechodzi w całości.
 
 `node build.mjs` uruchomiony na źródłach z tej paczki daje bajt w bajt te same pliki (sprawdzone po rozpakowaniu w czystym katalogu).
 Sumy SHA-256 wszystkich plików są w `SHA256SUMS.txt`. Asystent nazywa się „Spinka” („Zapytaj Spinkę”); nazwa nie jest zatwierdzona prawnie.
