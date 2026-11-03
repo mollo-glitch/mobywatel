@@ -390,7 +390,10 @@ video::cue { font-family: var(--font); background: rgba(19, 26, 42, .86); color:
 @media (min-width: 960px) { .stopka-uklad { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 64px; } }
 /* Hasło Spinki jako podpis znaku: tuż pod nazwą, od linii tekstu nazwy (za znakiem), antykwą; jedyne hasło w stopce. */
 .stopka-slogan { margin-top: calc(clamp(4.5rem, 17vw, 15.5rem) * .24); padding-left: calc(clamp(4.5rem, 17vw, 15.5rem) * .56 + clamp(12px, 2vw, 28px)); font-family: var(--font-glowa); font-size: clamp(1.5rem, 1rem + 2.2vw, 3rem); line-height: 1.15; letter-spacing: -.01em; color: #FFFFFF; }
-@media (max-width: 479px) { .stopka-slogan { padding-left: 0; } }
+/* Pytanie nad znakiem przygotowuje hasło: „Masz za dużo na głowie? / Spinka / spina sprawy, nie Ciebie.” czyta się jak jedno
+   zdanie. Mniejsze i przygaszone, żeby nie konkurowało z hasłem; wyrównane do tej samej linii co hasło (pod napisem „Spinka”). */
+.stopka-pytanie { margin-bottom: calc(clamp(4.5rem, 17vw, 15.5rem) * .12); padding-left: calc(clamp(4.5rem, 17vw, 15.5rem) * .56 + clamp(12px, 2vw, 28px)); font-family: var(--font-glowa); font-size: clamp(1.125rem, .85rem + 1.2vw, 1.75rem); line-height: 1.2; color: var(--na-granacie-2); }
+@media (max-width: 479px) { .stopka-slogan, .stopka-pytanie { padding-left: 0; } }
 .stopka .autor-stopka { font-size: var(--t-tekst); color: var(--na-granacie-2); }
 .stopka-linki { display: flex; flex-wrap: wrap; gap: 0 20px; }
 .stopka-linki a { display: inline-flex; align-items: center; min-height: 44px; text-decoration-color: var(--czerwien); text-decoration-thickness: 2px; }
@@ -622,6 +625,7 @@ video::cue { font-family: var(--font); background: rgba(19, 26, 42, .86); color:
 <footer class="stopka">
   <div class="kontener">
     <div class="stopka-znak odslona">
+      <p class="stopka-pytanie">Masz za dużo na&nbsp;głowie?</p>
       <p class="stopka-nazwa" aria-hidden="true"><!--znak:bez-odznaki:120--><span translate="no">Spinka</span></p>
       <p class="stopka-slogan"><span class="sr-only"><span translate="no">Spinka</span> — </span>spina sprawy, nie&nbsp;Ciebie.</p>
     </div>
