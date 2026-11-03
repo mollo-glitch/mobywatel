@@ -2035,8 +2035,8 @@
   }
 
   /*
-   * Sekwencja: 1) cały ekran czerwony, 2) orzeł z koroną wznosi się z dołu i zatrzymuje na środku,
-   * 3) korona lekko osiada na głowie (nie odrywa się od niej), 4) czerwień kurczy się do kwadratowej ikony na białym tle,
+   * Sekwencja: 1) cały ekran czerwony, 2) orzeł wznosi się z dołu z koroną tuż nad głową i zatrzymuje na środku,
+   * 3) korona lekko opada na głowę i osiada, 4) czerwień kurczy się do kwadratowej ikony na białym tle,
    * 5) ikona przesuwa się w lewo, a po prawej odsłania się napis „mObywatel”, 6) gotowy znak chwilę stoi,
    * 7) znak i napis „osiadają” w nagłówku następnego ekranu, dokładnie tam, gdzie logo stoi w aplikacji, a białe tło znika.
    * Krok 7 zastępuje dawne wygaszanie (krótsza chwila w kroku 6), więc całość nie jest dłuższa.
@@ -2156,19 +2156,22 @@
         layers[0].style.opacity = '1';
         layers[1].style.opacity = '1';
         const p1 = play(emblem, [{ transform: 'translateY(' + rise + 'px)' }, { transform: 'translateY(0)' }], { duration: 700, delay: 120, easing: 'cubic-bezier(.16,.84,.3,1)' });
-        // 3) korona osiada: gdy orzeł hamuje, korona przez bezwładność unosi się o ok. 1% wysokości znaku i lekko
-        // rośnie od podstawy, a potem osiada. Podstawa zostaje na głowie: w spoczynku korona zachodzi na głowę
-        // o ok. 1,2% wysokości znaku, a uniesienie jest mniejsze, więc między nimi nie pojawia się przerwa.
+        // 3) korona opada na głowę: przez wznoszenie wisi tuż nad głową (ok. 4,5% wysokości znaku, lekko przechylona),
+        // a gdy orzeł hamuje, w ok. 0,5 s opada, dotyka głowy z ugięciem o ok. 0,5% i osiada. Ruch jest liczony względem
+        // orła (ten sam element znaku), więc korona nie odrywa się od niego, nie wychodzi poza kadr i nie znika.
+        // Punkt obrotu: środek podstawy korony.
         const crown = layers[1].querySelector('use');
         const cb = crown ? crown.getBoundingClientRect() : null;
         const lb = layers[1].getBoundingClientRect();
         if (cb && cb.width) layers[1].style.transformOrigin = (cb.left + cb.width / 2 - lb.left) + 'px ' + (cb.bottom - lb.top) + 'px';
-        const lift = Math.max(1, g.E * 0.009);
+        const hover = Math.max(6, g.E * 0.045);
+        const dip = Math.max(1, g.E * 0.005);
         const p2 = play(layers[1], [
-          { transform: 'translateY(0) scale(1)', easing: 'cubic-bezier(.3,0,.2,1)' },
-          { transform: 'translateY(' + (-lift) + 'px) scale(1.035)', offset: 0.42, easing: 'cubic-bezier(.4,0,.2,1)' },
-          { transform: 'translateY(0) scale(1)' }
-        ], { duration: 560, delay: 380 });
+          { transform: 'translateY(' + (-hover) + 'px) rotate(-5deg)', easing: 'cubic-bezier(.45,0,.7,1)' },
+          { transform: 'translateY(' + dip + 'px) rotate(.6deg)', offset: 0.66, easing: 'cubic-bezier(.3,0,.3,1)' },
+          { transform: 'translateY(' + (-dip * 0.4) + 'px) rotate(0deg)', offset: 0.84, easing: 'ease-in-out' },
+          { transform: 'translateY(0) rotate(0deg)' }
+        ], { duration: 520, delay: 560 });
         await Promise.all([p1, p2]);
         if (my !== token) return;
         // chwila na złożony znak przed zmianą w ikonę (łącznie krócej niż dawny opad korony)

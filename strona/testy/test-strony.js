@@ -5,7 +5,7 @@ const { chromium } = require('playwright'); const fs = require('fs'); const cryp
 const [, , P1, P2, AXE_PATH] = process.argv;
 const A = 'http://127.0.0.1:' + P1; const B = 'http://127.0.0.1:' + P2;
 const AXE = fs.readFileSync(AXE_PATH || require.resolve('axe-core/axe.min.js'), 'utf8');
-const APLIKACJA_MD5 = 'aa05f84856717a12399b0bc075fa888e';
+const APLIKACJA_MD5 = '12ea552323495a156429190b5e41f41a';
 const R = []; const ok = (co, w, sz) => R.push({ co, ok: !!w, sz });
 const H = { 320: 568, 390: 844, 1280: 800 };
 const axe = async (p) => { await p.addScriptTag({ content: AXE }); return p.evaluate(async () => (await axe.run(document.querySelector('.ruch .odslona:not(.widoczne)') ? { exclude: [['.ruch .odslona:not(.widoczne)']] } : document, { runOnly: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'best-practice'] })).violations.map((v) => v.id + ' (' + v.nodes.length + ')')); };
@@ -26,10 +26,12 @@ const czekaj = (p, fn, ms) => p.waitForFunction(fn, null, { timeout: ms || 20000
       const nazwaWidoczna = [document.querySelector('h1'), document.querySelector('.logo')].some((e) => { const q = e.getBoundingClientRect(); return q.width > 2 && q.height > 2 && /Spinka/.test(e.textContent) && q.bottom <= innerHeight; });
       const h1 = document.querySelector('h1'); const lh = parseFloat(getComputedStyle(h1).lineHeight);
       return { h1: h1.textContent.replace(/\s+/g, ' ').trim(), liniiTytulu: Math.round(h1.getBoundingClientRect().height / lh), nazwaWidoczna, otworz: r('#otworz-demo').bottom, pismo: r('a[href="aplikacja/#pismo"]').bottom, oc: r('a[href="aplikacja/#oc"]').bottom,
-        film: r('#film').bottom, pomin: r('.pomin').bottom, okno: innerHeight, bok: document.documentElement.scrollWidth - innerWidth,
+        film: r('#film').bottom, filmGora: r('#film').top, pomin: r('.pomin').bottom, okno: innerHeight, bok: document.documentElement.scrollWidth - innerWidth,
         male: [...document.querySelectorAll('.naglowek a, .hero a, .hero button, .hero summary')].filter((e) => e.getClientRects().length && !e.closest('video')).map((e) => [e.textContent.trim().slice(0, 24), Math.round(e.getBoundingClientRect().height)]).filter((x) => x[1] < 44) }; });
-    ok(w + ' px: na pierwszym ekranie nazwa, tytuł w 2 liniach, „Otwórz demo”, skróty „Pismo z urzędu” i „Kończy się OC”, film i „Pomiń film”; bez przewijania w bok',
-      m.h1 === 'Spinka. Każda sprawa ma następny krok.' && m.liniiTytulu === 2 && m.nazwaWidoczna && [m.otworz, m.pismo, m.oc, m.film, m.pomin].every((y) => y <= m.okno) && m.bok === 0, m);
+    // Runda 30: hasło większe (na prośbę autora): poniżej 960 px w 3 wierszach, od 960 px w 2. Na pierwszym ekranie zawsze
+    // nazwa, hasło, „Pomiń film”, „Otwórz demo” i co najmniej 160 px filmu; skróty też, poza najniższym telefonem (320×568).
+    ok(w + ' px: na pierwszym ekranie nazwa, hasło (' + (w >= 960 ? 2 : 3) + ' wiersze), „Otwórz demo”, „Pomiń film” i początek filmu' + (w > 320 ? ', skróty' : '') + '; bez przewijania w bok',
+      m.h1 === 'Spinka. Każda sprawa ma następny krok.' && m.liniiTytulu === (w >= 960 ? 2 : 3) && m.nazwaWidoczna && [m.otworz, m.pomin].every((y) => y <= m.okno) && m.filmGora <= m.okno - 160 && (w === 320 || [m.pismo, m.oc].every((y) => y <= m.okno)) && m.bok === 0, m);
     ok(w + ' px: cele dotyku w nagłówku i na pierwszym ekranie mają co najmniej 44 px wysokości', m.male.length === 0, m.male);
     const v = await axe(p); ok(w + ' px: axe bez naruszeń (start)', v.length === 0, v);
     const obce = log.zadania.filter((u) => !u.startsWith(A + '/'));
@@ -179,17 +181,18 @@ const czekaj = (p, fn, ms) => p.waitForFunction(fn, null, { timeout: ms || 20000
     const r = await p.evaluate(() => [...document.querySelectorAll('.ekran, .krok')].map((e) => getComputedStyle(e).transitionDuration).filter((d) => d !== '0s'));
     ok('demonstracja, ograniczony ruch: ekrany i kroki zmieniają się bez przejść', r.length === 0, r); await ctx.close(); }
 
-  // 5c. Nagłówki w najwyżej 2 liniach, tekst co najmniej 15 px, autor w sekcji „O projekcie” i stopce; axe po odsłonięciu całej strony.
+  // 5c. Nagłówki sekcji w najwyżej 2 liniach, tekst co najmniej 15 px, autor w sekcji „O projekcie” i stopce; axe po odsłonięciu całej strony.
   for (const w of [320, 390, 768, 960, 1024, 1440]) {
     const { ctx, p } = await nowa(w, w < 600 ? { hasTouch: true, isMobile: true } : {}); await p.goto(A + '/'); await p.waitForTimeout(400);
     const H2 = await p.evaluate(() => document.body.scrollHeight); for (let y = 0; y < H2; y += 400) { await p.evaluate((y) => scrollTo(0, y), y); await p.waitForTimeout(60); } await p.waitForTimeout(900);
     const m = await p.evaluate(() => {
       const linie = (e) => { const r = document.createRange(); r.selectNodeContents(e); const tops = new Set([...r.getClientRects()].filter((q) => q.width > 1).map((q) => Math.round(q.top))); return tops.size; };
-      const naglowki = [...document.querySelectorAll('h1 .linia, h2, .krok h3')].map((e) => [e.textContent.trim().slice(0, 30), linie(e)]).filter((x) => x[1] > 2);
+      // Hasło planszy (h1) ma własną, dokładną regułę w teście 1: 3 wiersze poniżej 960 px, 2 od 960 px (runda 30).
+      const naglowki = [...document.querySelectorAll('h2, .krok h3')].map((e) => [e.textContent.trim().slice(0, 30), linie(e)]).filter((x) => x[1] > 2);
       const male = [...document.querySelectorAll('body *')].filter((e) => e.childElementCount === 0 && e.textContent.trim() && e.getClientRects().length && !e.closest('[aria-hidden=true], .sr-only, video'))
         .filter((e) => parseFloat(getComputedStyle(e).fontSize) < 15).map((e) => e.textContent.trim().slice(0, 20));
       return { zaDlugie: naglowki, male, autorProjekt: (document.querySelector('#o-projekcie .podpis') || {}).textContent.replace(/\s+/g, ' ').trim(), bok: document.documentElement.scrollWidth - innerWidth }; });
-    ok(w + ' px: tytuł i nagłówki sekcji w najwyżej 2 liniach, brak tekstu poniżej 15 px, bez przewijania w bok', m.zaDlugie.length === 0 && m.male.length === 0 && m.bok === 0, m);
+    ok(w + ' px: nagłówki sekcji w najwyżej 2 liniach, brak tekstu poniżej 15 px, bez przewijania w bok', m.zaDlugie.length === 0 && m.male.length === 0 && m.bok === 0, m);
     if (w === 390 || w === 1440) { ok(w + ' px: autor w sekcji „O projekcie”', /Koncepcja i projekt aplikacji\s*Igor M\./.test(m.autorProjekt), m.autorProjekt);
       const v = await axe(p); ok(w + ' px: axe bez naruszeń (cała strona po odsłonięciu sekcji)', v.length === 0, v); }
     await ctx.close(); }
@@ -210,10 +213,10 @@ const czekaj = (p, fn, ms) => p.waitForFunction(fn, null, { timeout: ms || 20000
     const t = await p.evaluate(() => ({ fonty: [...document.fonts].filter((f) => f.status === 'loaded').map((f) => f.family.replace(/"/g, '')),
       // Runda 29: wyjątek na prośbę autora: hasło na czerwonej planszy otwarcia (i puste rzędy w tle) w Archivo 900, jak plansze filmu v8.
       naglowki: [...document.querySelectorAll('h1, h2, h3, dt, .logo')].filter((e) => !e.closest('.plansza')).map((e) => [e.tagName, getComputedStyle(e).fontFamily.split(',')[0].replace(/"/g, ''), +getComputedStyle(e).fontWeight]),
-      plansza: [...document.querySelectorAll('.plansza h1, .plansza .duch')].map((e) => [getComputedStyle(e).fontFamily.split(',')[0].replace(/"/g, ''), +getComputedStyle(e).fontWeight]),
+      plansza: [...document.querySelectorAll('.plansza h1, .plansza .rzad-polowa')].map((e) => [getComputedStyle(e).fontFamily.split(',')[0].replace(/"/g, ''), +getComputedStyle(e).fontWeight]),
       tekst: getComputedStyle(document.querySelector('.krok p')).fontFamily.split(',')[0].replace(/"/g, ''), pogrubione: [...document.querySelectorAll('main *, header *, footer *')].filter((e) => !e.closest('.plansza') && e.childElementCount === 0 && e.textContent.trim() && +getComputedStyle(e).fontWeight >= 700).map((e) => e.textContent.trim().slice(0, 20)) }));
     ok('typografia: nagłówki w Poltawski Nowy (waga najwyżej 500), tekst w Atkinson Hyperlegible Next, nic w wadze 700+ poza planszą otwarcia (Archivo 900, jak w filmie); fonty z własnego adresu',
-      t.fonty.includes('Poltawski Nowy') && t.fonty.includes('Archivo Plansza') && t.plansza.length === 3 && t.plansza.every((x) => x[0] === 'Archivo Plansza' && x[1] === 900) && t.naglowki.every((n) => n[1] === 'Poltawski Nowy' && n[2] <= 500) && t.tekst === 'Atkinson Hyperlegible Next' && t.pogrubione.length === 0 && !log.zadania.some((u) => /plex/i.test(u)), t);
+      t.fonty.includes('Poltawski Nowy') && t.fonty.includes('Archivo Plansza') && t.plansza.length === 5 && t.plansza.every((x) => x[0] === 'Archivo Plansza' && x[1] === 900) && t.naglowki.every((n) => n[1] === 'Poltawski Nowy' && n[2] <= 500) && t.tekst === 'Atkinson Hyperlegible Next' && t.pogrubione.length === 0 && !log.zadania.some((u) => /plex/i.test(u)), t);
     const st = await p.evaluate(() => [...document.querySelectorAll('.postac-stany li')].map((li) => [li.querySelector('svg').getAttribute('class').replace('postac postac--', ''), li.textContent.trim(), li.querySelector('svg').getAttribute('aria-hidden')]));
     ok('postać: te same pięć stanów co w aplikacji (słucha, wyjaśnia, ostrzega, następny krok, gotowe) z podpisami; rysunki ukryte przed czytnikiem',
       st.map((x) => x[0]).join() === 'slucha,wyjasnia,ostrzega,krok,gotowe' && st.every((x) => x[1].length > 10 && x[2] === 'true'), st);

@@ -12,7 +12,7 @@ const APLIKACJA = path.resolve(ROOT, arg('aplikacja', '../aplikacja/dist/index.h
 const ZNAK = path.resolve(ROOT, arg('znak', '../aplikacja/docs/znak-spinki'));
 const FILM = path.resolve(ROOT, arg('film', 'film-web'));
 const OUT = path.join(ROOT, 'public');
-const APLIKACJA_MD5 = process.env.APLIKACJA_MD5 || 'aa05f84856717a12399b0bc075fa888e'; // runda 29: rekordy dla AI na serwerze, Workers AI, korona godła
+const APLIKACJA_MD5 = process.env.APLIKACJA_MD5 || '12ea552323495a156429190b5e41f41a'; // runda 30: korona opada na głowę orła i osiada
 // Wersja filmu: v9 (prawdziwy ekran aktualnej aplikacji, napisy plansz) domyślnie; v8 zostaje do porównania (--wersja-filmu v8).
 const WERSJA = /^v\d+$/.test(arg('wersja-filmu', 'v9')) ? arg('wersja-filmu', 'v9') : 'v9';
 const PLIKI = { mp4: 'spinka-film-' + WERSJA + '.mp4', plakat: 'spinka-film-' + WERSJA + '-plakat.jpg', vtt: 'spinka-film-' + WERSJA + '.pl.vtt' };

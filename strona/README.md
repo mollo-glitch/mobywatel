@@ -18,7 +18,7 @@ Bez frameworka, bez analityki, bez plików cookie, bez zależności w przegląda
 | `podglad.mjs` | lokalny serwer `public/` z obsługą Range (przewijanie wideo) |
 | `src/obrazy/` | zrzuty prawdziwych ekranów aplikacji (WebP): trzy do „Demonstracji”, dwa ekrany Profilu do „Asystent mówi, skąd wie” |
 | `narzedzia/zrzuty-aplikacji.js` | odtwarza `src/obrazy/` z działającego buildu aplikacji (Playwright, Pillow); aplikacji nie zmienia |
-| `testy/otwarcie-test.js` | otwarcie z rundy 29: nagłówek pisma i data zgodna z aplikacją, brak przypiętej kartki w otwarciu i w „Twoich danych”, sceny filmu myszą i klawiaturą, spinka na torze, sceny ukryte bez filmu |
+| `testy/otwarcie-test.js` | otwarcie z rund 29–30: plansza (wiersze hasła na 12 szerokościach, rzędy słów, prędkość i kierunek, „Zatrzymaj ruch” myszą i klawiaturą, ograniczony ruch), hasło marki w stopce, nagłówek pisma i data zgodna z aplikacją, brak przypiętej kartki w otwarciu i w „Twoich danych”, sceny filmu myszą i klawiaturą, spinka na torze, sceny ukryte bez filmu |
 | `testy/test-strony.js` | testy w Chromium: pierwszy ekran 320/390/1280, odtwarzanie, napisy, pauza, koniec, klawiatura, ograniczony ruch, stos ekranów w „Demonstracji”, nagłówki w 2 liniach, brak przewijania w bok przy 16 szerokościach, axe, `/aplikacja/`, brak filmu |
 | `public/` | wynik buildu: to wgrywa się na hosting |
 
@@ -28,10 +28,13 @@ Bez frameworka, bez analityki, bez plików cookie, bez zależności w przegląda
   Plik trafia do `public/aplikacja/index.html` bajt w bajt: zachowanie, dane, ekrany i teksty aplikacji są niezmienione.
 - znak: `../aplikacja/docs/znak-spinki/` (oryginalny znak Spinki wyeksportowany z kodu aplikacji).
 
-## Otwarcie (runda 29)
+## Otwarcie (runda 29, zmienione w rundzie 30)
 
-- **Plansza jak w filmie v8 (master):** czerwone pole na całą szerokość, hasło „KAŻDA SPRAWA / MA NASTĘPNY KROK.” białym Archivo 900 wersalikami i to samo słownictwo („Pismo. Termin.”) pustym obrysem w dwóch rzędach nad i pod hasłem, przyciętych krawędzią planszy (ukryte przed czytnikiem). Rozmiar hasła liczony tak, żeby zawsze były dwa wiersze („MA NASTĘPNY KROK.” = 11,44 em). Archivo 900 (OFL, `src/fonty/archivo-900-*.woff2`) jest tylko na planszy; reszta strony bez zmian (Poltawski Nowy, Atkinson).
-- **Przejście przy wejściu:** plansza wjeżdża od lewej (0,46 s, jak zmiana koloru w filmie), wiersze hasła odsłaniają się po kolei, puste rzędy rozjeżdżają się w przeciwne strony i stają po 4,5 s (ruch krótszy niż 5 s, bez pętli). Przy ograniczonym ruchu i bez skryptu plansza od razu stoi w stanie końcowym.
+- **Plansza jak w filmie v8 (master):** czerwone pole na całą szerokość, hasło „KAŻDA SPRAWA / MA NASTĘPNY KROK.” białym Archivo 900 wersalikami. Poniżej 960 px hasło ma trzy wiersze („KAŻDA SPRAWA / MA NASTĘPNY / KROK.”, do 72 px), od 960 px dwa (do 104 px). Rozmiar liczony z szerokości ekranu (dzielniki 8,8 i 11,8 przy zmierzonych 8,44 em i 11,44 em), więc hasło nigdy nie wychodzi poza ekran (sprawdzone od 320 do 1920 px). Archivo 900 (OFL, `src/fonty/archivo-900-*.woff2`) jest tylko na planszy; reszta strony bez zmian (Poltawski Nowy, Atkinson).
+- **Słowa w tle:** dwa rzędy „PISMO · TERMIN · DECYZJA · SPOKÓJ” pustym obrysem (biały 42%), nad hasłem i pod nim, ukryte przed czytnikiem. Rzędy płyną w przeciwne strony ze stałą prędkością 28 px/s, bez końca i bez szwu (dwie identyczne połówki, przesunięcie o 50%); krawędzie wygaszone maską, więc słowo nie jest ucięte w pół litery. Ruch staje, gdy plansza jest poza ekranem.
+- **„Zatrzymaj ruch”:** przycisk (44 px wysokości, 15 px tekstu) w prawym dolnym rogu planszy, na jednolitej czerwieni; zatrzymuje i wznawia rzędy (`aria-pressed`, „Wznów ruch”), bo ruch trwa dłużej niż 5 s (WCAG 2.2.2). Przy ograniczonym ruchu i bez skryptu rzędy stoją, a przycisku nie ma.
+- **Przejście przy wejściu:** plansza wjeżdża od lewej (0,46 s, jak zmiana koloru w filmie), wiersze hasła odsłaniają się po kolei (całość jednorazowo, poniżej 1,2 s).
+- **Małe ekrany:** przy 320 × 568 (wysokość do 600 px) dolny rząd jest ukryty, żeby „Otwórz demo” zmieściło się blisko pierwszego ekranu.
 - **Pod planszą:** film bez przypiętej kartki (linia „Film, 0:41, z napisami” i „Pomiń film”, tor postępu z małą spinką w miejscu odtwarzania), opis, „Otwórz demo”, skróty, podpis autora i nagłówek pisma („Data w prototypie” z zegara aplikacji, „W sprawie”).
 - **Sceny filmu:** spis sześciu scen z czasem; wybór przewija film do sceny, bieżąca scena ma czerwoną kreskę (`aria-current`).
 - Przypięta kartka została tylko w „Demonstracji”; ekrany Profilu w „Asystent mówi, skąd wie” są płaskie.
