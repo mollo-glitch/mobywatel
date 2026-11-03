@@ -1,4 +1,4 @@
-// Runda 31: trzy ścieżki „Albo zacznij od sprawy” od strony do końca scenariusza w aplikacji.
+// Runda 31–32: trzy przykłady „Albo zacznij od przykładu” od strony do końca scenariusza w aplikacji.
 //   node sciezki-test.js <port strony>
 // Dla każdej ścieżki (Pismo z urzędu, Kończy się OC, Zgubiony portfel): telefon 390 px (dotknięcie) i komputer 1280 px
 // (klawiatura: fokus na odnośniku i Enter). W aplikacji „autopilot” wybiera pierwszą możliwość w każdym kroku

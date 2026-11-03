@@ -5,7 +5,7 @@ const { chromium } = require('playwright'); const fs = require('fs'); const cryp
 const [, , P1, P2, AXE_PATH] = process.argv;
 const A = 'http://127.0.0.1:' + P1; const B = 'http://127.0.0.1:' + P2;
 const AXE = fs.readFileSync(AXE_PATH || require.resolve('axe-core/axe.min.js'), 'utf8');
-const APLIKACJA_MD5 = '709415b97131f7cb037690fe60c47757';
+const APLIKACJA_MD5 = 'e7d2fffc2a86e10bc4146c91cdf97e0b';
 const R = []; const ok = (co, w, sz) => R.push({ co, ok: !!w, sz });
 const H = { 320: 568, 390: 844, 1280: 800 };
 // Elementy jeszcze nieodsłonięte (30% krycia do chwili wejścia w widok: .odslona i etapy sekwencji .stan) pomijamy; po odsłonięciu axe sprawdza je w pełnym kolorze.
@@ -30,9 +30,10 @@ const czekaj = (p, fn, ms) => p.waitForFunction(fn, null, { timeout: ms || 20000
         film: r('#film').bottom, filmGora: r('#film').top, pomin: r('.pomin').bottom, okno: innerHeight, bok: document.documentElement.scrollWidth - innerWidth,
         male: [...document.querySelectorAll('.naglowek a, .hero a, .hero button, .hero summary')].filter((e) => e.getClientRects().length && !e.closest('video')).map((e) => [e.textContent.trim().slice(0, 24), Math.round(e.getBoundingClientRect().height)]).filter((x) => x[1] < 44) }; });
     // Runda 30: hasło większe (na prośbę autora): poniżej 960 px w 3 wierszach, od 960 px w 2. Na pierwszym ekranie zawsze
-    // nazwa, hasło, „Pomiń film”, „Otwórz demo” i co najmniej 160 px filmu; skróty też, poza najniższym telefonem (320×568).
-    ok(w + ' px: na pierwszym ekranie nazwa, hasło (' + (w >= 960 ? 2 : 3) + ' wiersze), „Otwórz demo”, „Pomiń film” i początek filmu' + (w > 320 ? ', skróty' : '') + '; bez przewijania w bok',
-      m.h1 === 'Spinka. Każda sprawa ma następny krok.' && m.liniiTytulu === (w >= 960 ? 2 : 3) && m.nazwaWidoczna && [m.otworz, m.pomin].every((y) => y <= m.okno) && m.filmGora <= m.okno - 160 && (w === 320 || [m.pismo, m.oc].every((y) => y <= m.okno)) && m.bok === 0, m);
+    // nazwa, hasło, „Pomiń film”, „Zobacz demonstrację” i co najmniej 160 px filmu. Przykłady (runda 32: każdy z podpowiedzią
+    // w drugim wierszu): na telefonie 390 px dwa pierwsze, przy 1280×800 pierwszy; przy 320×568 są tuż pod pierwszym ekranem.
+    ok(w + ' px: na pierwszym ekranie nazwa, hasło (' + (w >= 960 ? 2 : 3) + ' wiersze), „Zobacz demonstrację”, „Pomiń film” i początek filmu' + (w === 390 ? ', dwa pierwsze przykłady' : w >= 960 ? ', pierwszy przykład' : '') + '; bez przewijania w bok',
+      m.h1 === 'Spinka. Każda sprawa ma następny krok.' && m.liniiTytulu === (w >= 960 ? 2 : 3) && m.nazwaWidoczna && [m.otworz, m.pomin].every((y) => y <= m.okno) && m.filmGora <= m.okno - 160 && (w === 320 || (w >= 960 ? m.pismo <= m.okno : [m.pismo, m.oc].every((y) => y <= m.okno))) && m.bok === 0, m);
     ok(w + ' px: cele dotyku w nagłówku i na pierwszym ekranie mają co najmniej 44 px wysokości', m.male.length === 0, m.male);
     const v = await axe(p); ok(w + ' px: axe bez naruszeń (start)', v.length === 0, v);
     const obce = log.zadania.filter((u) => !u.startsWith(A + '/'));
@@ -55,7 +56,7 @@ const czekaj = (p, fn, ms) => p.waitForFunction(fn, null, { timeout: ms || 20000
     // Napisy: w środku pierwszego napisu jest on aktywny; opis pod filmem podaje czas filmu i napisy.
     const nap = await p.evaluate(async () => { const v = document.getElementById('film'); const c = v.textTracks[0].cues[0]; v.currentTime = (c.startTime + c.endTime) / 2;
       await new Promise((r) => setTimeout(r, 500)); const a = v.textTracks[0].activeCues; const s = Math.floor(v.duration / 60) + ':' + String(Math.floor(v.duration % 60)).padStart(2, '0');
-      return { oczekiwany: c.text, aktywny: a && a[0] ? a[0].text : null, tryb: v.textTracks[0].mode, info: document.getElementById('film-info').textContent, oczekiwaneInfo: 'Sprawa OC: od koperty na Starcie do przypomnienia · ' + s }; });
+      return { oczekiwany: c.text, aktywny: a && a[0] ? a[0].text : null, tryb: v.textTracks[0].mode, info: document.getElementById('film-info').textContent, oczekiwaneInfo: 'Kończące się OC w prototypie, krok po kroku · ' + s }; });
     ok('napisy włączone i się wyświetlają (aktywny napis); nad filmem konkretne zdanie, co pokazuje, i czas filmu', nap.aktywny === nap.oczekiwany && nap.tryb === 'showing' && nap.info === nap.oczekiwaneInfo, nap);
     const tf = await p.evaluate(() => { const d = document.querySelector('.tekst-filmu'); return d ? { pozycji: d.querySelectorAll('li').length, summary: d.querySelector('summary').textContent } : null; });
     ok('pod filmem jest rozwijany „Tekst filmu i opis obrazu” (plansze po kolei, dostępna wersja treści filmu)', tf && tf.pozycji > 0 && tf.summary === 'Tekst filmu i opis obrazu', tf);
@@ -67,7 +68,7 @@ const czekaj = (p, fn, ms) => p.waitForFunction(fn, null, { timeout: ms || 20000
     await p.waitForTimeout(700);
     const k = await p.evaluate(() => { const d = document.getElementById('do-demo'); const r = d.getBoundingClientRect();
       return { widoczny: !document.getElementById('koniec').hidden, wOknie: r.top >= 0 && r.bottom <= innerHeight, href: d.href, tekst: d.textContent, fokus: document.activeElement.id, pomin: document.getElementById('film-pod').hidden, ogl: document.getElementById('ogloszenie').textContent }; });
-    ok('koniec: wyraźny przycisk „Przejdź do demonstracji” w oknie, prowadzi do /aplikacja/; „Pomiń film” znika', k.widoczny && k.wOknie && k.href === A + '/aplikacja/' && k.tekst === 'Przejdź do demonstracji' && k.pomin, k);
+    ok('koniec: wyraźny przycisk „Zobacz demonstrację” w oknie, prowadzi do /aplikacja/; „Pomiń film” znika', k.widoczny && k.wOknie && k.href === A + '/aplikacja/' && k.tekst === 'Zobacz demonstrację' && k.pomin, k);
     const pk = await p.evaluate(() => ({ krok: getComputedStyle(document.querySelector('#koniec .postac--krok')).display, ostrzega: getComputedStyle(document.querySelector('#koniec .postac--ostrzega')).display, ukryta: document.querySelector('.koniec-postac').getAttribute('aria-hidden') }));
     ok('koniec: postać Spinki w stanie „następny krok” (poza „ostrzega” ukryta), ukryta przed czytnikiem', pk.krok === 'block' && pk.ostrzega === 'none' && pk.ukryta === 'true', pk);
     ok('koniec: pasek pełny, komunikat dla czytnika, fokus na przycisku (gdy nie był na innym elemencie)', (await pasek(p)).pasek === 1 && /skończył/.test(k.ogl) && k.fokus === 'do-demo', { ...k, pasek: await pasek(p) });
@@ -105,13 +106,13 @@ const czekaj = (p, fn, ms) => p.waitForFunction(fn, null, { timeout: ms || 20000
     ok('ruch: najechanie unosi przycisk o 2 px, spinka w logo uchyla się (-8°)', /matrix\(1, 0, 0, 1, 0, -2\)/.test(hover.btn) && hover.logo === 'none' && /^matrix\(0\.99/.test(hover.logoPoNajechaniu), hover);
     const autor = await p.evaluate(() => { const a = document.querySelector('main .autor'); const f = document.querySelector('.stopka'); const r = a.getBoundingClientRect();
       return { glowna: a.textContent.trim(), wHero: !!a.closest('.hero'), zaSkrotami: a.getBoundingClientRect().top > document.querySelector('.skroty').getBoundingClientRect().bottom, dol: Math.round(r.bottom), okno: innerHeight, stopka: f.textContent.includes('Koncepcja i projekt aplikacji: Igor M.') }; });
-    // Runda 31: po dodaniu trzeciej sprawy podpis przy 1280×800 jest tuż pod pierwszym ekranem (ok. 1 przewinięcia kółkiem), wciąż w pierwszej sekcji.
-    ok('podpis „Koncepcja i projekt aplikacji: Igor M.” w pierwszej sekcji, tuż pod skrótami (1280: najwyżej 120 px pod pierwszym ekranem), i w stopce', autor.glowna === 'Koncepcja i projekt aplikacji: Igor M.' && autor.wHero && autor.zaSkrotami && autor.dol <= autor.okno + 120 && autor.stopka, autor);
+    // Runda 31–32: po dodaniu trzeciego przykładu z podpowiedziami podpis przy 1280×800 jest tuż pod pierwszym ekranem (ok. 1–2 przewinięcia kółkiem), wciąż w pierwszej sekcji.
+    ok('podpis „Koncepcja i projekt aplikacji: Igor M.” w pierwszej sekcji, tuż pod przykładami (1280: najwyżej 160 px pod pierwszym ekranem), i w stopce', autor.glowna === 'Koncepcja i projekt aplikacji: Igor M.' && autor.wHero && autor.zaSkrotami && autor.dol <= autor.okno + 160 && autor.stopka, autor);
     ok('ruch bez błędów strony', log.bledy.length === 0, log.bledy); await ctx.close(); }
   { const { ctx, p } = await nowa(390, { hasTouch: true, isMobile: true }); await p.goto(A + '/'); await p.waitForTimeout(1200);
     const a = await p.evaluate(() => { const r = document.querySelector('main .autor').getBoundingClientRect(); return { dol: Math.round(r.bottom), okno: innerHeight }; });
-    // Runda 31: po dodaniu trzeciej sprawy podpis przy 390×844 jest ok. 30 px pod pierwszym ekranem.
-    ok('podpis autora przy 390 px tuż pod skrótami, najwyżej 60 px pod pierwszym ekranem', a.dol <= a.okno + 60, a); await ctx.close(); }
+    // Runda 31–32: po dodaniu trzeciego przykładu z podpowiedziami podpis przy 390×844 jest ok. 60 px pod pierwszym ekranem.
+    ok('podpis autora przy 390 px tuż pod przykładami, najwyżej 100 px pod pierwszym ekranem', a.dol <= a.okno + 100, a); await ctx.close(); }
   for (const w of [320, 1280]) {
     const { ctx, p } = await nowa(w, { reducedMotion: 'reduce' }); await p.goto(A + '/'); await p.waitForTimeout(100);
     const r = await p.evaluate(() => ({ ruch: document.documentElement.classList.contains('ruch'), animacje: [...document.querySelectorAll('.wejscie')].map((e) => getComputedStyle(e).animationName).filter((n) => n !== 'none'),
@@ -127,15 +128,15 @@ const czekaj = (p, fn, ms) => p.waitForFunction(fn, null, { timeout: ms || 20000
     ok('klawiatura: pierwszy Tab to „Przejdź do treści”, widoczny', kroki[0].tekst === 'Przejdź do treści' && kroki[0].widoczny, kroki[0]);
     ok('klawiatura: każdy link ma widoczną obwódkę fokusu 3 px', linki.every((k) => k.obwodka === 'solid 3px'), linki);
     const i = (f) => kroki.findIndex(f);
-    const kol = [i((k) => k.el.startsWith('a.btn') && k.tekst === 'Otwórz demo'), i((k) => /Pomiń film/.test(k.tekst)), i((k) => k.el.startsWith('video')), i((k) => k.el.startsWith('a#otworz-demo')), i((k) => k.tekst.startsWith('Pismo z urzędu')), i((k) => k.tekst.startsWith('Kończy się OC')), i((k) => k.tekst.startsWith('Zgubiony portf'))];
-    ok('klawiatura: Tab dochodzi kolejno do „Otwórz demo” w nagłówku, „Pomiń film”, filmu, „Otwórz demo” w otwarciu i trzech skrótów (jak na ekranie telefonu)', kol.every((x, n) => x >= 0 && (n === 0 || x > kol[n - 1])), kroki.map((k) => k.el + ' ' + k.tekst));
+    const kol = [i((k) => k.el.startsWith('a.btn') && k.tekst === 'Zobacz demonstrację'), i((k) => /Pomiń film/.test(k.tekst)), i((k) => k.el.startsWith('video')), i((k) => k.el.startsWith('a#otworz-demo')), i((k) => k.tekst.startsWith('Pismo z urzędu')), i((k) => k.tekst.startsWith('Kończy się OC')), i((k) => k.tekst.startsWith('Zgubiony portf'))];
+    ok('klawiatura: Tab dochodzi kolejno do „Zobacz demonstrację” w nagłówku, „Pomiń film”, filmu, „Zobacz demonstrację” w otwarciu i trzech przykładów (jak na ekranie telefonu)', kol.every((x, n) => x >= 0 && (n === 0 || x > kol[n - 1])), kroki.map((k) => k.el + ' ' + k.tekst));
     await ctx.close(); }
 
   // 5. „Pomiń film” prowadzi do prawdziwej demonstracji (sprawdzony build aplikacji, bajt w bajt); bezpośredni adres na telefonie i komputerze.
   { const { ctx, p } = await nowa(390, { hasTouch: true, isMobile: true }); await p.goto(A + '/'); await p.waitForTimeout(500);
     await p.tap('.pomin'); await p.waitForURL(A + '/aplikacja/'); await p.waitForSelector('#entry:not([hidden])', { timeout: 20000 });
     ok('telefon: dotknięcie „Pomiń film” otwiera demonstrację (ekran wejścia aplikacji)', (await p.title()) === 'Co chcesz załatwić?'); await ctx.close(); }
-  // Skróty ze strony prowadzą prosto do scenariuszy (kotwice #pismo, #oc i #portfel w aplikacji), bez ekranów wejścia; „Otwórz demo” do wejścia demo.
+  // Skróty ze strony prowadzą prosto do scenariuszy (kotwice #pismo, #oc i #portfel w aplikacji), bez ekranów wejścia; „Zobacz demonstrację” do wejścia demo.
   // Przejście każdej ścieżki do końca scenariusza: testy/sciezki-test.js.
   for (const [w, h] of [[320, 568], [390, 844]]) {
     for (const [etykieta, kotwica, tytul] of [['Pismo z urzędu', '#pismo', 'Pismo z urzędu'], ['Kończy się OC', '#oc', 'Koniec polisy OC'], ['Zgubiony portfel', '#portfel', 'Zgubiony portfel']]) {
@@ -150,7 +151,7 @@ const czekaj = (p, fn, ms) => p.waitForFunction(fn, null, { timeout: ms || 20000
       await ctx.close(); } }
   { const { ctx, p } = await nowa(320, { hasTouch: true, isMobile: true }); await p.setViewportSize({ width: 320, height: 568 }); await p.goto(A + '/'); await p.waitForTimeout(500);
     await p.tap('#otworz-demo'); await p.waitForURL(A + '/aplikacja/'); await p.waitForSelector('#entry:not([hidden])', { timeout: 20000 });
-    ok('320 px: „Otwórz demo” otwiera demonstrację od ekranu wejścia', (await p.title()) === 'Co chcesz załatwić?'); await ctx.close(); }
+    ok('320 px: „Zobacz demonstrację” otwiera demonstrację od ekranu wejścia', (await p.title()) === 'Co chcesz załatwić?'); await ctx.close(); }
   { const html = await (await fetch(A + '/aplikacja/')).arrayBuffer();
     ok('/aplikacja/ to sprawdzony build aplikacji bajt w bajt (MD5 ' + APLIKACJA_MD5.slice(0, 8) + ')', crypto.createHash('md5').update(Buffer.from(html)).digest('hex') === APLIKACJA_MD5); }
   for (const w of [390, 1280]) {
@@ -176,7 +177,7 @@ const czekaj = (p, fn, ms) => p.waitForFunction(fn, null, { timeout: ms || 20000
     const linki = await p.evaluate(() => ({ kroki: [...document.querySelectorAll('.krok a')].map((a) => a.getAttribute('href')), demo: document.querySelector('.demo-akcje .btn').getAttribute('href') }));
     ok('demonstracja: linki kroków prowadzą do #pismo, #oc i wejścia demo; przycisk do /aplikacja/', linki.kroki.join() === 'aplikacja/#pismo,aplikacja/#oc,aplikacja/' && linki.demo === 'aplikacja/', linki);
     await p.click('.demo-akcje .btn'); await p.waitForURL(A + '/aplikacja/'); await p.waitForSelector('#entry:not([hidden])', { timeout: 20000 });
-    ok('demonstracja: „Otwórz demonstrację” otwiera aplikację, bez błędów', (await p.title()) === 'Co chcesz załatwić?' && log.bledy.length === 0, log.bledy); await ctx.close(); }
+    ok('demonstracja: „Zobacz demonstrację” otwiera aplikację, bez błędów', (await p.title()) === 'Co chcesz załatwić?' && log.bledy.length === 0, log.bledy); await ctx.close(); }
   { const { ctx, p } = await nowa(390, { hasTouch: true, isMobile: true }); await p.goto(A + '/#demonstracja'); await p.waitForTimeout(1000);
     const r = await p.evaluate(() => { const e = document.getElementById('ekrany'); return { przewijany: e.scrollWidth > e.clientWidth + 50, stos: e.classList.contains('stos') && getComputedStyle(e).display === 'block', bok: document.documentElement.scrollWidth - innerWidth,
       podpisy: [...e.querySelectorAll('figcaption')].filter((f) => f.getClientRects().length).length }; });
@@ -218,22 +219,38 @@ const czekaj = (p, fn, ms) => p.waitForFunction(fn, null, { timeout: ms || 20000
       // Runda 29: wyjątek na prośbę autora: hasło na czerwonej planszy otwarcia (i puste rzędy w tle) w Archivo 900, jak plansze filmu v8.
       naglowki: [...document.querySelectorAll('h1, h2, h3, dt, .logo')].filter((e) => !e.closest('.plansza')).map((e) => [e.tagName, getComputedStyle(e).fontFamily.split(',')[0].replace(/"/g, ''), +getComputedStyle(e).fontWeight]),
       plansza: [...document.querySelectorAll('.plansza h1, .plansza .rzad-polowa')].map((e) => [getComputedStyle(e).fontFamily.split(',')[0].replace(/"/g, ''), +getComputedStyle(e).fontWeight]),
-      tekst: getComputedStyle(document.querySelector('.krok p')).fontFamily.split(',')[0].replace(/"/g, ''), pogrubione: [...document.querySelectorAll('main *, header *, footer *')].filter((e) => !e.closest('.plansza') && e.childElementCount === 0 && e.textContent.trim() && +getComputedStyle(e).fontWeight >= 700).map((e) => e.textContent.trim().slice(0, 20)) }));
-    ok('typografia: nagłówki w Poltawski Nowy (waga najwyżej 500), tekst w Atkinson Hyperlegible Next, nic w wadze 700+ poza planszą otwarcia (Archivo 900, jak w filmie); fonty z własnego adresu',
-      t.fonty.includes('Poltawski Nowy') && t.fonty.includes('Archivo Plansza') && t.plansza.length === 5 && t.plansza.every((x) => x[0] === 'Archivo Plansza' && x[1] === 900) && t.naglowki.every((n) => n[1] === 'Poltawski Nowy' && n[2] <= 500) && t.tekst === 'Atkinson Hyperlegible Next' && t.pogrubione.length === 0 && !log.zadania.some((u) => /plex/i.test(u)), t);
+      tekst: getComputedStyle(document.querySelector('.krok p')).fontFamily.split(',')[0].replace(/"/g, ''), pogrubione: [...document.querySelectorAll('main *, header *, footer *')].filter((e) => !e.closest('.plansza, h2, h3') && e.childElementCount === 0 && e.textContent.trim() && +getComputedStyle(e).fontWeight >= 700).map((e) => e.textContent.trim().slice(0, 20)),
+      znak: ['.logo', '.stopka-nazwa', '.stopka-slogan'].map((q) => getComputedStyle(document.querySelector(q)).fontFamily.split(',')[0].replace(/"/g, '')),
+      przycisk: [getComputedStyle(document.querySelector('#otworz-demo')).fontFamily.split(',')[0].replace(/"/g, ''), +getComputedStyle(document.querySelector('#otworz-demo')).fontWeight] }));
+    // Runda 32: Newsreader (redakcyjny) w nagłówkach 600–700 i w przyciskach; znak „Spinka” w Poltawski Nowy jak w aplikacji; tekst w Atkinson.
+    ok('typografia: nagłówki w Newsreader (600–700), znak „Spinka” w Poltawski Nowy, tekst w Atkinson Hyperlegible Next, pogrubienie 700+ tylko w planszy i nagłówkach; fonty z własnego adresu',
+      t.fonty.includes('Newsreader') && t.fonty.includes('Poltawski Nowy') && t.fonty.includes('Archivo Plansza') && t.plansza.length === 5 && t.plansza.every((x) => x[0] === 'Archivo Plansza' && x[1] === 900) && t.naglowki.filter((n) => n[0] !== 'A').every((n) => n[1] === 'Newsreader' && n[2] >= 600 && n[2] <= 700) && t.znak.every((f) => f === 'Poltawski Nowy') && t.przycisk[0] === 'Newsreader' && t.tekst === 'Atkinson Hyperlegible Next' && t.pogrubione.length === 0 && !log.zadania.some((u) => /plex/i.test(u) || /googleapis|gstatic/.test(u) && !/aplikacja/.test(u)), t);
     const st = await p.evaluate(() => [...document.querySelectorAll('.postac-stany li')].map((li) => [li.querySelector('svg').getAttribute('class').replace('postac postac--', ''), li.textContent.trim(), li.querySelector('svg').getAttribute('aria-hidden')]));
     ok('postać: te same pięć stanów co w aplikacji (słucha, wyjaśnia, ostrzega, następny krok, gotowe) z podpisami; rysunki ukryte przed czytnikiem',
       st.map((x) => x[0]).join() === 'slucha,wyjasnia,ostrzega,krok,gotowe' && st.every((x) => x[1].length > 10 && x[2] === 'true'), st);
     // Runda 31: etapy pojawiają się po kolei przy przewijaniu; przewijamy przez sekwencję i zbieramy ruchy z każdego etapu.
-    const stany = await p.$$('.postac-stany .stan'); const ruch = []; const kolejnosc = [];
+    // Runda 32: od 960 px etapy stoją w rzędzie i pojawiają się po kolei (co 180 ms), gdy rząd wchodzi w widok; bez wyróżnienia środka.
+    const uklad = await p.evaluate(() => { const r = [...document.querySelectorAll('.postac-stany .stan')].map((e) => e.getBoundingClientRect()); return { wRzedzie: r.every((x) => Math.abs(x.top - r[0].top) < 2) && r.every((x, i) => !i || x.left > r[i - 1].right), szer: r.map((x) => Math.round(x.width)) }; });
+    await p.evaluate(() => document.querySelector('.postac-stany').scrollIntoView({ block: 'center' })); await p.waitForTimeout(260);
+    const fala = await p.evaluate(() => [...document.querySelectorAll('.postac-stany .stan')].map((e) => ({ d: e.style.getPropertyValue('--d'), krycie: +getComputedStyle(e).opacity, w: e.classList.contains('widoczne') })));
+    const strzalki = await p.evaluate(() => [...document.querySelectorAll('.postac-stany .stan + .stan')].map((e) => { const r = e.getBoundingClientRect(); const s = getComputedStyle(e, '::before'); return [Math.round(parseFloat(s.width)), Math.round(parseFloat(s.height))]; }));
+    ok('postać, komputer: pięć etapów w jednym rzędzie, strzałki w prawo między nimi; po wejściu w widok pojawiają się po kolei (pierwszy wcześniej niż ostatni), bez wyróżnienia środka',
+      uklad.wRzedzie && fala.every((x) => x.w) && fala.map((x) => x.d).join() === '0ms,180ms,360ms,540ms,720ms' && fala[0].krycie > fala[4].krycie && strzalki.length === 4 && strzalki.every(([w, h]) => w >= 40 && h === 3), { uklad, fala, strzalki });
+    const stany = await p.$$('.postac-stany .stan'); const ruch = [];
     for (const [i, s] of stany.entries()) { await s.evaluate((e) => e.scrollIntoView({ block: 'center' })); await p.waitForTimeout(450);
-      kolejnosc.push(await p.evaluate((i) => [...document.querySelectorAll('.postac-stany .stan')].map((e) => (e.classList.contains('widoczne') ? 1 : 0)).join(''), i));
       ruch.push(...await s.evaluate((e) => [...e.querySelectorAll('.postac-cialo, .postac-klips, .postac-strzalka, .postac-ptaszek, .postac-linia')].map((x) => getComputedStyle(x).animationName).filter((n) => n !== 'none'))); }
-    const bie = await p.evaluate(() => [...document.querySelectorAll('.postac-stany .stan.biezacy')].map((e) => e.querySelector('.stan-nazwa').textContent));
-    ok('postać: przy przewijaniu etapy pojawiają się po kolei (zawsze od pierwszego, nie wszystkie naraz), etap na środku ekranu jest wyróżniony', kolejnosc.every((k) => /^1+0*$/.test(k)) && kolejnosc[0].includes('0') && bie.length === 1 && bie[0] === 'Gotowe', { kolejnosc, biezacy: bie });
+    const bieKomp = await p.evaluate(() => document.querySelectorAll('.postac-stany .stan.biezacy').length);
+    ok('postać, komputer: żaden etap nie ma wyróżnienia środka (rząd czyta się w całości)', bieKomp === 0, bieKomp);
     await p.waitForTimeout(1800);
     const poRuchu = await p.evaluate(() => [...document.querySelectorAll('.postac-stany .postac-cialo, .postac-stany .postac-klips')].map((e) => e.getAnimations().filter((a) => a.playState === 'running').length).reduce((a, b) => a + b, 0));
     ok('postać: przy wejściu w widok każdy stan gra swój ruch raz, po ok. 1,5 s wszystko stoi (bez pętli)', ruch.length >= 5 && poRuchu === 0, { ruch, poRuchu }); await ctx.close(); }
+  { const { ctx, p } = await nowa(390, { hasTouch: true, isMobile: true }); await p.goto(A + '/'); await p.waitForTimeout(400);
+    const uklad = await p.evaluate(() => { const r = [...document.querySelectorAll('.postac-stany .stan')].map((e) => e.getBoundingClientRect()); return r.every((x, i) => !i || x.top > r[i - 1].bottom); });
+    const stany = await p.$$('.postac-stany .stan'); const kolejnosc = [];
+    for (const s of stany) { await s.evaluate((e) => e.scrollIntoView({ block: 'center' })); await p.waitForTimeout(450); kolejnosc.push(await p.evaluate(() => [...document.querySelectorAll('.postac-stany .stan')].map((e) => (e.classList.contains('widoczne') ? 1 : 0)).join(''))); }
+    const bie = await p.evaluate(() => [...document.querySelectorAll('.postac-stany .stan.biezacy')].map((e) => e.querySelector('.stan-nazwa').textContent));
+    ok('postać, telefon: etapy pionowo; przy przewijaniu pojawiają się po kolei (zawsze od pierwszego, nie wszystkie naraz), etap na środku ekranu jest wyróżniony', uklad && kolejnosc.every((k) => /^1+0*$/.test(k)) && kolejnosc[0].includes('0') && bie.length === 1 && bie[0] === 'Gotowe', { kolejnosc, biezacy: bie });
+    await ctx.close(); }
   { const { ctx, p } = await nowa(1440, { reducedMotion: 'reduce' }); await p.goto(A + '/'); await p.evaluate(() => document.querySelector('.postac-blok').scrollIntoView({ block: 'center' })); await p.waitForTimeout(300);
     const r = await p.evaluate(() => ({ animacje: [...document.querySelectorAll('.postac *')].map((e) => getComputedStyle(e).animationName).filter((n) => n !== 'none'),
       strzalka: getComputedStyle(document.querySelector('.postac-stany .postac--krok .postac-strzalka')).display, ptaszek: getComputedStyle(document.querySelector('.postac-stany .postac--gotowe .postac-ptaszek')).display }));
@@ -249,7 +266,7 @@ const czekaj = (p, fn, ms) => p.waitForFunction(fn, null, { timeout: ms || 20000
     const e = await p.evaluate(() => ({ film: document.getElementById('film-blok').hidden, panel: !document.getElementById('koniec').hidden, tekst: document.getElementById('koniec-tekst').textContent,
       powtorka: document.getElementById('jeszcze-raz').hidden, fokus: document.activeElement === document.body, scroll: scrollY, cta: document.getElementById('do-demo').getBoundingClientRect().bottom <= innerHeight }));
     e.postac = await p.evaluate(() => [...document.querySelectorAll('#koniec .postac')].filter((x) => getComputedStyle(x).display !== 'none').map((x) => x.getAttribute('class')).join());
-    ok(w + ' px bez filmu: zamiast odtwarzacza komunikat i „Przejdź do demonstracji” na pierwszym ekranie, postać w stanie „ostrzega”; fokus i przewinięcie bez zmian', /postac--ostrzega/.test(e.postac) && !/postac--krok/.test(e.postac) && e.film && e.panel && /niedostępny/.test(e.tekst) && e.powtorka && e.fokus && e.scroll === 0 && e.cta, e);
+    ok(w + ' px bez filmu: zamiast odtwarzacza komunikat i „Zobacz demonstrację” na pierwszym ekranie, postać w stanie „ostrzega”; fokus i przewinięcie bez zmian', /postac--ostrzega/.test(e.postac) && !/postac--krok/.test(e.postac) && e.film && e.panel && /niedostępny/.test(e.tekst) && e.powtorka && e.fokus && e.scroll === 0 && e.cta, e);
     const v = await axe(p); ok(w + ' px bez filmu: axe bez naruszeń', v.length === 0, v); await ctx.close(); }
 
   await b.close();

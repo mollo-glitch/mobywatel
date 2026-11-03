@@ -1,5 +1,6 @@
-// Runda 29–31: animacja godła na ekranie startowym. Korona jest związana z orłem: orzeł niesie ją nad głową (nie dalej
-// niż 14% wysokości znaku), a gdy stanie, korona wyraźnie opuszcza się na głowę (co najmniej 8% wysokości znaku) i osiada.
+// Runda 29–32: animacja godła na ekranie startowym. Korona jest związana z orłem: orzeł niesie ją wysoko nad głową
+// (nie dalej niż 18% wysokości znaku). Gdy orzeł hamuje, korona zaczyna spadać, na ekranie spada wyraźnie (co najmniej
+// 12% wysokości znaku w dół), dotyka głowy najpóźniej 0,3 s po zatrzymaniu orła i osiada nieruchomo.
 // W każdej klatce korona jest wyśrodkowana nad orłem, nie wychodzi poza ekran, a znak nie miga przy podmianie warstw.
 //   node godlo-test.js <port statyczny dist/>
 // Sprawdza w każdej wyrenderowanej klatce (requestAnimationFrame w stronie), czy podstawa korony zachodzi na głowę orła,
@@ -45,14 +46,24 @@ const RECORDER = () => {
     const min = Math.min(...zKorona.map((x) => x.styk)); const max = Math.max(...zKorona.map((x) => x.styk));
     const ostatnie = zKorona.slice(-3).map((x) => x.styk);
     const ruch = zKorona.length ? zKorona[0].oTop - zKorona[zKorona.length - 1].oTop : 0;
-    ok(nazwa + ': korona nad głową najdalej o 14% wysokości znaku (nie odlatuje)', zKorona.length > 5 && min >= -0.14 * E, zKorona.length + ' klatek, styk od ' + min.toFixed(1) + ' do ' + max.toFixed(1) + ' px, znak ' + Math.round(E) + ' px, orzeł przebył ' + Math.round(ruch) + ' px');
-    ok(nazwa + ': ruch korony w dół wyraźny (co najmniej 8% wysokości znaku), na końcu siedzi na głowie', max - min >= 0.08 * E && ostatnie.every((x) => x >= 1), 'zakres ' + (max - min).toFixed(1) + ' px, koniec ' + ostatnie.map((x) => x.toFixed(1)).join('/'));
-    ok(nazwa + ': korona nigdy nad górną krawędzią ekranu (nie spada z góry)', zKorona.every((x) => x.kTop >= 0 && x.kTop >= x.oTop - 0.22 * E));
+    ok(nazwa + ': korona nad głową najdalej o 18% wysokości znaku (nie odlatuje)', zKorona.length > 5 && min >= -0.18 * E, zKorona.length + ' klatek, styk od ' + min.toFixed(1) + ' do ' + max.toFixed(1) + ' px, znak ' + Math.round(E) + ' px, orzeł przebył ' + Math.round(ruch) + ' px');
+    ok(nazwa + ': ruch korony względem orła wyraźny (co najmniej 12% wysokości znaku), na końcu siedzi na głowie', max - min >= 0.12 * E && ostatnie.every((x) => x >= 1), 'zakres ' + (max - min).toFixed(1) + ' px, koniec ' + ostatnie.map((x) => x.toFixed(1)).join('/'));
+    ok(nazwa + ': korona nigdy nad górną krawędzią ekranu (nie spada z góry)', zKorona.every((x) => x.kTop >= 0 && x.kTop >= x.oTop - 0.26 * E));
     const krzywo = Math.max(...zKorona.map((x) => Math.abs(x.kCx - x.oCx)));
     ok(nazwa + ': korona w każdej klatce wyśrodkowana nad orłem (najwyżej 2% wysokości znaku w bok)', krzywo <= 0.02 * E, 'najwięcej ' + krzywo.toFixed(1) + ' px');
+    // Zsynchronizowanie z orłem: opad zaczyna się, gdy orzeł hamuje (zostało mu mniej niż 8% wysokości znaku drogi),
+    // korona dotyka głowy najpóźniej 300 ms po zatrzymaniu orła, a na ekranie spada w dół co najmniej o 12% wysokości znaku.
+    const kon = zKorona[zKorona.length - 1].oTop;
     const i0 = zKorona.findIndex((x) => x.styk > min + 2);
-    const orzelStoi = i0 > 2 && Math.abs(zKorona[i0].oTop - zKorona[i0 - 3].oTop) < 2;
-    ok(nazwa + ': korona zaczyna opadać dopiero, gdy orzeł stoi (ruch czytelny osobno)', orzelStoi, i0 > 2 ? 'orzeł w ostatnich 3 klatkach przed opadem: ' + (zKorona[i0 - 3].oTop - zKorona[i0].oTop).toFixed(1) + ' px' : 'brak opadu');
+    const iStop = zKorona.findIndex((x) => Math.abs(x.oTop - kon) < 0.5);
+    const iStyk = zKorona.findIndex((x, i) => i >= i0 && x.styk >= 1);
+    const drogaPrzyStarcie = i0 >= 0 ? zKorona[i0].oTop - kon : -1;
+    const poStopie = iStop >= 0 && iStyk >= 0 ? Math.round(zKorona[iStyk].t - zKorona[iStop].t) : null;
+    const najwyzej = Math.min(...zKorona.filter((x) => x.oTop - kon < 0.1 * E).map((x) => x.kTop));
+    const spadekNaEkranie = zKorona[zKorona.length - 1].kTop - najwyzej;
+    ok(nazwa + ': opad zsynchronizowany z orłem: zaczyna się, gdy orzeł hamuje, i kończy tuż po jego zatrzymaniu (do 300 ms)', i0 > 0 && drogaPrzyStarcie > 0 && drogaPrzyStarcie < 0.08 * E && poStopie !== null && poStopie <= 300,
+      'orzeł miał jeszcze ' + drogaPrzyStarcie.toFixed(1) + ' px drogi, korona dotknęła głowy ' + poStopie + ' ms po jego zatrzymaniu');
+    ok(nazwa + ': na ekranie korona wyraźnie spada w dół (co najmniej 12% wysokości znaku)', spadekNaEkranie >= 0.12 * E, spadekNaEkranie.toFixed(1) + ' px przy znaku ' + Math.round(E) + ' px');
     const od = k.findIndex((x) => x.korona); const doK = k.findIndex((x, i) => i > od && x.ukryty);
     const dziury = k.slice(od, doK < 0 ? k.length : doK).filter((x) => x.widok > 0 && !x.korona && !x.pelne).length;
     ok(nazwa + ': bez migotania (w każdej klatce widać koronę albo całe godło)', od >= 0 && dziury === 0, dziury + ' klatek bez korony');

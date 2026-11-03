@@ -37,7 +37,7 @@ const R = []; const ok = (co, w, sz) => { R.push({ co, ok: !!w }); console.log((
     await p.click('.scena[data-t="19.3"]'); await p.waitForTimeout(900);
     let s = await p.evaluate(() => { const v = document.getElementById('film'); const sp = document.getElementById('postep-spinka'); const tor = sp.parentElement.getBoundingClientRect(); const r = sp.getBoundingClientRect();
       return { czas: v.currentTime, gra: !v.paused, biezaca: document.querySelector('.scena[aria-current="true"]') ? document.querySelector('.scena[aria-current="true"]').dataset.t : null, spinka: (r.left + r.width / 2 - tor.left) / tor.width, postep: v.currentTime / v.duration }; });
-    ok('scena „Rozmowa ze Spinką” (0:19): film przewinięty i gra, scena oznaczona jako bieżąca', s.czas >= 19.3 && s.czas < 21.5 && s.gra && s.biezaca === '19.3', s);
+    ok('scena „Scenariusz ze Spinką” (0:19): film przewinięty i gra, scena oznaczona jako bieżąca', s.czas >= 19.3 && s.czas < 21.5 && s.gra && s.biezaca === '19.3', s);
     ok('spinka na torze stoi tam, gdzie film (±2%)', Math.abs(s.spinka - s.postep) < 0.02, s);
     await p.evaluate(() => document.getElementById('film').pause());
     await p.focus('.scena[data-t="24.2"]'); await p.keyboard.press('Enter'); await p.waitForTimeout(700);
@@ -58,7 +58,7 @@ const R = []; const ok = (co, w, sz) => { R.push({ co, ok: !!w }); console.log((
   { const c = await b.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true }); const p = await c.newPage(); await p.goto(A + '/'); await p.waitForTimeout(1200);
     const m = await p.evaluate(() => ({ glowaGora: 'none', glowaNizej: getComputedStyle(document.querySelector('.hero-tekst .pismo-glowa')).display,
       kolejnosc: ['#film', '#otworz-demo', '.skroty', 'main .autor', '.hero-opis', '.hero-tekst .pismo-glowa', '#sceny'].map((q) => Math.round(document.querySelector(q).getBoundingClientRect().top)), bok: document.documentElement.scrollWidth - innerWidth }));
-    ok('390: tytuł, film, „Otwórz demo”, skróty, podpis, opis, nagłówek pisma, sceny — po kolei; nic nie wystaje w bok', m.glowaGora === 'none' && m.glowaNizej !== 'none' && m.kolejnosc.every((y, i, a) => !i || y > a[i - 1]) && m.bok === 0, m);
+    ok('390: tytuł, film, „Zobacz demonstrację”, przykłady, podpis, opis, nagłówek pisma, sceny — po kolei; nic nie wystaje w bok', m.glowaGora === 'none' && m.glowaNizej !== 'none' && m.kolejnosc.every((y, i, a) => !i || y > a[i - 1]) && m.bok === 0, m);
     await c.close(); }
   { const c = await b.newContext({ viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' }); const p = await c.newPage(); await p.goto(A + '/'); await p.waitForTimeout(300);
     const r = await p.evaluate(() => ({ animacje: [...document.querySelectorAll('.plansza, .plansza .linia, .rzad-tasma')].reduce((n, e) => n + e.getAnimations().length, 0), klasa: document.documentElement.classList.contains('ruch'), klip: getComputedStyle(document.querySelector('.plansza')).clipPath,

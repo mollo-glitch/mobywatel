@@ -12,7 +12,7 @@ const APLIKACJA = path.resolve(ROOT, arg('aplikacja', '../aplikacja/dist/index.h
 const ZNAK = path.resolve(ROOT, arg('znak', '../aplikacja/docs/znak-spinki'));
 const FILM = path.resolve(ROOT, arg('film', 'film-web'));
 const OUT = path.join(ROOT, 'public');
-const APLIKACJA_MD5 = process.env.APLIKACJA_MD5 || '709415b97131f7cb037690fe60c47757'; // runda 31: korona wyraźnie opuszcza się na głowę, gdy orzeł stanie
+const APLIKACJA_MD5 = process.env.APLIKACJA_MD5 || 'e7d2fffc2a86e10bc4146c91cdf97e0b'; // runda 32: korona spada na głowę, gdy orzeł hamuje
 // Wersja filmu: v9 (prawdziwy ekran aktualnej aplikacji, napisy plansz) domyślnie; v8 zostaje do porównania (--wersja-filmu v8).
 const WERSJA = /^v\d+$/.test(arg('wersja-filmu', 'v9')) ? arg('wersja-filmu', 'v9') : 'v9';
 const PLIKI = { mp4: 'spinka-film-' + WERSJA + '.mp4', plakat: 'spinka-film-' + WERSJA + '-plakat.jpg', vtt: 'spinka-film-' + WERSJA + '.pl.vtt' };
@@ -73,6 +73,8 @@ fs.copyFileSync(path.join(ZNAK, 'spinka-znak-bez-odznaki.svg'), path.join(OUT, '
 for (const f of fs.readdirSync(path.join(ROOT, 'src/fonty'))) fs.copyFileSync(path.join(ROOT, 'src/fonty', f), path.join(OUT, 'fonty', f));
 // Zrzuty prawdziwych ekranów aplikacji do sekcji „Demonstracja” (tworzy je narzedzia/zrzuty-aplikacji.js).
 for (const f of fs.readdirSync(path.join(ROOT, 'src/obrazy'))) fs.copyFileSync(path.join(ROOT, 'src/obrazy', f), path.join(OUT, 'obrazy', f));
+// Ikony karty przeglądarki (uproszczony znak Spinki: favicon.svg, PNG 16/32/48, apple-touch-icon) w katalogu głównym strony.
+for (const f of fs.readdirSync(path.join(ROOT, 'src/ikony'))) fs.copyFileSync(path.join(ROOT, 'src/ikony', f), path.join(OUT, f));
 // Podgląd lokalny: wariant aplikacji z postacią Spinki (do oceny, nie do publikacji).
 if (flag('z-wariantem')) { const w = path.join(path.dirname(APLIKACJA), 'wariant-postaci.html'); if (fs.existsSync(w)) fs.copyFileSync(w, path.join(OUT, 'aplikacja/wariant-postaci.html')); else stop('brak ' + w + ' (node build.mjs --wariant-postaci w aplikacji)'); }
 for (const k of Object.keys(PLIKI)) if (jest(k)) fs.copyFileSync(path.join(FILM, PLIKI[k]), path.join(OUT, 'film', PLIKI[k]));

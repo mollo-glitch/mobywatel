@@ -16,10 +16,14 @@
 <meta property="og:description" content="Nieoficjalny prototyp konkursowy: film o projekcie i działająca demonstracja z fikcyjnymi danymi.">
 <meta property="og:type" content="website">
 <meta property="og:locale" content="pl_PL">
-<link rel="icon" type="image/svg+xml" href="znak.svg">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preload" href="fonty/atkinson-hyperlegible-next-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonty/newsreader-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonty/newsreader-latin-ext.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonty/poltawski-nowy-latin.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="fonty/poltawski-nowy-latin-ext.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonty/archivo-900-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonty/archivo-900-latin-ext.woff2" as="font" type="font/woff2" crossorigin>
 <!--film:preload-plakatu-->
@@ -37,6 +41,13 @@
 @font-face { font-family: "Archivo Plansza"; font-style: normal; font-weight: 900; font-display: swap;
   src: url(fonty/archivo-900-latin.woff2) format("woff2");
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+/* Newsreader (Production Type, OFL 1.1): krój redakcyjny z osią rozmiaru optycznego; nagłówki i zdania do czytania z bliska. */
+@font-face { font-family: "Newsreader"; font-style: normal; font-weight: 200 800; font-display: swap;
+  src: url(fonty/newsreader-latin-ext.woff2) format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: "Newsreader"; font-style: normal; font-weight: 200 800; font-display: swap;
+  src: url(fonty/newsreader-latin.woff2) format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
 /* Poltawski Nowy: rewitalizacja antykwy Adama Półtawskiego (lata 20.), kroju rysowanego z myślą o polskich znakach. OFL 1.1. */
 @font-face { font-family: "Poltawski Nowy"; font-style: normal; font-weight: 400 700; font-display: swap;
   src: url(fonty/poltawski-nowy-latin-ext.woff2) format("woff2");
@@ -46,8 +57,9 @@
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
 
 /* Kolory z aplikacji (build 27): jasne tło, granat jako tusz, czerwień tylko na działaniu i na spince.
-   Dwa kroje: Poltawski Nowy w nagłówkach i zdaniach do czytania z bliska, Atkinson Hyperlegible Next w tekście i sterowaniu.
-   Hierarchia rozmiarem i krojem, nie pogrubieniem: nagłówki w wadze 400–500. */
+   Runda 32: Newsreader (redakcyjny, mocny: nagłówki 600–700, duża skala) w nagłówkach, zdaniach wstępu i przyciskach;
+   Atkinson Hyperlegible Next w tekście i sterowaniu (krój do czytania przy słabszym wzroku); Poltawski Nowy tylko w znaku
+   „Spinka” (logo, stopka, podpis), jak w aplikacji. Tekst ciągły nigdy pogrubiony. */
 :root {
   color-scheme: only light;
   --tlo: #EEF1F6; --tlo-2: #E1E6EF; --karta: #FFFFFF; --rog-kolor: #C9D0DD;
@@ -56,11 +68,12 @@
   --czerwien: #C8102E; --czerwien-ciemna: #A90D26;
   --fokus: #1D4E9E; --fokus-jasny: #A9C2F5;
   --font: "Atkinson Hyperlegible Next", "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --font-glowa: "Poltawski Nowy", Georgia, "Times New Roman", serif;
+  --font-glowa: "Newsreader", Georgia, "Times New Roman", serif;
+  --font-znak: "Poltawski Nowy", Georgia, "Times New Roman", serif;
   --margines: max(16px, min(4.5vw, 64px), env(safe-area-inset-left), env(safe-area-inset-right));
   --szer: 1312px;
   --t-tytul: clamp(2.125rem, .9rem + 6.2vw, 6.25rem);
-  --t-h2: clamp(1.75rem, 1rem + 3vw, 3.75rem);
+  --t-h2: clamp(1.75rem, .9rem + 3.9vw, 4.5rem);
   --t-wyr: clamp(1.25rem, 1.1rem + .5vw, 1.5rem);
   --t-tekst: clamp(1.0625rem, 1rem + .2vw, 1.125rem);
   --t-drobne: .9375rem;
@@ -75,7 +88,7 @@ a { color: inherit; text-underline-offset: .2em; text-decoration-thickness: .08e
 a, button { touch-action: manipulation; }
 :focus-visible { outline: 3px solid var(--fokus); outline-offset: 3px; border-radius: 2px; }
 .pole-granat :focus-visible, .stopka :focus-visible, .pasek-proto :focus-visible { outline-color: var(--fokus-jasny); }
-h1, h2, h3, dt { font-family: var(--font-glowa); font-weight: 400; margin: 0; text-wrap: balance; font-kerning: normal; }
+h1, h2, h3, dt { font-family: var(--font-glowa); font-weight: 600; margin: 0; text-wrap: balance; font-kerning: normal; font-optical-sizing: auto; }
 p { margin: 0; text-wrap: pretty; }
 strong { font-weight: 600; }
 img { max-width: 100%; height: auto; }
@@ -91,18 +104,22 @@ img { max-width: 100%; height: auto; }
 
 /* Nagłówek: znak z nazwą, dwa odnośniki, jedno działanie. */
 .naglowek { display: flex; align-items: center; gap: 12px; min-height: 72px; }
-.logo { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; font-family: var(--font-glowa); font-weight: 500; font-size: 1.5rem; letter-spacing: -.01em; min-height: 44px; }
+.logo { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; font-family: var(--font-znak); font-weight: 500; font-size: 1.5rem; letter-spacing: -.01em; min-height: 44px; }
 .logo svg { flex: none; }
 .nav { margin-left: auto; display: flex; align-items: center; gap: 4px; }
 .nav a:not(.btn) { display: inline-flex; align-items: center; min-height: 44px; padding: 0 12px; text-decoration: none; }
 .nav a:not(.btn):hover { text-decoration: underline; text-decoration-color: var(--czerwien); text-decoration-thickness: 2px; }
 .nav .btn { margin-left: 8px; min-height: 44px; padding: 0 18px; }
-/* Na telefonie „Otwórz demo” jest w otwarciu tuż niżej; w nagłówku zostaje sam odnośnik do demonstracji. */
+/* Na telefonie „Zobacz demonstrację” jest w otwarciu tuż niżej; w nagłówku zostaje sam odnośnik do demonstracji. */
 @media (max-width: 719px) { .nav a.nav-dalej, .nav a.btn { display: none; } .nav a:not(.btn) { padding: 0 4px; } .naglowek { min-height: 56px; } .logo { font-size: 1.375rem; } }
 
 /* Przyciski: prostokątne jak druk, jeden kolor wypełnienia. Bez pigułek. */
-.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 52px; padding: 0 26px; border-radius: 2px; background: var(--czerwien); color: #FFFFFF; font-weight: 600; text-decoration: none; transition: background-color .15s ease, transform .2s var(--krzywa); }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 52px; padding: 0 24px 0 26px; border-radius: 3px; background: var(--czerwien); color: #FFFFFF; font-family: var(--font-glowa); font-size: 1.1875rem; letter-spacing: -.005em; font-weight: 600; text-decoration: none; transition: background-color .15s ease, transform .2s var(--krzywa); }
 .btn:hover { background: var(--czerwien-ciemna); }
+/* Przycisk mówi, dokąd prowadzi, i ma strzałkę jak odnośniki ze spisu spraw. */
+.btn::after { content: "→"; content: "→" / ""; transition: transform .2s var(--krzywa); }
+.btn:hover::after { transform: translateX(3px); }
+.nav .btn { font-size: 1.0625rem; }
 .btn-cichy { min-height: 44px; padding: 0 4px; border: 0; background: none; font: inherit; color: var(--tusz); text-decoration: underline; text-underline-offset: .2em; cursor: pointer; }
 .btn-cichy:hover { color: var(--czerwien-ciemna); }
 .btn-cichy[hidden] { display: none; }
@@ -194,18 +211,18 @@ main { position: relative; z-index: 0; }
 @media (max-width: 959px) { .akcje { margin-top: 0; } }
 /* Skróty: trzy sprawy z demonstracji jak pozycje spisu (krój nagłówków, czerwone podkreślenie, strzałka) i po każdej
    kilka słów, co w niej sprawdzisz. Każdy prowadzi do działającego scenariusza (kotwice #pismo, #oc, #portfel w aplikacji). */
-.skroty { display: grid; justify-items: start; margin-top: 16px; }
+.skroty { display: grid; justify-items: start; row-gap: 2px; margin-top: 18px; }
 .skroty-tytul { font-size: var(--t-drobne); line-height: 1.35; color: var(--szary); }
-.skrot { display: inline-flex; flex-wrap: wrap; align-items: baseline; align-content: center; column-gap: 12px; min-height: 44px; padding: 4px 0; font-family: var(--font-glowa); font-weight: 500; font-size: var(--t-wyr); line-height: 1.25; color: var(--tusz); text-decoration: none; transition: color .15s ease; }
+.skrot { display: grid; align-content: center; row-gap: 1px; min-height: 44px; padding: 5px 0; font-family: var(--font-glowa); font-weight: 600; font-size: var(--t-wyr); line-height: 1.25; color: var(--tusz); text-decoration: none; transition: color .15s ease; }
 .skrot-nazwa { text-decoration: underline; text-decoration-color: var(--czerwien); text-decoration-thickness: 2px; text-underline-offset: .3em; }
 .skrot-nazwa::after { content: "→"; content: "→" / ""; display: inline-block; margin-left: 6px; color: var(--czerwien); transition: transform .2s var(--krzywa); }
-.skrot-opis { font-family: var(--font); font-weight: 400; font-size: var(--t-drobne); color: var(--szary); }
+.skrot-opis { display: block; font-family: var(--font); font-weight: 400; font-size: var(--t-drobne); line-height: 1.35; color: var(--szary); }
 .skrot:hover { color: var(--czerwien-ciemna); }
-@media (max-width: 479px) { .skroty { margin-top: 10px; } .skrot { column-gap: 10px; font-size: clamp(1rem, .8rem + 1.1vw, 1.125rem); } .skrot-nazwa::after { margin-left: 4px; } .akcje .btn { width: 100%; } }
+@media (max-width: 479px) { .skroty { margin-top: 12px; } .skrot { font-size: clamp(1.0625rem, .85rem + 1.1vw, 1.1875rem); } .skrot-nazwa::after { margin-left: 4px; } .akcje .btn { width: 100%; } }
 /* Autor jak podpis pod pismem: rola drobnym krojem, nazwisko antykwą, czerwona kreska na marginesie. */
 .autor { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 8px; margin-top: 32px; padding: 2px 0 2px 16px; border-left: 4px solid var(--czerwien); font-size: var(--t-tekst); }
 .autor-rola { color: var(--szary); font-size: var(--t-drobne); }
-.autor-imie { font-family: var(--font-glowa); font-size: 1.375rem; line-height: 1.2; letter-spacing: -.01em; }
+.autor-imie { font-family: var(--font-znak); font-size: 1.375rem; line-height: 1.2; letter-spacing: -.01em; }
 @media (max-width: 959px) { .autor { margin-top: 20px; } }
 
 /* Film bez kartki: linia z opisem i „Pomiń film” jak nagłówek załącznika, obraz w cienkiej ramce, pod nim tor postępu. */
@@ -273,7 +290,7 @@ video::cue { font-family: var(--font); background: rgba(19, 26, 42, .86); color:
 
 /* Sekcje */
 .sekcja { padding: var(--sekcja) 0; scroll-margin-top: 0; }
-.sekcja h2 { font-size: var(--t-h2); line-height: 1.06; letter-spacing: -.015em; }
+.sekcja h2 { font-size: var(--t-h2); font-weight: 700; line-height: 1.02; letter-spacing: -.022em; }
 .lead { font-family: var(--font-glowa); font-size: var(--t-wyr); line-height: 1.4; margin-top: 22px; max-width: 34rem; }
 
 /* Demonstracja: granatowe pole, po lewej trzy kroki sprawy z kreską na marginesie, po prawej prawdziwe ekrany przypięte spinkami. */
@@ -287,7 +304,7 @@ video::cue { font-family: var(--font); background: rgba(19, 26, 42, .86); color:
 .kroki { list-style: none; margin: 36px 0 0; padding: 0; display: grid; gap: 4px; }
 .krok { position: relative; padding: 14px 0 16px 26px; }
 .krok::before { content: ""; position: absolute; left: 0; top: 18px; bottom: 20px; width: 4px; border-radius: 1px; background: var(--granat-2); transition: background-color .25s ease; }
-.krok h3 { font-size: var(--t-wyr); font-weight: 500; line-height: 1.2; color: var(--na-granacie-2); transition: color .25s ease; }
+.krok h3 { font-size: var(--t-wyr); font-weight: 600; line-height: 1.2; color: var(--na-granacie-2); transition: color .25s ease; }
 .krok p { margin-top: 6px; color: var(--na-granacie-2); }
 .krok a { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; margin-top: 2px; font-weight: 600; color: #FFFFFF; text-decoration-color: var(--czerwien); text-decoration-thickness: 2px; }
 .krok a span { transition: transform .2s var(--krzywa); }
@@ -321,7 +338,7 @@ video::cue { font-family: var(--font); background: rgba(19, 26, 42, .86); color:
 .zasady { list-style: none; margin: 32px 0 0; padding: 0; display: grid; gap: 22px; counter-reset: z; }
 .zasady li { position: relative; padding-left: 52px; counter-increment: z; }
 .zasady li::before { content: counter(z); position: absolute; left: 0; top: -.15em; font-family: var(--font-glowa); font-size: 2.25rem; line-height: 1; color: var(--czerwien-ciemna); }
-.zasady h3 { font-size: var(--t-wyr); font-weight: 500; line-height: 1.2; }
+.zasady h3 { font-size: var(--t-wyr); font-weight: 600; line-height: 1.2; }
 .zasady p { margin-top: 6px; }
 .dane-ekrany { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: clamp(16px, 2.4vw, 32px); align-items: start; }
 .dane-ekrany .ekran-plaski:nth-child(2) { margin-top: clamp(24px, 5vw, 72px); }
@@ -341,10 +358,10 @@ video::cue { font-family: var(--font); background: rgba(19, 26, 42, .86); color:
 .podpis svg { flex: none; }
 .podpis p { flex: 1; padding-bottom: 10px; border-bottom: 3px solid var(--tusz); }
 .podpis-rola { font-size: var(--t-drobne); color: var(--szary); }
-.podpis-imie { display: block; margin-top: 2px; font-family: var(--font-glowa); font-size: calc(var(--t-wyr) * 1.5); line-height: 1.1; letter-spacing: -.01em; }
+.podpis-imie { display: block; margin-top: 2px; font-family: var(--font-znak); font-size: calc(var(--t-wyr) * 1.5); line-height: 1.1; letter-spacing: -.01em; }
 .fakty { margin: 0; display: grid; gap: 36px 48px; }
 @media (min-width: 640px) { .fakty { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-.fakt dt { font-size: var(--t-wyr); font-weight: 500; line-height: 1.2; padding-top: 18px; position: relative; }
+.fakt dt { font-size: var(--t-wyr); font-weight: 600; line-height: 1.2; padding-top: 18px; position: relative; }
 .fakt dt::before { content: ""; position: absolute; left: 0; top: 0; width: 40px; height: 4px; border-radius: 1px; background: var(--tusz); }
 .fakt:first-child dt::before { background: var(--czerwien); }
 .fakt dd { margin: 8px 0 0; }
@@ -369,50 +386,62 @@ video::cue { font-family: var(--font); background: rgba(19, 26, 42, .86); color:
 .postac--gotowe .postac-ptaszek { display: inline; }
 .postac--gotowe .postac-klips { transform: translateY(-3px) rotate(-18deg); }
 .postac-blok { grid-column: 1 / -1; display: grid; gap: 28px; padding-top: 8px; }
-/* Stany Spinki jako sekwencja: pionowa lista z dużymi rysunkami i podpisami, między etapami czerwona strzałka w dół.
-   Przy przewijaniu każdy etap pojawia się, gdy wchodzi w dolną część ekranu (strzałka dorysowuje się do niego), a etap
-   na środku ekranu jest wyróżniony białym tłem. Na komputerze opis po lewej stoi w miejscu, gdy lista przewija się obok.
-   Bez skryptu i przy ograniczonym ruchu wszystkie etapy są od razu widoczne, bez ruchu. Tekst zawsze w pełnym kolorze. */
-@media (min-width: 960px) { .postac-blok { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: clamp(40px, 6vw, 112px); align-items: start; }
-  .postac-opis { position: sticky; top: clamp(88px, 16vh, 168px); } }
-.postac-blok h3 { font-size: clamp(1.625rem, 1.2rem + 1.6vw, 2.5rem); font-weight: 500; line-height: 1.15; }
+/* Stany Spinki jako sekwencja. Telefon i tablet: pionowa lista z dużymi rysunkami i podpisami, między etapami czerwona
+   strzałka w dół; etap pojawia się, gdy wchodzi w dolną część ekranu, a etap na środku ekranu ma białe tło. Od 960 px:
+   pięć etapów w rzędzie, strzałki w prawo; gdy rząd wchodzi w widok, etapy pojawiają się po kolei (co 180 ms, razem
+   poniżej 1,2 s), bez przypinania i bez blokowania przewijania. Bez skryptu i przy ograniczonym ruchu wszystko od razu
+   widoczne, bez ruchu. Tekst zawsze w pełnym kolorze. */
+.postac-opis { max-width: 44rem; }
+.postac-blok h3 { font-size: clamp(1.75rem, 1.15rem + 2.2vw, 3rem); font-weight: 700; line-height: 1.05; letter-spacing: -.018em; }
 .postac-opis p { margin-top: 12px; max-width: 30rem; }
 .postac-stany { --ik: clamp(84px, 9vw, 128px); --odst: clamp(40px, 5vw, 64px); list-style: none; margin: 0; padding: 0; }
 .stan { position: relative; display: grid; grid-template-columns: var(--ik) minmax(0, 1fr); column-gap: clamp(16px, 3vw, 36px); align-items: center; padding: 12px 16px; border-radius: 14px; transition: background-color .35s ease, box-shadow .35s ease; }
 .stan + .stan { margin-top: var(--odst); }
 .stan-ikona { display: block; }
 .stan .postac { display: block; width: var(--ik); height: auto; }
-.stan-nazwa { display: block; font-family: var(--font-glowa); font-weight: 500; font-size: clamp(1.375rem, 1.05rem + 1.1vw, 2rem); line-height: 1.15; letter-spacing: -.01em; }
+.stan-nazwa { display: block; font-family: var(--font-glowa); font-weight: 600; font-size: clamp(1.375rem, 1.05rem + 1.1vw, 2rem); line-height: 1.15; letter-spacing: -.01em; }
 .stan-opis { display: block; margin-top: 4px; max-width: 26rem; font-size: var(--t-tekst); line-height: 1.45; }
 /* Strzałka do następnego etapu: kreska w odstępie nad etapem i grot tuż nad jego rysunkiem. */
 .stan + .stan::before, .stan + .stan::after { content: ""; position: absolute; left: calc(16px + var(--ik) / 2); background: var(--czerwien); }
 .stan + .stan::before { bottom: calc(100% + 4px); width: 3px; margin-left: -1.5px; height: calc(var(--odst) - 6px); border-radius: 2px; transform-origin: top; }
 .stan + .stan::after { bottom: calc(100% - 6px); width: 16px; height: 11px; margin-left: -8px; clip-path: polygon(0 0, 100% 0, 50% 100%); }
 .stan.biezacy { background: var(--karta); box-shadow: 0 1px 0 rgba(19, 26, 42, .06), 0 10px 28px -16px rgba(19, 26, 42, .35); }
+@media (min-width: 960px) {
+  .postac-stany { --ik: clamp(104px, 8.6vw, 136px); --odst: clamp(40px, 3.8vw, 64px); display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); column-gap: var(--odst); align-items: start; margin-top: 8px; }
+  .stan { grid-template-columns: minmax(0, 1fr); row-gap: 16px; align-items: start; padding: 0; }
+  .stan + .stan { margin-top: 0; }
+  .stan-opis { max-width: 15rem; }
+  .stan + .stan::before { left: calc(-1 * (var(--odst) + 100% - var(--ik)) + 12px); top: calc(var(--ik) / 2 - 1.5px); bottom: auto; width: calc(var(--odst) + 100% - var(--ik) - 30px); height: 3px; margin: 0; transform-origin: left center; }
+  .stan + .stan::after { left: -13px; top: calc(var(--ik) / 2 - 8px); bottom: auto; width: 11px; height: 16px; margin: 0; clip-path: polygon(0 0, 100% 50%, 0 100%); }
+  .stan.biezacy { background: none; box-shadow: none; }
+}
 @media (max-width: 479px) { .postac-stany { --ik: 76px; --odst: 36px; } .stan { padding: 10px 12px; } .stan + .stan::before, .stan + .stan::after { left: calc(12px + var(--ik) / 2); } }
 
 /* Stopka: nazwa wraca na całą szerokość, w antykwie. */
 .stopka { position: relative; overflow: hidden; isolation: isolate; color: var(--na-granacie); padding: clamp(64px, 8vw, 120px) 0 calc(40px + env(safe-area-inset-bottom));
   background: radial-gradient(70% 65% at 86% 22%, rgba(58, 108, 168, .30), rgba(58, 108, 168, 0) 70%), radial-gradient(55% 60% at 4% 100%, rgba(118, 196, 168, .13), rgba(118, 196, 168, 0) 70%), linear-gradient(168deg, #131A2A 0%, #142038 58%, #12283A 100%); background-color: var(--granat); }
-/* Tło stopki: uproszczony, ręcznie wyznaczony kontur Polski (abstrakcja, nie mapa urzędowa) z kropek w seledynie, cienka
-   linia brzegu w chłodnym błękicie i siatka południków i równoleżników co 1°, wygaszona ku brzegom. Bardzo przygaszone, za treścią, ukryte
-   przed czytnikiem; nie zachodzi na noty i odnośniki u dołu. Kolory: granat, chłodny błękit, seledyn. */
+/* Tło stopki (runda 32): duży, cichy orzeł z kropek w seledynie na granacie z poświatą chłodnego błękitu. Kształt to
+   sylwetka orła z ekranu startowego aplikacji (maska obrazy/orzel-maska.webp), cały i niezniekształcony, bez czerwieni
+   i bez napisów; bardzo przygaszony, za treścią, ukryty przed czytnikiem; nie zachodzi na odnośniki i noty. Noty mówią
+   wprost, że to nieoficjalny prototyp bez związku z administracją. Bez obsługi masek orła nie ma (zostaje samo tło). */
 .stopka > .kontener { position: relative; z-index: 1; }
-.stopka-mapa { position: absolute; z-index: 0; top: clamp(28px, 4vw, 64px); right: max(-40px, calc(var(--margines) - 64px)); width: clamp(260px, 34vw, 500px); height: auto; pointer-events: none; }
-.mapa-siatka { fill: none; stroke: #8FB3E0; stroke-opacity: .12; stroke-width: 1; vector-effect: non-scaling-stroke; }
-#stopka-kropki circle { fill: #A6DCC7; }
-.mapa-kropki { opacity: .3; }
-.mapa-kontur { fill: none; stroke: #9DC1EA; stroke-opacity: .45; stroke-width: 1.5; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
-@media (max-width: 719px) { .stopka-mapa { top: 16px; right: -16vw; width: 72vw; opacity: .8; } }
-.stopka-nazwa { display: flex; align-items: flex-end; gap: clamp(12px, 2vw, 28px); font-family: var(--font-glowa); font-weight: 400; font-size: clamp(4.5rem, 17vw, 15.5rem); line-height: .8; letter-spacing: -.03em; }
+.stopka-orzel { display: none; }
+@supports ((mask-image: url("x.webp")) or (-webkit-mask-image: url("x.webp"))) {
+  .stopka-orzel { display: block; position: absolute; z-index: 0; top: clamp(16px, 2.6vw, 44px); right: max(-28px, calc(var(--margines) - 48px)); width: clamp(260px, 33vw, 500px); aspect-ratio: 1; pointer-events: none;
+    -webkit-mask: url(obrazy/orzel-maska.webp) center / contain no-repeat; mask: url(obrazy/orzel-maska.webp) center / contain no-repeat;
+    background: radial-gradient(circle, rgba(166, 220, 199, .7) 0 1.1px, rgba(166, 220, 199, 0) 1.45px) 0 0 / 7px 7px, linear-gradient(170deg, rgba(143, 179, 224, .16), rgba(118, 196, 168, .08));
+    opacity: .3; }
+}
+@media (max-width: 719px) { .stopka-orzel { top: 10px; right: -14vw; width: 72vw; opacity: .26; } }
+.stopka-nazwa { display: flex; align-items: flex-end; gap: clamp(12px, 2vw, 28px); font-family: var(--font-znak); font-weight: 400; font-size: clamp(4.5rem, 17vw, 15.5rem); line-height: .8; letter-spacing: -.03em; }
 .stopka-nazwa svg { flex: none; width: .56em; height: .56em; margin-bottom: .02em; }
 .stopka-uklad { display: grid; gap: 28px; margin-top: clamp(36px, 5vw, 64px); }
 @media (min-width: 960px) { .stopka-uklad { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 64px; } }
 /* Hasło Spinki jako podpis znaku: tuż pod nazwą, od linii tekstu nazwy (za znakiem), antykwą; jedyne hasło w stopce. */
-.stopka-slogan { margin-top: calc(clamp(4.5rem, 17vw, 15.5rem) * .24); padding-left: calc(clamp(4.5rem, 17vw, 15.5rem) * .56 + clamp(12px, 2vw, 28px)); font-family: var(--font-glowa); font-size: clamp(1.5rem, 1rem + 2.2vw, 3rem); line-height: 1.15; letter-spacing: -.01em; color: #FFFFFF; }
+.stopka-slogan { margin-top: calc(clamp(4.5rem, 17vw, 15.5rem) * .24); padding-left: calc(clamp(4.5rem, 17vw, 15.5rem) * .56 + clamp(12px, 2vw, 28px)); font-family: var(--font-znak); font-size: clamp(1.5rem, 1rem + 2.2vw, 3rem); line-height: 1.15; letter-spacing: -.01em; color: #FFFFFF; }
 /* Pytanie nad znakiem przygotowuje hasło: „Masz za dużo na głowie? / Spinka / spina sprawy, nie Ciebie.” czyta się jak jedno
    zdanie. Mniejsze i przygaszone, żeby nie konkurowało z hasłem; wyrównane do tej samej linii co hasło (pod napisem „Spinka”). */
-.stopka-pytanie { margin-bottom: calc(clamp(4.5rem, 17vw, 15.5rem) * .12); padding-left: calc(clamp(4.5rem, 17vw, 15.5rem) * .56 + clamp(12px, 2vw, 28px)); font-family: var(--font-glowa); font-size: clamp(1.125rem, .85rem + 1.2vw, 1.75rem); line-height: 1.2; color: var(--na-granacie-2); }
+.stopka-pytanie { margin-bottom: calc(clamp(4.5rem, 17vw, 15.5rem) * .12); padding-left: calc(clamp(4.5rem, 17vw, 15.5rem) * .56 + clamp(12px, 2vw, 28px)); font-family: var(--font-znak); font-size: clamp(1.125rem, .85rem + 1.2vw, 1.75rem); line-height: 1.2; color: var(--na-granacie-2); }
 @media (max-width: 479px) { .stopka-slogan, .stopka-pytanie { padding-left: 0; } }
 .stopka .autor-stopka { font-size: var(--t-tekst); color: var(--na-granacie-2); }
 .stopka-linki { display: flex; flex-wrap: wrap; gap: 0 20px; }
@@ -433,6 +462,7 @@ video::cue { font-family: var(--font); background: rgba(19, 26, 42, .86); color:
   .ruch .stan.widoczne { opacity: 1; transform: none; }
   .ruch .stan + .stan::before { transform: scaleY(0); transition: transform .4s var(--krzywa) var(--d, 0ms); }
   .ruch .stan + .stan::after { opacity: 0; transition: opacity .2s ease calc(var(--d, 0ms) + .3s); }
+  @media (min-width: 960px) { .ruch .stan { transform: translateY(18px); } .ruch .stan + .stan::before { transform: scaleX(0); } }
   .ruch .stan.widoczne::before { transform: none; }
   .ruch .stan.widoczne::after { opacity: 1; }
   /* Postać: każdy ruch raz, gdy postać wchodzi w widok albo pojawia się panel końca. Bez pętli i bez podskakiwania w miejscu. */
@@ -471,10 +501,10 @@ video::cue { font-family: var(--font); background: rgba(19, 26, 42, .86); color:
 <div class="kontener naglowek wejscie" style="--i:0">
   <a class="logo" href="./"><!--znak:bez-odznaki:36--><span translate="no">Spinka</span></a>
   <nav class="nav" aria-label="Strona">
-    <a href="#demonstracja">Demonstracja</a>
+    <a href="#demonstracja">Trzy sprawy</a>
     <a class="nav-dalej" href="#dane">Twoje dane</a>
     <a class="nav-dalej" href="#o-projekcie">O projekcie</a>
-    <a class="btn" href="aplikacja/">Otwórz demo</a>
+    <a class="btn" href="aplikacja/">Zobacz demonstrację</a>
   </nav>
 </div>
 </header>
@@ -493,14 +523,14 @@ video::cue { font-family: var(--font); background: rgba(19, 26, 42, .86); color:
       <div class="hero-film">
         <figure class="film wejscie" style="--i:3" id="film-blok">
           <figcaption class="film-pod" id="film-pod">
-            <span id="film-info">Sprawa OC: od koperty na Starcie do przypomnienia</span>
+            <span id="film-info">Kończące się OC w prototypie, krok po kroku</span>
             <a class="pomin" href="aplikacja/">Pomiń film <span aria-hidden="true">→</span></a>
           </figcaption>
           <div class="film-obraz">
             <video id="film" controls playsinline preload="metadata" width="1920" height="1080"<!--film:poster--> aria-describedby="film-info">
               <source id="film-zrodlo" src="<!--film:mp4-->" type="video/mp4">
               <!--film:track-->
-              <p>Ta przeglądarka nie odtwarza filmu. <a href="aplikacja/">Przejdź do demonstracji</a>.</p>
+              <p>Ta przeglądarka nie odtwarza filmu. <a href="aplikacja/">Zobacz demonstrację</a>.</p>
             </video>
           </div>
           <div class="postep" aria-hidden="true"><span class="postep-pasek" id="postep-pasek"></span><svg class="postep-spinka" id="postep-spinka" viewBox="0 0 12 25" focusable="false"><rect width="12" height="25" rx="6" fill="#C8102E"/><rect x="4.25" y="5" width="3.5" height="14" rx="1.75" fill="#FFFFFF"/></svg></div>
@@ -509,19 +539,19 @@ video::cue { font-family: var(--font); background: rgba(19, 26, 42, .86); color:
           <span class="koniec-postac" aria-hidden="true"><!--postac:krok:64--><!--postac:ostrzega:64--></span>
           <p class="koniec-tekst" id="koniec-tekst">Następny krok: sprawdź Spinkę w działaniu.</p>
           <div class="koniec-akcje">
-            <a class="btn" id="do-demo" href="aplikacja/">Przejdź do demonstracji</a>
+            <a class="btn" id="do-demo" href="aplikacja/">Zobacz demonstrację</a>
             <button type="button" class="btn-cichy" id="jeszcze-raz">Obejrzyj jeszcze raz</button>
           </div>
         </div>
       </div>
       <div class="hero-tekst">
         <p class="hero-opis wejscie" style="--i:3"><span translate="no">Spinka</span> to asystent spraw w koncepcji aplikacji mObywatel. Pokazuje, czego dotyczy pismo, do kiedy masz czas i co się stanie po każdej decyzji.</p>
-        <div class="akcje wejscie" style="--i:4"><a class="btn" id="otworz-demo" href="aplikacja/">Otwórz demo</a></div>
+        <div class="akcje wejscie" style="--i:4"><a class="btn" id="otworz-demo" href="aplikacja/">Zobacz demonstrację</a></div>
         <div class="skroty wejscie" style="--i:4" role="group" aria-labelledby="skroty-tytul">
-          <span class="skroty-tytul" id="skroty-tytul">Albo zacznij od sprawy:</span>
-          <a class="skrot" href="aplikacja/#pismo"><span class="skrot-nazwa">Pismo z urzędu</span><span class="sr-only">: </span><span class="skrot-opis">termin i co dalej</span></a>
-          <a class="skrot" href="aplikacja/#oc"><span class="skrot-nazwa">Kończy się OC</span><span class="sr-only">: </span><span class="skrot-opis">zostać czy zmienić</span></a>
-          <a class="skrot" href="aplikacja/#portfel"><span class="skrot-nazwa">Zgubiony portfel</span><span class="sr-only">: </span><span class="skrot-opis">co zastrzec najpierw</span></a>
+          <span class="skroty-tytul" id="skroty-tytul">Albo zacznij od przykładu:</span>
+          <a class="skrot" href="aplikacja/#pismo"><span class="skrot-nazwa">Pismo z urzędu</span><span class="sr-only">: </span><span class="skrot-opis">do kiedy odpowiedzieć i co, jeśli nie odpowiesz</span></a>
+          <a class="skrot" href="aplikacja/#oc"><span class="skrot-nazwa">Kończy się OC</span><span class="sr-only">: </span><span class="skrot-opis">czy polisa przedłuży się sama i co możesz zmienić</span></a>
+          <a class="skrot" href="aplikacja/#portfel"><span class="skrot-nazwa">Zgubiony portfel</span><span class="sr-only">: </span><span class="skrot-opis">co zastrzec od razu, a co może poczekać</span></a>
         </div>
         <p class="autor wejscie" style="--i:5"><span class="autor-rola">Koncepcja i projekt aplikacji:</span> <span class="autor-imie" translate="no">Igor M.</span></p>
         <dl class="pismo-glowa"><div><dt>Data w prototypie</dt><dd><!--data-pokazu--></dd></div><div><dt>W sprawie</dt><dd>asystenta spraw w koncepcji aplikacji mObywatel</dd></div></dl>
@@ -529,12 +559,12 @@ video::cue { font-family: var(--font); background: rgba(19, 26, 42, .86); color:
       <nav class="sceny wejscie" style="--i:5" id="sceny" aria-labelledby="sceny-tytul">
         <p class="sceny-tytul" id="sceny-tytul">Sceny filmu</p>
         <ol>
-          <li><button type="button" class="scena" data-t="0"><span class="scena-czas">0:00</span><span class="scena-nazwa">Plansze: pismo, termin i pytanie</span></button></li>
-          <li><button type="button" class="scena" data-t="12"><span class="scena-czas">0:12</span><span class="scena-nazwa">Start: koperta „Kończy się OC”</span></button></li>
-          <li><button type="button" class="scena" data-t="15"><span class="scena-czas">0:15</span><span class="scena-nazwa">Koperta: czego dotyczy i do kiedy</span></button></li>
-          <li><button type="button" class="scena" data-t="19.3"><span class="scena-czas">0:19</span><span class="scena-nazwa">Rozmowa ze Spinką</span></button></li>
-          <li><button type="button" class="scena" data-t="24.2"><span class="scena-czas">0:24</span><span class="scena-nazwa">Trzy możliwości ze skutkami</span></button></li>
-          <li><button type="button" class="scena" data-t="29.4"><span class="scena-czas">0:29</span><span class="scena-nazwa">Przypomnienie, nic nie wysłane</span></button></li>
+          <li><button type="button" class="scena" data-t="0"><span class="scena-czas">0:00</span><span class="scena-nazwa">Wstęp: pismo, termin, pytanie</span></button></li>
+          <li><button type="button" class="scena" data-t="12"><span class="scena-czas">0:12</span><span class="scena-nazwa">Ekran Start: kończy się OC</span></button></li>
+          <li><button type="button" class="scena" data-t="15"><span class="scena-czas">0:15</span><span class="scena-nazwa">Co to znaczy i do kiedy</span></button></li>
+          <li><button type="button" class="scena" data-t="19.3"><span class="scena-czas">0:19</span><span class="scena-nazwa">Scenariusz ze Spinką</span></button></li>
+          <li><button type="button" class="scena" data-t="24.2"><span class="scena-czas">0:24</span><span class="scena-nazwa">Trzy możliwości i ich skutki</span></button></li>
+          <li><button type="button" class="scena" data-t="29.4"><span class="scena-czas">0:29</span><span class="scena-nazwa">Przypomnienie, nic nie wysłano</span></button></li>
         </ol>
       </nav>
       <!--film:tekst-->
@@ -552,21 +582,21 @@ video::cue { font-family: var(--font); background: rgba(19, 26, 42, .86); color:
           <li class="krok odslona aktywny" style="--i:2" data-ekran="pismo">
             <h3>Pismo z urzędu</h3>
             <p>Czego dotyczy, do kiedy odpowiedzieć i co się stanie, jeśli nic nie zrobisz. Wszystko w jednym oknie.</p>
-            <a href="aplikacja/#pismo">Otwórz sprawę pisma <span aria-hidden="true">→</span></a>
+            <a href="aplikacja/#pismo">Przykład: pismo z urzędu <span aria-hidden="true">→</span></a>
           </li>
           <li class="krok odslona" style="--i:3" data-ekran="wybor">
             <h3>Skutek przed decyzją</h3>
             <p>Przy każdej możliwości widać, co się stanie i czy cokolwiek zostanie wysłane.</p>
-            <a href="aplikacja/#oc">Otwórz sprawę OC <span aria-hidden="true">→</span></a>
+            <a href="aplikacja/#oc">Przykład: kończy się OC <span aria-hidden="true">→</span></a>
           </li>
           <li class="krok odslona" style="--i:4" data-ekran="przypomnienie">
             <h3>Przypomnienie bez wysyłania</h3>
             <p>Przypomnienie ustawiasz po podsumowaniu. Do urzędu ani do ubezpieczyciela nic nie trafia.</p>
-            <a href="aplikacja/">Otwórz demo od początku <span aria-hidden="true">→</span></a>
+            <a href="aplikacja/">Demonstracja od początku <span aria-hidden="true">→</span></a>
           </li>
         </ol>
         <div class="demo-akcje odslona" style="--i:5">
-          <a class="btn" href="aplikacja/">Otwórz demonstrację</a>
+          <a class="btn" href="aplikacja/">Zobacz demonstrację</a>
           <span class="adres">Bezpośredni adres: <code>/aplikacja/</code></span>
         </div>
         <p class="drobne odslona" style="--i:5">Działa w przeglądarce na telefonie i komputerze, bez logowania i instalacji.</p>
@@ -649,7 +679,7 @@ video::cue { font-family: var(--font); background: rgba(19, 26, 42, .86); color:
 </main>
 
 <footer class="stopka">
-  <svg class="stopka-mapa" viewBox="0 0 646 620" aria-hidden="true" focusable="false"><defs><pattern id="stopka-kropki" width="9" height="9" patternUnits="userSpaceOnUse"><circle cx="4.5" cy="4.5" r="1.7"/></pattern><radialGradient id="stopka-zanik"><stop offset=".45" stop-color="#fff"/><stop offset="1" stop-color="#000"/></radialGradient><mask id="stopka-maska"><rect width="100%" height="100%" fill="url(#stopka-zanik)"/></mask></defs><path class="mapa-siatka" mask="url(#stopka-maska)" d="M67.7 0V620M129.3 0V620M190.9 0V620M252.4 0V620M314.0 0V620M375.6 0V620M437.1 0V620M498.7 0V620M560.3 0V620M621.8 0V620M0 600.0H646M0 500.0H646M0 400.0H646M0 300.0H646M0 200.0H646M0 100.0H646"/><path class="mapa-kropki" d="M19.1 107.0 33.9 107.0 54.2 97.0 73.9 90.0 103.4 82.0 129.3 73.0 153.9 56.0 181.6 41.0 203.2 30.0 224.7 24.0 252.4 18.0 272.7 16.0 280.1 22.0 301.7 39.0 299.8 42.0 283.2 29.0 286.3 48.0 288.1 56.0 294.3 62.0 310.9 64.0 341.7 62.0 352.8 55.0 363.2 58.0 406.3 63.0 455.6 67.0 498.7 65.0 547.3 64.0 563.3 70.0 581.8 78.0 591.0 97.0 591.7 105.0 594.1 125.0 603.3 160.0 616.9 185.0 617.5 205.0 615.7 225.0 597.2 248.0 581.8 268.0 589.8 280.0 598.4 293.0 597.2 309.0 594.1 324.0 594.1 345.0 600.3 365.0 609.5 383.0 621.8 400.0 631.1 413.0 624.9 442.0 618.7 460.0 588.0 476.0 563.3 497.0 556.6 520.0 546.7 540.0 538.7 553.0 544.9 575.0 551.6 598.0 533.2 592.0 500.5 578.0 486.4 562.0 461.7 557.0 440.2 558.0 427.9 567.0 412.5 560.0 397.1 560.0 384.8 570.0 380.5 581.0 369.4 580.0 363.2 562.0 357.1 553.0 346.6 543.0 326.3 558.0 312.1 550.0 304.8 548.0 289.4 525.0 286.3 508.0 270.9 507.0 258.6 500.0 237.0 480.0 227.8 473.0 215.5 473.0 203.2 462.0 187.8 456.0 184.7 467.0 181.6 480.0 169.3 489.0 157.0 475.0 147.8 462.0 142.2 457.0 147.8 445.0 141.6 436.0 129.3 430.0 117.0 426.0 98.5 418.0 86.2 407.0 73.9 402.0 67.7 413.0 56.6 413.0 67.1 390.0 65.9 367.0 51.1 345.0 52.3 320.0 50.5 305.0 49.3 293.0 40.0 268.0 44.3 242.0 30.8 230.0 15.4 215.0 27.7 195.0 30.8 175.0 24.6 160.0 22.8 130.0Z" fill="url(#stopka-kropki)"/><path class="mapa-kontur" d="M19.1 107.0 33.9 107.0 54.2 97.0 73.9 90.0 103.4 82.0 129.3 73.0 153.9 56.0 181.6 41.0 203.2 30.0 224.7 24.0 252.4 18.0 272.7 16.0 280.1 22.0 301.7 39.0 299.8 42.0 283.2 29.0 286.3 48.0 288.1 56.0 294.3 62.0 310.9 64.0 341.7 62.0 352.8 55.0 363.2 58.0 406.3 63.0 455.6 67.0 498.7 65.0 547.3 64.0 563.3 70.0 581.8 78.0 591.0 97.0 591.7 105.0 594.1 125.0 603.3 160.0 616.9 185.0 617.5 205.0 615.7 225.0 597.2 248.0 581.8 268.0 589.8 280.0 598.4 293.0 597.2 309.0 594.1 324.0 594.1 345.0 600.3 365.0 609.5 383.0 621.8 400.0 631.1 413.0 624.9 442.0 618.7 460.0 588.0 476.0 563.3 497.0 556.6 520.0 546.7 540.0 538.7 553.0 544.9 575.0 551.6 598.0 533.2 592.0 500.5 578.0 486.4 562.0 461.7 557.0 440.2 558.0 427.9 567.0 412.5 560.0 397.1 560.0 384.8 570.0 380.5 581.0 369.4 580.0 363.2 562.0 357.1 553.0 346.6 543.0 326.3 558.0 312.1 550.0 304.8 548.0 289.4 525.0 286.3 508.0 270.9 507.0 258.6 500.0 237.0 480.0 227.8 473.0 215.5 473.0 203.2 462.0 187.8 456.0 184.7 467.0 181.6 480.0 169.3 489.0 157.0 475.0 147.8 462.0 142.2 457.0 147.8 445.0 141.6 436.0 129.3 430.0 117.0 426.0 98.5 418.0 86.2 407.0 73.9 402.0 67.7 413.0 56.6 413.0 67.1 390.0 65.9 367.0 51.1 345.0 52.3 320.0 50.5 305.0 49.3 293.0 40.0 268.0 44.3 242.0 30.8 230.0 15.4 215.0 27.7 195.0 30.8 175.0 24.6 160.0 22.8 130.0Z"/></svg>
+  <div class="stopka-orzel" aria-hidden="true"></div>
   <div class="kontener">
     <div class="stopka-znak odslona">
       <p class="stopka-pytanie">Masz za dużo na&nbsp;głowie?</p>
@@ -662,12 +692,12 @@ video::cue { font-family: var(--font); background: rgba(19, 26, 42, .86); color:
       </div>
       <div>
         <nav class="stopka-linki" aria-label="Stopka">
-          <a href="aplikacja/">Otwórz demo</a>
-          <a href="#demonstracja">Demonstracja</a>
+          <a href="aplikacja/">Zobacz demonstrację</a>
+          <a href="#demonstracja">Trzy sprawy</a>
           <a href="#o-projekcie">O projekcie</a>
         </nav>
         <div class="stopka-noty">
-          <p><span translate="no">Spinka</span>: nieoficjalny prototyp konkursowy. Nie jest stroną ani usługą administracji publicznej.</p>
+          <p><span translate="no">Spinka</span>: nieoficjalny prototyp konkursowy. Nie jest stroną ani usługą administracji publicznej i nie ma jej poparcia.</p>
           <p>Strona nie używa analityki ani plików cookie. Demonstracja pobiera czcionki z Google Fonts. <!--asystent:stopka--></p>
         </div>
       </div>
@@ -682,21 +712,31 @@ if (document.documentElement.classList.contains('ruch')) {
     { rootMargin: '0px 0px -6% 0px', threshold: 0.1 });
   document.querySelectorAll('.odslona').forEach((el) => obs.observe(el));
 }
-// Stany Spinki: etap pojawia się, gdy wchodzi w dolną część ekranu (kilka naraz: po kolei, co 160 ms); etap na środku
-// ekranu ma białe tło. Bez .ruch etapy stoją widoczne, wyróżnienie środka działa też przy ograniczonym ruchu (bez animacji).
+// Stany Spinki. Telefon: etap pojawia się, gdy wchodzi w dolną część ekranu (kilka naraz: po kolei, co 160 ms), a etap
+// na środku ekranu ma białe tło. Od 960 px etapy stoją w rzędzie: gdy rząd wchodzi w widok, pojawiają się po kolei co 180 ms.
+// Bez .ruch etapy stoją widoczne; wyróżnienie środka działa też przy ograniczonym ruchu (bez animacji).
 (() => {
-  const stany = [...document.querySelectorAll('.postac-stany .stan')];
+  const lista = document.querySelector('.postac-stany');
+  const stany = lista ? [...lista.querySelectorAll('.stan')] : [];
   if (!stany.length || !('IntersectionObserver' in window)) return;
+  const poziomo = matchMedia('(min-width: 960px)');
   if (document.documentElement.classList.contains('ruch')) {
-    const o = new IntersectionObserver((wpisy) => {
-      wpisy.filter((w) => w.isIntersecting).map((w) => w.target).sort((a, b) => stany.indexOf(a) - stany.indexOf(b)).forEach((el, k) => {
-        el.style.setProperty('--d', (k * 160) + 'ms'); el.classList.add('widoczne'); o.unobserve(el); });
+    const pokaz = (els, krok) => els.forEach((el, k) => { el.style.setProperty('--d', (k * krok) + 'ms'); el.classList.add('widoczne'); });
+    const rzad = new IntersectionObserver((wpisy) => {
+      if (!poziomo.matches || !wpisy.some((w) => w.isIntersecting)) return;
+      pokaz(stany.filter((el) => !el.classList.contains('widoczne')), 180); rzad.disconnect(); pion.disconnect();
+    }, { rootMargin: '0px 0px -12% 0px', threshold: 0.25 });
+    const pion = new IntersectionObserver((wpisy) => {
+      if (poziomo.matches) return;
+      const nowe = wpisy.filter((w) => w.isIntersecting).map((w) => w.target).sort((a, b) => stany.indexOf(a) - stany.indexOf(b));
+      pokaz(nowe, 160); nowe.forEach((el) => pion.unobserve(el));
     }, { rootMargin: '0px 0px -18% 0px', threshold: 0.35 });
-    stany.forEach((el) => o.observe(el));
+    rzad.observe(lista); stany.forEach((el) => pion.observe(el));
   }
-  const srodek = new IntersectionObserver((wpisy) => wpisy.forEach((w) => { if (w.isIntersecting) stany.forEach((el) => el.classList.toggle('biezacy', el === w.target)); }),
+  const srodek = new IntersectionObserver((wpisy) => wpisy.forEach((w) => { if (w.isIntersecting && !poziomo.matches) stany.forEach((el) => el.classList.toggle('biezacy', el === w.target)); }),
     { rootMargin: '-45% 0px -45% 0px' });
   stany.forEach((el) => srodek.observe(el));
+  poziomo.addEventListener('change', () => { if (poziomo.matches) stany.forEach((el) => el.classList.remove('biezacy')); });
 })();
 // Demonstracja: wskazanie kroku (najechanie, fokus, dotknięcie) wysuwa na wierzch jego ekran. Bez skryptu ekrany stoją obok siebie.
 (() => {
