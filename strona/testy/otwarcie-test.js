@@ -23,9 +23,10 @@ const R = []; const ok = (co, w, sz) => { R.push({ co, ok: !!w }); console.log((
     const rz = await p.evaluate(() => [...document.querySelectorAll('.rzad')].map((r) => { const t = r.querySelector('.rzad-tasma'); const a = t.getAnimations()[0]; const pol = [...t.children];
       return { n: a && a.animationName, iter: a && a.effect.getComputedTiming().iterations, czas: a && a.effect.getComputedTiming().duration, polowa: pol[0].getBoundingClientRect().width, rowne: pol.length === 2 && pol[0].innerHTML === pol[1].innerHTML && Math.abs(pol[0].getBoundingClientRect().width - pol[1].getBoundingClientRect().width) < 0.5, ekran: innerWidth }; }));
     ok('rzędy słów: pętla bez końca i bez skoku (dwie identyczne połowy szersze od ekranu), wolno: 20–40 px/s, w przeciwne strony', rz.length === 2 && rz.every((x) => x.iter === Infinity && x.rowne && x.polowa > x.ekran && x.polowa / (x.czas / 1000) >= 20 && x.polowa / (x.czas / 1000) <= 40) && rz[0].n !== rz[1].n, rz.map((x) => ({ n: x.n, pxs: +(x.polowa / (x.czas / 1000)).toFixed(1), polowa: Math.round(x.polowa), rowne: x.rowne })));
-    const pauza = async () => p.evaluate(() => { const b = document.getElementById('plansza-pauza'); return { widoczny: !b.hidden && b.getBoundingClientRect().height >= 44, wcisniety: b.getAttribute('aria-pressed'), napis: b.textContent.trim(), stan: [...document.querySelectorAll('.rzad-tasma')].map((t) => t.getAnimations()[0].playState) }; });
-    const p0 = await pauza(); await p.focus('#plansza-pauza'); await p.keyboard.press('Enter'); await p.waitForTimeout(200); const p1 = await pauza(); await p.click('#plansza-pauza'); await p.waitForTimeout(200); const p2 = await pauza();
-    ok('przycisk „Zatrzymaj ruch”: widoczny (44 px), zatrzymuje oba rzędy z klawiatury, „Wznów ruch” wznawia', p0.widoczny && p0.stan.every((x) => x === 'running') && p1.wcisniety === 'true' && p1.napis === 'Wznów ruch' && p1.stan.every((x) => x === 'paused') && p2.wcisniety === 'false' && p2.stan.every((x) => x === 'running'), { p0, p1, p2 });
+    // Runda 31, na prośbę autora: bez widocznego przycisku pauzy; rzędy grają same i stają poza ekranem.
+    const stan = () => p.evaluate(() => ({ przycisk: !!document.getElementById('plansza-pauza') || document.querySelectorAll('.plansza button').length > 0, gra: [...document.querySelectorAll('.rzad-tasma')].map((t) => t.getAnimations()[0].playState) }));
+    const s0 = await stan(); await p.evaluate(() => scrollTo(0, 2000)); await p.waitForTimeout(500); const s1 = await stan(); await p.evaluate(() => scrollTo(0, 0)); await p.waitForTimeout(500); const s2 = await stan();
+    ok('rzędy grają same, bez przycisku pauzy; stają, gdy plansza jest poza ekranem, i wracają po powrocie', !s0.przycisk && s0.gra.every((x) => x === 'running') && s1.gra.every((x) => x === 'paused') && s2.gra.every((x) => x === 'running'), { s0, s1, s2 });
     const st = await p.evaluate(() => { const s = document.querySelector('.stopka-slogan'); const f = document.querySelector('.stopka'); return { slogan: s.textContent.replace(/\s+/g, ' ').trim(), obokZnaku: !!s.closest('.stopka-znak') && !!document.querySelector('.stopka-znak .stopka-nazwa svg'), hasloStrony: f.textContent.includes('Każda sprawa ma następny krok'), slogany: f.querySelectorAll('.stopka-slogan, .stopka-haslo').length }; });
     ok('stopka: jedno hasło „Spinka — spina sprawy, nie Ciebie.” przy znaku Spinki, bez drugiego hasła obok', st.slogan === 'Spinka — spina sprawy, nie Ciebie.' && st.obokZnaku && !st.hasloStrony && st.slogany === 1, st);
     // Runda 30b: pytanie „Masz za dużo na głowie?” nad znakiem (wstęp do hasła), mniejsze od hasła, raz na stronie; odrzucone warianty nie występują.
@@ -36,7 +37,7 @@ const R = []; const ok = (co, w, sz) => { R.push({ co, ok: !!w }); console.log((
     await p.click('.scena[data-t="19.3"]'); await p.waitForTimeout(900);
     let s = await p.evaluate(() => { const v = document.getElementById('film'); const sp = document.getElementById('postep-spinka'); const tor = sp.parentElement.getBoundingClientRect(); const r = sp.getBoundingClientRect();
       return { czas: v.currentTime, gra: !v.paused, biezaca: document.querySelector('.scena[aria-current="true"]') ? document.querySelector('.scena[aria-current="true"]').dataset.t : null, spinka: (r.left + r.width / 2 - tor.left) / tor.width, postep: v.currentTime / v.duration }; });
-    ok('scena „Zapytaj Spinkę” (0:19): film przewinięty i gra, scena oznaczona jako bieżąca', s.czas >= 19.3 && s.czas < 21.5 && s.gra && s.biezaca === '19.3', s);
+    ok('scena „Rozmowa ze Spinką” (0:19): film przewinięty i gra, scena oznaczona jako bieżąca', s.czas >= 19.3 && s.czas < 21.5 && s.gra && s.biezaca === '19.3', s);
     ok('spinka na torze stoi tam, gdzie film (±2%)', Math.abs(s.spinka - s.postep) < 0.02, s);
     await p.evaluate(() => document.getElementById('film').pause());
     await p.focus('.scena[data-t="24.2"]'); await p.keyboard.press('Enter'); await p.waitForTimeout(700);
@@ -61,8 +62,8 @@ const R = []; const ok = (co, w, sz) => { R.push({ co, ok: !!w }); console.log((
     await c.close(); }
   { const c = await b.newContext({ viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' }); const p = await c.newPage(); await p.goto(A + '/'); await p.waitForTimeout(300);
     const r = await p.evaluate(() => ({ animacje: [...document.querySelectorAll('.plansza, .plansza .linia, .rzad-tasma')].reduce((n, e) => n + e.getAnimations().length, 0), klasa: document.documentElement.classList.contains('ruch'), klip: getComputedStyle(document.querySelector('.plansza')).clipPath,
-      pauza: getComputedStyle(document.getElementById('plansza-pauza')).display }));
-    ok('ograniczony ruch: plansza od razu w stanie końcowym, słowa w tle stoją, bez przycisku pauzy (nic się nie rusza)', r.animacje === 0 && !r.klasa && r.pauza === 'none', r);
+      przycisk: !!document.getElementById('plansza-pauza') }));
+    ok('ograniczony ruch: plansza od razu w stanie końcowym, słowa w tle stoją (nic się nie rusza, przycisk niepotrzebny)', r.animacje === 0 && !r.klasa && !r.przycisk, r);
     await c.close(); }
   { const c = await b.newContext({ viewport: { width: 1280, height: 800 } }); const p = await c.newPage(); await p.goto(B + '/'); await p.waitForTimeout(1500);
     const m = await p.evaluate(() => ({ sceny: document.getElementById('sceny').hidden, film: document.getElementById('film-blok').hidden, koniec: !document.getElementById('koniec').hidden }));

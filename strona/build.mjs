@@ -12,7 +12,7 @@ const APLIKACJA = path.resolve(ROOT, arg('aplikacja', '../aplikacja/dist/index.h
 const ZNAK = path.resolve(ROOT, arg('znak', '../aplikacja/docs/znak-spinki'));
 const FILM = path.resolve(ROOT, arg('film', 'film-web'));
 const OUT = path.join(ROOT, 'public');
-const APLIKACJA_MD5 = process.env.APLIKACJA_MD5 || '12ea552323495a156429190b5e41f41a'; // runda 30: korona opada na głowę orła i osiada
+const APLIKACJA_MD5 = process.env.APLIKACJA_MD5 || '709415b97131f7cb037690fe60c47757'; // runda 31: korona wyraźnie opuszcza się na głowę, gdy orzeł stanie
 // Wersja filmu: v9 (prawdziwy ekran aktualnej aplikacji, napisy plansz) domyślnie; v8 zostaje do porównania (--wersja-filmu v8).
 const WERSJA = /^v\d+$/.test(arg('wersja-filmu', 'v9')) ? arg('wersja-filmu', 'v9') : 'v9';
 const PLIKI = { mp4: 'spinka-film-' + WERSJA + '.mp4', plakat: 'spinka-film-' + WERSJA + '-plakat.jpg', vtt: 'spinka-film-' + WERSJA + '.pl.vtt' };
@@ -55,7 +55,7 @@ html = html.replace('<!--film:preload-plakatu-->', jest('plakat') ? '<link rel="
 html = html.replace('<!--film:track-->', jest('vtt') ? '<track kind="captions" srclang="pl" label="Polski" src="film/' + PLIKI.vtt + '" default>' : '');
 const esc = (t) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const tekst = jest('mp4') && fs.existsSync(path.join(FILM, TEKST)) ? fs.readFileSync(path.join(FILM, TEKST), 'utf8').split('\n').map((l) => l.trim()).filter(Boolean) : [];
-html = html.replace('<!--film:tekst-->', tekst.length ? '<details class="tekst-filmu wejscie" style="--i:6"><summary>Tekst z filmu</summary><ol>' +
+html = html.replace('<!--film:tekst-->', tekst.length ? '<details class="tekst-filmu wejscie" style="--i:6"><summary>Tekst filmu i opis obrazu</summary><ol>' +
   tekst.map((l) => '<li>' + esc(l).replace(/^\[(.*?)\]\s*/, '<span class="opis-obrazu">$1</span> ') + '</li>').join('') + '</ol></details>' : '');
 // Asystent: czy aplikacja ma adres serwera z modelem (ASSISTANT_ENDPOINT przy budowaniu aplikacji). Teksty na stronie mówią prawdę o tej wersji.
 const zSerwerem = /<meta name="assistant-endpoint"/.test(String(app).slice(0, 4000));

@@ -1,7 +1,7 @@
 # Spinka: strona projektu
 
-Statyczna strona projektu: na pierwszym ekranie (także 320 × 568) przycisk „Otwórz demo”, skróty „Pismo z urzędu”
-(`aplikacja/#pismo`) i „Kończy się OC” (`aplikacja/#oc`) prosto do scenariuszy, film z paskiem postępu zsynchronizowanym
+Statyczna strona projektu: na pierwszym ekranie (także 320 × 568) przycisk „Otwórz demo”, trzy skróty „Pismo z urzędu”
+(`aplikacja/#pismo`), „Kończy się OC” (`aplikacja/#oc`) i „Zgubiony portfel” (`aplikacja/#portfel`) prosto do scenariuszy, film z paskiem postępu zsynchronizowanym
 z czasem filmu i „Pomiń film”; po końcu filmu „Przejdź do demonstracji”; demonstracja pod `/aplikacja/` i krótka informacja
 o projekcie. Film niczego nie blokuje: do demo prowadzi jedno dotknięcie.
 Bez frameworka, bez analityki, bez plików cookie, bez zależności w przeglądarce. Działa na dowolnym hostingu plików statycznych.
@@ -18,7 +18,8 @@ Bez frameworka, bez analityki, bez plików cookie, bez zależności w przegląda
 | `podglad.mjs` | lokalny serwer `public/` z obsługą Range (przewijanie wideo) |
 | `src/obrazy/` | zrzuty prawdziwych ekranów aplikacji (WebP): trzy do „Demonstracji”, dwa ekrany Profilu do „Asystent mówi, skąd wie” |
 | `narzedzia/zrzuty-aplikacji.js` | odtwarza `src/obrazy/` z działającego buildu aplikacji (Playwright, Pillow); aplikacji nie zmienia |
-| `testy/otwarcie-test.js` | otwarcie z rund 29–30: plansza (wiersze hasła na 12 szerokościach, rzędy słów, prędkość i kierunek, „Zatrzymaj ruch” myszą i klawiaturą, ograniczony ruch), hasło marki w stopce, nagłówek pisma i data zgodna z aplikacją, brak przypiętej kartki w otwarciu i w „Twoich danych”, sceny filmu myszą i klawiaturą, spinka na torze, sceny ukryte bez filmu |
+| `testy/otwarcie-test.js` | otwarcie z rund 29–31: plansza (wiersze hasła na 12 szerokościach, rzędy słów, prędkość i kierunek, ruch staje poza ekranem i wraca, brak przycisku pauzy, ograniczony ruch), hasło marki i pytanie w stopce, nagłówek pisma i data zgodna z aplikacją, sceny filmu myszą i klawiaturą, spinka na torze, sceny ukryte bez filmu |
+| `testy/sciezki-test.js` | runda 31: trzy skróty „Albo zacznij od sprawy” (Pismo z urzędu, Kończy się OC, Zgubiony portfel) od strony do końca scenariusza w aplikacji: telefon 390 px dotykiem i komputer 1280 px klawiaturą; podsumowanie i „Gotowe” albo komunikat końcowy, bez błędów strony |
 | `testy/test-strony.js` | testy w Chromium: pierwszy ekran 320/390/1280, odtwarzanie, napisy, pauza, koniec, klawiatura, ograniczony ruch, stos ekranów w „Demonstracji”, nagłówki w 2 liniach, brak przewijania w bok przy 16 szerokościach, axe, `/aplikacja/`, brak filmu |
 | `public/` | wynik buildu: to wgrywa się na hosting |
 
@@ -32,12 +33,13 @@ Bez frameworka, bez analityki, bez plików cookie, bez zależności w przegląda
 
 - **Plansza jak w filmie v8 (master):** czerwone pole na całą szerokość, hasło „KAŻDA SPRAWA / MA NASTĘPNY KROK.” białym Archivo 900 wersalikami. Poniżej 960 px hasło ma trzy wiersze („KAŻDA SPRAWA / MA NASTĘPNY / KROK.”, do 72 px), od 960 px dwa (do 104 px). Rozmiar liczony z szerokości ekranu (dzielniki 8,8 i 11,8 przy zmierzonych 8,44 em i 11,44 em), więc hasło nigdy nie wychodzi poza ekran (sprawdzone od 320 do 1920 px). Archivo 900 (OFL, `src/fonty/archivo-900-*.woff2`) jest tylko na planszy; reszta strony bez zmian (Poltawski Nowy, Atkinson).
 - **Słowa w tle:** dwa rzędy „PISMO · TERMIN · DECYZJA · SPOKÓJ” pustym obrysem (biały 42%), nad hasłem i pod nim, ukryte przed czytnikiem. Rzędy płyną w przeciwne strony ze stałą prędkością 28 px/s, bez końca i bez szwu (dwie identyczne połówki, przesunięcie o 50%); krawędzie wygaszone maską, więc słowo nie jest ucięte w pół litery. Ruch staje, gdy plansza jest poza ekranem.
-- **„Zatrzymaj ruch”:** przycisk (44 px wysokości, 15 px tekstu) w prawym dolnym rogu planszy, na jednolitej czerwieni; zatrzymuje i wznawia rzędy (`aria-pressed`, „Wznów ruch”), bo ruch trwa dłużej niż 5 s (WCAG 2.2.2). Przy ograniczonym ruchu i bez skryptu rzędy stoją, a przycisku nie ma.
+- **Bez przycisku pauzy (runda 31, na prośbę autora):** rzędy grają same, stają, gdy plansza jest poza ekranem, a przy systemowym ograniczeniu ruchu i bez skryptu stoją od początku. **Uwaga:** WCAG 2.2.2 (poziom A) wymaga sposobu zatrzymania ruchu, który trwa dłużej niż 5 s i jest obok innej treści; bez przycisku strona tego kryterium nie spełnia (ograniczenie ruchu w systemie go nie zastępuje). Przycisk z rundy 30 jest w historii (`punkt-runda5b`).
 - **Przejście przy wejściu:** plansza wjeżdża od lewej (0,46 s, jak zmiana koloru w filmie), wiersze hasła odsłaniają się po kolei (całość jednorazowo, poniżej 1,2 s).
 - **Małe ekrany:** przy 320 × 568 (wysokość do 600 px) dolny rząd jest ukryty, żeby „Otwórz demo” zmieściło się blisko pierwszego ekranu.
-- **Stopka:** „Masz za dużo na głowie?” (mniejsze, przygaszone) nad znakiem i nazwą Spinki, pod nimi „spina sprawy, nie Ciebie.”, czyli jedno zdanie w trzech wierszach. Odrzucone w rundzie 30: „Spinka spina ważne sprawy” (kłóci się z „Każda sprawa…” i gubi puentę „nie Ciebie”) i „Spinka sama spina sprawy, nie ciebie” („sama” obiecuje, że asystent załatwia sprawy za użytkownika, a on tylko pokazuje następny krok; to też prawie dubel obecnego hasła).
-- **Pod planszą:** film bez przypiętej kartki (linia „Film, 0:41, z napisami” i „Pomiń film”, tor postępu z małą spinką w miejscu odtwarzania), opis, „Otwórz demo”, skróty, podpis autora i nagłówek pisma („Data w prototypie” z zegara aplikacji, „W sprawie”).
-- **Sceny filmu:** spis sześciu scen z czasem; wybór przewija film do sceny, bieżąca scena ma czerwoną kreskę (`aria-current`).
+- **Stopka:** „Masz za dużo na głowie?” (mniejsze, przygaszone) nad znakiem i nazwą Spinki, pod nimi „spina sprawy, nie Ciebie.”, czyli jedno zdanie w trzech wierszach. Odrzucone w rundzie 30: „Spinka spina ważne sprawy” (kłóci się z „Każda sprawa…” i gubi puentę „nie Ciebie”) i „Spinka sama spina sprawy, nie ciebie” („sama” obiecuje, że asystent załatwia sprawy za użytkownika, a on tylko pokazuje następny krok; to też prawie dubel obecnego hasła). Tło (runda 31): granat z poświatą chłodnego błękitu i seledynu, a po prawej uproszczony, ręcznie wyznaczony kontur Polski z kropek (seledyn), cienka linia brzegu i siatka południków i równoleżników wygaszona ku brzegom; ukryte przed czytnikiem, nie zachodzi na odnośniki i noty. To abstrakcja, nie mapa urzędowa; godła w stopce nie ma (wariant z godłem był tylko do porównania na zrzutach i nie jest zalecany, bo sugeruje oficjalny charakter). Noty nadal mówią, że to nieoficjalny prototyp konkursowy.
+- **„Spinka nie ma twarzy” (runda 31):** pięć stanów jako sekwencja w pionie: duże rysunki (76–128 px), nazwa stanu antykwą i jedno zdanie, między etapami czerwona strzałka w dół. Przy przewijaniu każdy etap pojawia się, gdy wchodzi w dolną część ekranu (strzałka dorysowuje się do niego, rysunek gra swój ruch raz), a etap na środku ekranu ma białe tło; na komputerze opis po lewej stoi w miejscu. Bez skryptu i przy ograniczonym ruchu wszystkie etapy są od razu widoczne, bez ruchu; tekst zawsze w pełnym kolorze; w sekcji nie ma elementów do obsługi klawiaturą.
+- **Pod planszą:** film bez przypiętej kartki. Nad filmem jedno zdanie, co pokazuje („Sprawa OC: od koperty na Starcie do przypomnienia · 0:41”, czas dopisuje skrypt) i „Pomiń film”; napisy włączone od początku; tor postępu z małą spinką. Dalej opis, „Otwórz demo”, trzy skróty (każdy z kilkoma słowami, co w nim sprawdzisz: „termin i co dalej”, „zostać czy zmienić”, „co zastrzec najpierw”; kotwice `#pismo`, `#oc`, `#portfel` w aplikacji), podpis autora i nagłówek pisma („Data w prototypie” z zegara aplikacji, „W sprawie”). Po dodaniu trzeciego skrótu podpis autora jest tuż pod pierwszym ekranem (1280×800: ok. 80 px niżej; 390×844: ok. 30 px).
+- **Sceny filmu:** spis sześciu scen z czasem i konkretną nazwą tego, co widać (plansze, koperta na Starcie, otwarta koperta, rozmowa ze Spinką, trzy możliwości, przypomnienie); wybór przewija film do sceny, bieżąca scena ma czerwoną kreskę (`aria-current`). Pod spisem rozwijany „Tekst filmu i opis obrazu” (plansze po kolei, opis obrazu): dostępna wersja treści filmu bez dźwięku i obrazu.
 - Przypięta kartka została tylko w „Demonstracji”; ekrany Profilu w „Asystent mówi, skąd wie” są płaskie.
 
 ## Film
@@ -49,7 +51,7 @@ Strona oczekuje w `film-web/` plików wybranej wersji filmu (domyślnie v9; `nod
 | `spinka-film-v8.mp4` | H.264 + AAC, `faststart`, najwyżej 1920 px szerokości |
 | `spinka-film-v8-plakat.jpg` | plakat (pierwszy obraz przed odtworzeniem) |
 | `spinka-film-v8.pl.vtt` | napisy WebVTT po polsku, domyślnie włączone; film v8 nie ma lektora, więc napisy opisują dźwięk |
-| `spinka-film-v8.tekst.txt` | tekst z filmu, plansza po planszy (opis obrazu w nawiasach); trafia na stronę jako rozwijany „Tekst z filmu” |
+| `spinka-film-v8.tekst.txt` | tekst z filmu, plansza po planszy (opis obrazu w nawiasach); trafia na stronę jako rozwijany „Tekst filmu i opis obrazu” |
 
 Przygotowanie z zatwierdzonego eksportu (Linux, macOS, Git Bash na Windows; wymaga ffmpeg):
 
