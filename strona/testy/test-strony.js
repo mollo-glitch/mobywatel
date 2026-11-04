@@ -5,7 +5,7 @@ const { chromium } = require('playwright'); const fs = require('fs'); const cryp
 const [, , P1, P2, AXE_PATH] = process.argv;
 const A = 'http://127.0.0.1:' + P1; const B = 'http://127.0.0.1:' + P2;
 const AXE = fs.readFileSync(AXE_PATH || require.resolve('axe-core/axe.min.js'), 'utf8');
-const APLIKACJA_MD5 = 'e7d2fffc2a86e10bc4146c91cdf97e0b';
+const APLIKACJA_MD5 = '5a17aa7e25fe84d66fe424700b0b66ce'; // runda 34: korona spada po zatrzymaniu orła (poprzednio e7d2fffc, runda 32)
 const R = []; const ok = (co, w, sz) => R.push({ co, ok: !!w, sz });
 const H = { 320: 568, 390: 844, 1280: 800 };
 // Elementy jeszcze nieodsłonięte (30% krycia do chwili wejścia w widok: .odslona i etapy sekwencji .stan) pomijamy; po odsłonięciu axe sprawdza je w pełnym kolorze.

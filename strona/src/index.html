@@ -424,9 +424,10 @@ video::cue { font-family: var(--font); background: rgba(19, 26, 42, .86); color:
    sylwetka orła z ekranu startowego aplikacji (maska obrazy/orzel-maska.webp), cały i niezniekształcony, bez czerwieni
    i bez napisów; bardzo przygaszony, za treścią, ukryty przed czytnikiem; nie zachodzi na odnośniki i noty. Noty mówią
    wprost, że to nieoficjalny prototyp bez związku z administracją. Bez obsługi masek orła nie ma (zostaje samo tło).
-   Runda 33: ten sam znak rysuje też płótno .stopka-orzel-ruch (te same kropki co w CSS, z maski), które przy pierwszym
-   wejściu stopki w widok na chwilę rozwarstwia kropki w trzy plany i składa je z powrotem. Płótno zastępuje znak z CSS
-   dopiero, gdy maska się wczyta (klasa .orzel-zywy); bez skryptu i przy ograniczonym ruchu zostaje znak z CSS. */
+   Runda 34: na komputerze ten sam znak rysuje płótno .stopka-orzel-ruch (te same kropki co w CSS, z maski): kropki
+   czekają rozproszone w trzech planach i przy pierwszym wejściu stopki w kadr układają się w sylwetkę. Płótno zastępuje
+   znak z CSS dopiero, gdy maska się wczyta (klasa .orzel-zywy). Na telefonie, bez skryptu i przy ograniczonym ruchu
+   zostaje znak z CSS; poniżej 720 px CSS wymusza go nawet wtedy, gdy okno zwężono po wczytaniu strony. */
 .stopka > .kontener { position: relative; z-index: 1; }
 .stopka-orzel, .stopka-orzel-ruch { position: absolute; z-index: 0; top: clamp(16px, 2.6vw, 44px); right: max(-28px, calc(var(--margines) - 48px)); width: clamp(260px, 33vw, 500px); aspect-ratio: 1 / 1; height: auto; pointer-events: none; opacity: .3; }
 @media (max-width: 719px) { .stopka-orzel, .stopka-orzel-ruch { top: 10px; right: -14vw; width: 72vw; opacity: .26; } }
@@ -439,6 +440,7 @@ video::cue { font-family: var(--font); background: rgba(19, 26, 42, .86); color:
 .stopka-orzel-ruch { display: none; }
 .stopka.orzel-zywy .stopka-orzel-ruch { display: block; }
 .stopka.orzel-zywy .stopka-orzel { visibility: hidden; }
+@media (max-width: 719px) { .stopka.orzel-zywy .stopka-orzel-ruch { display: none; } .stopka.orzel-zywy .stopka-orzel { visibility: visible; } }
 .stopka-nazwa { display: flex; align-items: flex-end; gap: clamp(12px, 2vw, 28px); font-family: var(--font-znak); font-weight: 400; font-size: clamp(4.5rem, 17vw, 15.5rem); line-height: .8; letter-spacing: -.03em; }
 .stopka-nazwa svg { flex: none; width: .56em; height: .56em; margin-bottom: .02em; }
 .stopka-uklad { display: grid; gap: 28px; margin-top: clamp(36px, 5vw, 64px); }
@@ -883,23 +885,27 @@ if (document.documentElement.classList.contains('ruch')) {
 })();
 </script>
 <script>
-// Orzeł z kropek w stopce (runda 33). Gdy stopka pierwszy raz wejdzie w widok, kropki na chwilę rozchodzą się w trzy plany
-// (tylny mniejszy i bledszy, przedni większy), lekko dryfują i w ok. 1,4 s składają się z powrotem w ten sam znak, który
-// potem stoi. Jednorazowo: po powrocie do stopki znak się już nie rusza. Na komputerze z myszą plany przesuwają się za
-// kursorem najwyżej o 4 px i wracają, gdy kursor wyjdzie ze stopki; animacja nie zależy od tego. Bez skryptu, przy
-// ograniczonym ruchu i zanim wczyta się maska, widać statyczny znak z CSS. Płótno jest pod treścią i nie łapie kliknięć;
-// kropki nigdy nie są jaśniejsze niż w znaku statycznym, więc kontrast tekstu się nie zmienia.
+// Orzeł z kropek w stopce (runda 34). Na komputerze (od 720 px, gdzie orzeł stoi obok tekstu) kropki czekają rozproszone
+// w trzech planach i gdy stopka pierwszy raz wejdzie w kadr, w ok. 1,8 s układają się w sylwetkę: tylny plan rozchodzi się
+// od środka, przedni zbiega się z zewnątrz, środkowy dryfuje na miejsce; każda kropka rusza z niewielkim opóźnieniem,
+// więc znak buduje się warstwami i kończy jako ten sam nieruchomy znak co w CSS. Jednorazowo: po powrocie do stopki znak
+// już stoi. Z myszą plany przesuwają się za kursorem najwyżej o 6 px (paralaksa), ale wejście od tego nie zależy.
+// Na telefonie (poniżej 720 px orzeł leży pod tekstem), przy ograniczonym ruchu, bez skryptu i zanim wczyta się maska
+// widać statyczny znak z CSS. Płótno jest pod treścią, nie łapie kliknięć, nie słucha przewijania, a kropki nigdy nie są
+// jaśniejsze niż w znaku statycznym.
 (() => {
   const stopka = document.querySelector('.stopka');
   const plotno = document.querySelector('.stopka-orzel-ruch');
   if (!stopka || !plotno || !plotno.getContext || !document.documentElement.classList.contains('ruch') || !('IntersectionObserver' in window)) return;
   const malyRuch = matchMedia('(prefers-reduced-motion: reduce)');
+  const szeroki = matchMedia('(min-width: 720px)');
   const kursor = matchMedia('(hover: hover) and (pointer: fine)');
+  if (!szeroki.matches || malyRuch.matches) return; // telefon i ograniczony ruch: zostaje znak z CSS
   const ctx = plotno.getContext('2d');
   const maska = new Image();
-  const KROK = 7, R = 1.25, KOLOR = '166, 220, 199', CZAS = 1400, SZCZYT = 0.3, KURSOR = 4, DRGANIE = 3;
-  // Plany w chwili największego rozwarstwienia: [skala, przesunięcie x, y (ułamek boku), krycie, promień].
-  const PLANY = [[0.95, 0.014, 0.016, 0.6, 0.85], [1, 0, 0.018, 0.85, 1], [1.05, -0.011, -0.014, 1, 1.2]];
+  const KROK = 7, R = 1.25, KOLOR = '166, 220, 199', CZAS = 1800, OPOZNIENIE = 0.32, KURSOR = 6;
+  // Plany na starcie: [skala względem środka, rozrzut (ułamek boku), krycie końcowe, promień na starcie].
+  const PLANY = [[0.55, 0.05, 0.85, 0.8], [1, 0.16, 1, 1], [1.45, 0.07, 1, 1.35]];
   const losowa = (i) => { const x = Math.sin(i * 12.9898) * 43758.5453; return x - Math.floor(x); };
   let plany = [[], [], []], bok = 0, dpr = 1, wypelnienie = null, stan = '', klatka = 0, start = 0, zagrano = false;
   const cel = { x: 0, y: 0 }, kur = { x: 0, y: 0 };
@@ -910,11 +916,16 @@ if (document.documentElement.classList.contains('ruch')) {
     plotno.width = Math.round(bok * dpr); plotno.height = Math.round(bok * dpr);
     const o = document.createElement('canvas'); o.width = maska.naturalWidth; o.height = maska.naturalHeight;
     const oc = o.getContext('2d'); oc.drawImage(maska, 0, 0); const dane = oc.getImageData(0, 0, o.width, o.height).data;
-    const s = o.width / bok; let n = 0; plany = [[], [], []];
+    const s = o.width / bok, c = bok / 2; let n = 0; plany = [[], [], []];
     // Te same miejsca co kropki z CSS: środki pól 7 × 7 px od lewego górnego rogu znaku, krycie z maski.
     for (let y = KROK / 2; y < bok; y += KROK) for (let x = KROK / 2; x < bok; x += KROK) {
       const a = dane[(Math.min(o.height - 1, Math.round(y * s)) * o.width + Math.min(o.width - 1, Math.round(x * s))) * 4 + 3] / 255;
-      if (a > 0.02) { n++; plany[Math.floor(losowa(n) * 3)].push({ x, y, a, jx: losowa(n + 7) - 0.5, jy: losowa(n + 13) - 0.5 }); }
+      if (a <= 0.02) continue;
+      n++; const p = Math.floor(losowa(n) * 3), [sk, rozrzut] = PLANY[p];
+      // punkt startu: przeskalowany względem środka (głębia planu) plus rozrzut; opóźnienie: trochę losowe, trochę od góry
+      const kat = losowa(n + 7) * 6.2832, dl = rozrzut * bok * (0.35 + 0.65 * losowa(n + 13));
+      plany[p].push({ x, y, a, sx: c + (x - c) * sk + Math.cos(kat) * dl, sy: c + (y - c) * sk + Math.sin(kat) * dl,
+        d: OPOZNIENIE * (0.55 * losowa(n + 29) + 0.45 * (y / bok)) });
     }
     const w = document.createElement('canvas'); w.width = plotno.width; w.height = plotno.height; const wc = w.getContext('2d');
     wc.drawImage(maska, 0, 0, w.width, w.height); wc.globalCompositeOperation = 'source-in';
@@ -923,50 +934,51 @@ if (document.documentElement.classList.contains('ruch')) {
     wc.fillStyle = g; wc.fillRect(0, 0, w.width, w.height); wypelnienie = w;
     return true;
   }
-  // r: rozwarstwienie 0–1; sx, sy: przesunięcie planów (dryf albo kursor) w px; wyp: krycie wypełnienia sylwetki.
-  function rysuj(r, sx, sy, wyp) {
+  const lagodnie = (t) => 1 - Math.pow(1 - t, 4); // szybki start, miękkie lądowanie
+  // t: postęp wejścia 0–1 (1 = złożony znak); sx, sy: przesunięcie planów za kursorem w px.
+  function rysuj(t, sx, sy) {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, bok, bok);
-    if (wyp > 0) { ctx.globalAlpha = wyp; ctx.drawImage(wypelnienie, 0, 0, bok, bok); ctx.globalAlpha = 1; }
-    const c = bok / 2;
+    const wyp = t >= 1 ? 1 : Math.max(0, (t - 0.55) / 0.45);
+    if (wyp > 0) { ctx.globalAlpha = wyp * wyp * (3 - 2 * wyp); ctx.drawImage(wypelnienie, 0, 0, bok, bok); ctx.globalAlpha = 1; }
+    let suma = 0, ile = 0;
     plany.forEach((kropki, p) => {
-      const [sk, ox, oy, kr, pr] = PLANY[p];
-      const skala = 1 + (sk - 1) * r, dx = ox * bok * r + sx * (p - 1), dy = oy * bok * r + sy * (p - 1);
-      const promien = R * (1 + (pr - 1) * r), krycie = 0.7 * (1 + (kr - 1) * r);
+      const [, , kr, pr] = PLANY[p], dx = sx * (p - 1), dy = sy * (p - 1);
       for (const k of kropki) {
-        ctx.fillStyle = 'rgba(' + KOLOR + ',' + (krycie * k.a).toFixed(3) + ')';
-        ctx.beginPath(); ctx.arc(c + (k.x - c) * skala + dx + k.jx * DRGANIE * r, c + (k.y - c) * skala + dy + k.jy * DRGANIE * r, promien, 0, 6.2832); ctx.fill();
+        const q = t >= 1 ? 1 : lagodnie(Math.min(1, Math.max(0, (t - k.d) / (1 - OPOZNIENIE))));
+        suma += q; ile++;
+        const al = 0.7 * k.a * Math.min(1, q / 0.35) * (kr + (1 - kr) * q);
+        if (al < 0.004) continue;
+        ctx.fillStyle = 'rgba(' + KOLOR + ',' + al.toFixed(3) + ')';
+        ctx.beginPath(); ctx.arc(k.sx + (k.x - k.sx) * q + dx, k.sy + (k.y - k.sy) * q + dy, R * (pr + (1 - pr) * q), 0, 6.2832); ctx.fill();
       }
     });
+    plotno.dataset.postep = (ile ? suma / ile : 1).toFixed(3);
   }
-  const wygladz = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
   function wejscie(teraz) {
     if (!start) start = teraz;
     const t = Math.min(1, (teraz - start) / CZAS);
-    // rozwarstwienie szybko do szczytu (30% czasu), potem łagodnie z powrotem do jednego znaku
-    const r = t < SZCZYT ? 1 - Math.pow(1 - t / SZCZYT, 3) : 1 - wygladz((t - SZCZYT) / (1 - SZCZYT));
-    const dryf = Math.sin(t * Math.PI) * 3;
-    rysuj(r, dryf, -dryf * 0.6, 1 - 0.6 * r);
-    plotno.dataset.rozwarstwienie = r.toFixed(3);
-    if (t < 1 && !malyRuch.matches) klatka = requestAnimationFrame(wejscie);
-    else { klatka = 0; rysuj(0, 0, 0, 1); plotno.dataset.rozwarstwienie = '0'; ustawStan('stoi'); }
+    rysuj(t, 0, 0);
+    if (t < 1 && !malyRuch.matches && szeroki.matches) klatka = requestAnimationFrame(wejscie);
+    else { klatka = 0; rysuj(1, 0, 0); ustawStan('stoi'); }
   }
   function zaKursorem() {
     kur.x += (cel.x - kur.x) * 0.12; kur.y += (cel.y - kur.y) * 0.12;
     if (Math.abs(cel.x - kur.x) < 0.05 && Math.abs(cel.y - kur.y) < 0.05) { kur.x = cel.x; kur.y = cel.y; }
-    rysuj(0, kur.x, kur.y, 1);
+    rysuj(1, kur.x, kur.y);
     plotno.dataset.kursor = Math.max(Math.abs(kur.x), Math.abs(kur.y)).toFixed(2);
     if (kur.x !== cel.x || kur.y !== cel.y) klatka = requestAnimationFrame(zaKursorem);
     else { klatka = 0; ustawStan(cel.x || cel.y ? 'kursor' : 'stoi'); }
   }
+  const stoi = () => { cancelAnimationFrame(klatka); klatka = 0; kur.x = kur.y = cel.x = cel.y = 0; rysuj(1, 0, 0); ustawStan('stoi'); };
   maska.onload = () => {
-    // Płótno przejmuje znak w tej samej klatce, w której jest mierzone i rysowane, więc nic nie miga.
+    // Płótno przejmuje znak w tej samej klatce, w której jest mierzone i rysowane (kropki rozproszone), więc nic nie miga.
     stopka.classList.add('orzel-zywy');
     if (!przygotuj()) { stopka.classList.remove('orzel-zywy'); return; }
-    rysuj(0, 0, 0, 1); ustawStan('czeka');
+    rysuj(0, 0, 0); ustawStan('czeka');
     const obs = new IntersectionObserver((wpisy) => {
       if (zagrano || !wpisy.some((w) => w.isIntersecting)) return;
       zagrano = true; plotno.dataset.zagrano = '1'; obs.disconnect();
-      if (malyRuch.matches) { rysuj(0, 0, 0, 1); ustawStan('stoi'); return; }
+      if (malyRuch.matches || !szeroki.matches) { stoi(); return; }
       ustawStan('gra'); start = 0; cancelAnimationFrame(klatka); klatka = requestAnimationFrame(wejscie);
     }, { threshold: 0.35 });
     obs.observe(plotno);
@@ -981,8 +993,10 @@ if (document.documentElement.classList.contains('ruch')) {
       stopka.addEventListener('pointerleave', () => { if (stan === 'gra' || stan === 'czeka') return; cel.x = 0; cel.y = 0; if (!klatka) klatka = requestAnimationFrame(zaKursorem); });
     }
     let czekaj = 0;
-    addEventListener('resize', () => { clearTimeout(czekaj); czekaj = setTimeout(() => { if (stan !== 'gra' && przygotuj()) rysuj(0, 0, 0, 1); }, 150); });
-    malyRuch.addEventListener('change', () => { if (malyRuch.matches) { cancelAnimationFrame(klatka); klatka = 0; rysuj(0, 0, 0, 1); ustawStan(zagrano ? 'stoi' : 'czeka'); } });
+    addEventListener('resize', () => { clearTimeout(czekaj); czekaj = setTimeout(() => { if (stan !== 'gra' && przygotuj()) rysuj(zagrano ? 1 : 0, 0, 0); }, 150); });
+    // Ograniczony ruch włączony w trakcie albo okno zwężone do telefonu: od razu nieruchomy znak.
+    const zatrzymaj = () => { if (malyRuch.matches || !szeroki.matches) { zagrano = true; plotno.dataset.zagrano = '1'; obs.disconnect(); stoi(); } };
+    malyRuch.addEventListener('change', zatrzymaj); szeroki.addEventListener('change', zatrzymaj);
   };
   maska.src = 'obrazy/orzel-maska.webp';
 })();

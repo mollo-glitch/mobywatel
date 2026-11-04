@@ -5846,7 +5846,7 @@ A.kontekstSeed = {"dzis":"2026-10-26","dzis_slownie":"poniedziałek, 26 paździe
 
   /*
    * Sekwencja: 1) cały ekran czerwony, 2) orzeł wznosi się z dołu, niosąc koronę wysoko nad głową, i zatrzymuje na środku,
-   * 3) gdy orzeł hamuje, korona spada mu na głowę i osiada, 4) czerwień kurczy się do kwadratowej ikony na białym tle,
+   * 3) gdy orzeł stanie, korona spada mu na głowę i osiada, 4) czerwień kurczy się do kwadratowej ikony na białym tle,
    * 5) ikona przesuwa się w lewo, a po prawej odsłania się napis „mObywatel”, 6) gotowy znak chwilę stoi,
    * 7) znak i napis „osiadają” w nagłówku następnego ekranu, dokładnie tam, gdzie logo stoi w aplikacji, a białe tło znika.
    * Krok 7 zastępuje dawne wygaszanie (krótsza chwila w kroku 6), więc całość nie jest dłuższa.
@@ -5966,11 +5966,11 @@ A.kontekstSeed = {"dzis":"2026-10-26","dzis_slownie":"poniedziałek, 26 paździe
         layers[0].style.opacity = '1';
         layers[1].style.opacity = '1';
         const p1 = play(emblem, [{ transform: 'translateY(' + rise + 'px)' }, { transform: 'translateY(0)' }], { duration: 700, delay: 120, easing: 'cubic-bezier(.16,.84,.3,1)' });
-        // 3) korona spada na głowę razem z hamowaniem orła: przez wznoszenie orzeł niesie ją ok. 16% wysokości znaku nad
-        // głową (prawie 2 wysokości korony, przechyloną o 4°). Od 0,6 s, gdy orzeł zwalnia, korona zaczyna opadać
-        // z przyspieszeniem, więc na ekranie wyraźnie spada dopiero wtedy, gdy orzeł już prawie stoi (ok. 0,8 s), dotyka
-        // głowy ok. 0,1 s po jego zatrzymaniu, ugina się o ok. 0,7% i osiada nieruchomo (całość do 1,1 s). Runda 30:
-        // opad był mały (4%) i szedł w górę razem z orłem, więc na ekranie korona prawie stała.
+        // 3) korona spada na głowę dopiero, gdy orzeł stanie (runda 34): przez cały lot orzeł niesie ją ok. 16% wysokości
+        // znaku nad głową (prawie 2 wysokości korony, przechyloną o 4°). Orzeł staje po 0,82 s; 40 ms później korona
+        // zaczyna spadać z przyspieszeniem, dotyka głowy po ok. 0,3 s, odbija się o ok. 2% wysokości znaku i osiada na tym
+        // samym miejscu nieruchomo (całość do ok. 1,4 s). Bez zgniatania i bez wchodzenia w głowę: tylko przesunięcie
+        // i lekki obrót. Runda 32: opad zaczynał się już w czasie hamowania orła; runda 30: opad był mały (4%).
         // Ruch jest liczony względem orła (ten sam element znaku), więc korona nie odrywa się od niego w poziomie, nie
         // wychodzi poza kadr i nie znika. Punkt obrotu: środek podstawy korony.
         const crown = layers[1].querySelector('use');
@@ -5978,16 +5978,17 @@ A.kontekstSeed = {"dzis":"2026-10-26","dzis_slownie":"poniedziałek, 26 paździe
         const lb = layers[1].getBoundingClientRect();
         if (cb && cb.width) layers[1].style.transformOrigin = (cb.left + cb.width / 2 - lb.left) + 'px ' + (cb.bottom - lb.top) + 'px';
         const hover = Math.round(g.E * 0.16);
-        const dip = Math.max(1, Math.round(g.E * 0.007));
+        const hop = Math.max(2, Math.round(g.E * 0.022));
         const p2 = play(layers[1], [
-          { transform: 'translateY(' + (-hover) + 'px) rotate(-4deg)', easing: 'cubic-bezier(.55,0,.8,.45)' },
-          { transform: 'translateY(' + dip + 'px) rotate(.4deg)', offset: 0.8, easing: 'cubic-bezier(.25,.6,.35,1)' },
+          { transform: 'translateY(' + (-hover) + 'px) rotate(-4deg)', easing: 'cubic-bezier(.55,0,.85,.4)' },
+          { transform: 'translateY(0) rotate(0deg)', offset: 0.55, easing: 'cubic-bezier(.2,.6,.4,1)' },
+          { transform: 'translateY(' + (-hop) + 'px) rotate(-.6deg)', offset: 0.76, easing: 'cubic-bezier(.6,0,.85,.45)' },
           { transform: 'translateY(0) rotate(0deg)' }
-        ], { duration: 480, delay: 600 });
+        ], { duration: 560, delay: 860 });
         await Promise.all([p1, p2]);
         if (my !== token) return;
-        // chwila na złożony znak przed zmianą w ikonę (łącznie krócej niż dawny opad korony)
-        if (!fast) await wait(140);
+        // chwila na złożony znak przed zmianą w ikonę (krótsza niż dawniej, bo osiadanie korony samo daje pauzę)
+        if (!fast) await wait(60);
         if (my !== token) return;
         // złożony znak: podmieniamy warstwy na całe godło (ten sam kształt, oryginalna kolejność)
         layers[2].style.opacity = '1';
