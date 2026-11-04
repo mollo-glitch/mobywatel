@@ -934,7 +934,7 @@ if (document.documentElement.classList.contains('ruch')) {
     wc.fillStyle = g; wc.fillRect(0, 0, w.width, w.height); wypelnienie = w;
     return true;
   }
-  const lagodnie = (t) => 1 - Math.pow(1 - t, 4); // szybki start, miękkie lądowanie
+  const lagodnie = (t) => 1 - Math.pow(1 - t, 3); // szybki start, miękkie lądowanie; lot widać, zanim kropka dotrze na miejsce
   // t: postęp wejścia 0–1 (1 = złożony znak); sx, sy: przesunięcie planów za kursorem w px.
   function rysuj(t, sx, sy) {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, bok, bok);
@@ -946,7 +946,7 @@ if (document.documentElement.classList.contains('ruch')) {
       for (const k of kropki) {
         const q = t >= 1 ? 1 : lagodnie(Math.min(1, Math.max(0, (t - k.d) / (1 - OPOZNIENIE))));
         suma += q; ile++;
-        const al = 0.7 * k.a * Math.min(1, q / 0.35) * (kr + (1 - kr) * q);
+        const al = 0.7 * k.a * Math.min(1, q / 0.12) * (kr + (1 - kr) * q);
         if (al < 0.004) continue;
         ctx.fillStyle = 'rgba(' + KOLOR + ',' + al.toFixed(3) + ')';
         ctx.beginPath(); ctx.arc(k.sx + (k.x - k.sx) * q + dx, k.sy + (k.y - k.sy) * q + dy, R * (pr + (1 - pr) * q), 0, 6.2832); ctx.fill();
