@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+<title>Spinka</title>
+<rect x="4.6" y="7.2" width="20.8" height="23.2" rx="3.2" fill="#FFFFFF" stroke="#131A2A" stroke-width="2.3" stroke-linejoin="round"/>
+<path d="M9.4 18.6h11.2M9.4 24h7" fill="none" stroke="#131A2A" stroke-width="2.3" stroke-linecap="round"/>
+<rect x="7.6" y="1.2" width="7.6" height="14.6" rx="3.8" fill="#C8102E"/>
+<rect x="10.25" y="4.1" width="2.3" height="8.4" rx="1.15" fill="#FFFFFF"/>
+</svg>
