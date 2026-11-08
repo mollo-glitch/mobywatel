@@ -308,7 +308,8 @@ window.APP = window.APP || {};
     return { dzis: iso(today), dzis_slownie: fmtLong(today) + ' ' + today.getFullYear(), zrodla: z };
   };
 
-  A.suggestions = ['Zgubiłem portfel', 'Pismo z urzędu', 'Kończy się OC', 'Kto widzi moje dane?'];
+  // Pytania przykładowe (Spinka 2.0). Te, które pasują do scenariusza, uruchamiają go; pozostałe trafiają do trybu demonstracyjnego.
+  A.suggestions = ['Dostałem pismo z urzędu. Co mam zrobić?', 'Chcę zgłosić narodziny dziecka', 'Kończy mi się OC. Jakie mam możliwości?', 'Zgubiłem portfel. Co powinienem zastrzec?', 'Chcę założyć działalność gospodarczą', 'Czy mam jakieś niezałatwione sprawy?'];
 
   A.voiceSamples = [
     'Yyy, zgubiłem wczoraj portfel w tramwaju',

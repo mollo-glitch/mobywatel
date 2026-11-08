@@ -9,7 +9,9 @@ const src = (f) => readFileSync(join(root, 'src', f), 'utf8');
 
 // --wariant-postaci: dodatkowo dist/wariant-postaci.html z postacią Spinki zamiast znaku (do oceny; główny build bez zmian).
 const WARIANT = process.argv.includes('--wariant-postaci');
-const scripts = ['marka.js', 'data.js', 'icons.js', 'carousel.js', 'assistant.js', 'app.js'];
+// Spinka 2.0: ds.js (rejestr modułów i komponenty) i stan.js (stan i dane modułów) przed rdzeniem; moduły ekranów po nim.
+const MODULY = ['centrum.js', 'spinka-demo.js', 'uslugi.js', 'skrzynka.js', 'kalendarz.js', 'bezpieczenstwo.js', 'rodzina.js', 'portfel-eu.js'];
+const scripts = ['marka.js', 'data.js', 'icons.js', 'carousel.js', 'assistant.js', 'ds.js', 'stan.js', 'app.js'].concat(MODULY);
 
 // Ikony w statycznym HTML wstawiamy tą samą funkcją, której używa aplikacja.
 const sandbox = { window: { APP: {} } };
@@ -76,7 +78,7 @@ let page = src('page.html')
   .replace(/<!--godlo:([\w-]*)-->/g, (_, symbol) => godlo(symbol))
   .replace(/<!--marka:(\w+)-->/g, (_, k) => escHtml(marka[k] || ''));
 const [head, body] = page.split('<!--/HEAD-->');
-const style = '<style>\n' + src('styles.css') + '</style>';
+const style = '<style>\n' + src('styles.css') + '\n/* spinka2.css */\n' + src('spinka2.css') + '</style>';
 const part = (f) => (f === 'kontekst' ? '/* server/kontekst.mjs + server/dane-demo.mjs */\n' + kontekstBundle : `/* ${f} */\n` + src(f));
 const withKontekst = (list) => list.reduce((acc, f) => acc.concat(f === 'data.js' ? [f, 'kontekst'] : [f]), []);
 const js = '<script>\n' + withKontekst(scripts).map(part).join('\n') + '</script>';
@@ -98,7 +100,7 @@ writeFileSync(
     headOut + '\n</head>\n<body>\n' + bodyOut + '\n</body>\n</html>\n'
 );
 if (WARIANT) {
-  const jsW = '<script>\n' + withKontekst(['marka.js', 'data.js', 'icons.js', 'wariant-postaci.js', 'carousel.js', 'assistant.js', 'app.js']).map(part).join('\n') + '</script>';
+  const jsW = '<script>\n' + withKontekst(['marka.js', 'data.js', 'icons.js', 'wariant-postaci.js', 'carousel.js', 'assistant.js', 'ds.js', 'stan.js', 'app.js'].concat(MODULY)).map(part).join('\n') + '</script>';
   writeFileSync(join(root, 'dist', 'wariant-postaci.html'),
     '<!doctype html>\n<html lang="pl">\n<head>\n<meta charset="utf-8">\n' + endpointMeta + '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n' +
       headOut + '\n</head>\n<body>\n' + body.replace('<!--SCRIPTS-->', jsW).trim() + '\n</body>\n</html>\n');

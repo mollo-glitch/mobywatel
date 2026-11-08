@@ -1,4 +1,5 @@
 // Runda 25: testy regresyjne do poprawek 1–10 z audytu. argv: [2] port (domyślnie 8200). Wynik: lista { nr, co, ok, szczegoly }.
+// Spinka 2.0: koperty na Starcie zastąpiła lista „Wymaga Twojej uwagi”; ta sama koperta OC otwiera się z jej pierwszej pozycji.
 const L = require('./lib.js'); const fs = require('fs');
 L.BASE = 'http://127.0.0.1:' + (process.argv[2] || '8200');
 const AXE = fs.readFileSync(require.resolve('axe-core/axe.min.js'), 'utf8');
@@ -37,7 +38,7 @@ const open = []; const L0 = L.open; L.open = async (o) => { const r = await L0(o
   { const { b, p, log } = await L.open({ w: 390 });
     await p.goto(PREV); await L.enter(p);
     // Okno sprawy, potwierdzenie w oknie, arkusz głosowy, panel wiadomości.
-    await p.click('.ec-slide.on button'); await p.waitForTimeout(1000); await p.click('#envd [data-act=envd-more]'); await p.waitForTimeout(600);
+    await p.click('.s2-attn [data-act=item][data-id=oc]'); await p.waitForTimeout(1000); await p.click('#envd [data-act=envd-more]'); await p.waitForTimeout(600);
     await back(p); const c1 = { potwierdzenie: await vis(p, 'confirm'), okno: await vis(p, 'envd'), app: inApp(p) };
     await back(p); const c2 = { okno: await vis(p, 'envd'), ekran: await scr(p), app: inApp(p) };
     ok(1, 'potwierdzenie w oknie sprawy: wstecz zamyka potwierdzenie, drugie wstecz zamyka okno', !c1.potwierdzenie && c1.okno && c1.app && !c2.okno && c2.ekran === 'start' && c2.app, { c1, c2 });
@@ -80,7 +81,7 @@ const open = []; const L0 = L.open; L.open = async (o) => { const r = await L0(o
     const back1 = await p.evaluate(() => document.activeElement.matches('[data-act=voice][data-voice=home]'));
     await p.keyboard.press('Tab'); const free = await p.evaluate(() => !document.querySelector('#main').closest('[inert]') && !document.querySelector('#main').inert && !document.querySelector('.tabbar').inert);
     ok(2, W + ' px: arkusz głosowy: 25× Tab i 12× Shift+Tab zostają w arkuszu; Escape wraca na mikrofon; tło znów aktywne', v && back1 && free, { v, back1, free });
-    await p.click('.ec-slide.on button'); await p.waitForTimeout(1000);
+    await p.click('.s2-attn [data-act=item][data-id=oc]'); await p.waitForTimeout(1000);
     const e = await cycle('#envd', 20); await p.click('#envd [data-act=envd-more]'); await p.waitForTimeout(600); const c = await cycle('#confirm', 10);
     await p.keyboard.press('Escape'); await p.waitForTimeout(300); await p.keyboard.press('Escape'); await p.waitForTimeout(700);
     ok(2, W + ' px: okno sprawy i potwierdzenie też trzymają fokus (także przewodnik obok telefonu wyłączony)', e && c, { e, c, przewodnikAktywnyPoZamknieciu: await p.evaluate(() => { const g = document.querySelector('.guide'); return !g || !g.inert; }) });
@@ -103,14 +104,14 @@ const open = []; const L0 = L.open; L.open = async (o) => { const r = await L0(o
 // ---------- 4. Ustawione przypomnienie ----------
   await sec(4, 'przypomnienie', async () => {
   { const { b, p } = await L.open({ w: 390 }); await L.enter(p);
-    await p.click('.ec-slide.on button'); await p.waitForTimeout(1000);
+    await p.click('.s2-attn [data-act=item][data-id=oc]'); await p.waitForTimeout(1000);
     const before = await p.evaluate(() => Array.from(document.querySelectorAll('#envd [data-act=envd-more]')).map((x) => x.innerText.trim()));
     await p.click('#envd [data-act=envd-more]'); await p.waitForTimeout(500); await p.click('#confirm-yes'); await p.waitForTimeout(800);
     const after = await p.evaluate(() => ({ przyciski: document.querySelectorAll('#envd [data-act=envd-more]').length, stan: (document.querySelector('#envd .envd-set') || {}).textContent, gora: (document.querySelector('#envd .envd-rem') || {}).textContent }));
     await p.evaluate(() => { const s = document.querySelector('#envd .envd-set'); if (s) s.click(); }); await p.waitForTimeout(500);
     const conf = await vis(p, 'confirm');
     await p.screenshot({ path: 'r25-4-przypomnienie.png' });
-    await p.keyboard.press('Escape'); await p.waitForTimeout(700); await p.click('.ec-slide.on button'); await p.waitForTimeout(1000);
+    await p.keyboard.press('Escape'); await p.waitForTimeout(700); await p.click('.s2-attn [data-act=item][data-id=oc]'); await p.waitForTimeout(1000);
     const reopen = await p.evaluate(() => ({ przyciski: document.querySelectorAll('#envd [data-act=envd-more]').length, stan: (document.querySelector('#envd .envd-set') || {}).textContent }));
     ok(4, 'koperta OC: przed ustawieniem przycisk; po ustawieniu stan „ustawione”, bez przycisku i bez ponownego pytania; tak samo po ponownym otwarciu', before.length === 1 && after.przyciski === 0 && /ustawione na poniedziałek, 2 listopada/.test(after.stan) && !conf && reopen.przyciski === 0 && /ustawione/.test(reopen.stan), { before, after, ponownePytanie: conf, reopen });
     await b.close(); }

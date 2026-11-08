@@ -1141,7 +1141,9 @@
     const n = ++asked;
     AI.ready.then(() => {
       if (n !== asked) return;
-      if (!AI.active()) { offline(q); return; }
+      // Spinka 2.0: bez modelu AI odpowiada tryb demonstracyjny (src/spinka-demo.js): tylko dane aplikacji i opisy
+      // procesów, ze źródłem i z tym, czego nie wiadomo. Gdy go nie ma, zostaje uczciwy komunikat „model niepodłączony”.
+      if (!AI.active()) { if (A.ext && A.ext.demoAnswer) A.ext.demoAnswer(q, API); else offline(q); return; }
       const go = () => {
         if (n !== asked) return;
         whileWaiting(AI.answer(q, mine), M.imie + ' pyta model AI…').then((r) => {
@@ -1433,6 +1435,7 @@
     botNow('Dzień dobry, tu ' + esc(M.imie) + '.' + (M.haslo ? ' ' + esc(M.haslo) : '') + ' Pomagam zrozumieć sprawy w tej demonstracji: pisma, terminy i dokumenty. Dane są fikcyjne.');
     if (AI.active()) botNow('Na pytania wpisane własnymi słowami odpowiada model AI (' + esc(AI.statusText().split(' przez')[0]) + '), tylko na podstawie danych z tej aplikacji. Czego w nich nie ma, tego nie wiem. Zanim cokolwiek zmienię, pokażę podsumowanie; decyzja należy do Ciebie.');
     else if (AI.checking()) { const c = botNow('Sprawdzam, czy model AI jest podłączony. Do tego czasu nic nie wysyłam.'); c.setAttribute('data-checking', ''); AI.ready.then(() => { if (!c.isConnected) return; c.removeAttribute('data-checking'); c.querySelector('.bubble').innerHTML = AI.active() ? 'Model AI jest podłączony (' + esc(AI.statusText().split(' przez')[0]) + '). Na pytania własnymi słowami odpowiada na podstawie danych z tej aplikacji; przed pierwszym pytaniem zapytam o zgodę.' : 'Model AI nie jest podłączony (' + esc(AI.reasonText()) + '), więc na pytania własnymi słowami nie odpowiadam i nic nie wysyłam. Możesz przejść scenariusz demonstracyjny.'; }); }
+    else if (A.ext && A.ext.demoIntro) A.ext.demoIntro(API, AI.available());
     else botNow('W tej wersji model AI ' + (AI.available() ? 'jest wyłączony' : 'nie jest podłączony') + ', więc na pytania własnymi słowami nie odpowiadam i nic nie wysyłam. Możesz przejść scenariusz demonstracyjny: prowadzę go krok po kroku i przed każdą zmianą pokazuję podsumowanie.');
     freeChips(A.suggestions);
     mood('slucha');
@@ -1449,7 +1452,13 @@
     A.refreshBadges();
   }
 
+  // Elementy rozmowy dla trybu demonstracyjnego (src/spinka-demo.js): te same dymki, karty źródeł i przyciski co scenariusze.
+  const API = { append: append, botNow: botNow, botState: botState, actionChips: actionChips, freeChips: freeChips, sourceCard: sourceCard,
+    docCard: docCard, caseCard: caseCard, knowCard: knowCard, showSources: showSources, mood: mood, start: start, offline: offline,
+    whileWaiting: whileWaiting, el: el };
+
   A.chat = {
+    api: API,
     build: build,
     get screen() { return el.screen; },
     start: start,

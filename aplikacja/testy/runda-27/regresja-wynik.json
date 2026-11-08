@@ -98,13 +98,13 @@
   "nr": 1,
   "co": "arkusz głosowy: wstecz zamyka arkusz",
   "ok": true,
-  "szczegoly": "http://127.0.0.1:8240/index.ht"
+  "szczegoly": "http://127.0.0.1:8200/index.ht"
  },
  {
   "nr": 1,
   "co": "panel wiadomości: wstecz zamyka panel",
   "ok": true,
-  "szczegoly": "http://127.0.0.1:8240/index.ht"
+  "szczegoly": "http://127.0.0.1:8200/index.ht"
  },
  {
   "nr": 1,

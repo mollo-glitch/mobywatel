@@ -16,7 +16,7 @@
 
   const KEY = 'proto-sprawy-ustawienia';
   // Rozmiar tekstu: 0 standardowy, 1 większy (dawne „bigText”), 2 największy. Kontrast: ciemniejsze linie i opisy.
-  const settings = { bigText: false, reduceMotion: false, textSize: 0, contrast: false };
+  const settings = { bigText: false, reduceMotion: false, textSize: 0, contrast: false, hc: false, simple: false };
   try { Object.assign(settings, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch (e) { /* brak pamięci przeglądarki */ }
   if (![0, 1, 2].includes(settings.textSize)) settings.textSize = settings.bigText ? 1 : 0;
   settings.bigText = settings.textSize > 0;
@@ -32,6 +32,8 @@
     r.classList.toggle('big-text', settings.textSize === 1);
     r.classList.toggle('text-xl', settings.textSize === 2);
     r.classList.toggle('kontrast', !!settings.contrast);
+    r.classList.toggle('wysoki-kontrast', !!settings.hc); // Spinka 2.0: czarno-biały, grube obrysy, żółty fokus
+    r.classList.toggle('uproszczony', !!settings.simple); // Spinka 2.0: mniej sekcji, większe cele, prostsze etykiety
     r.classList.toggle('reduce-motion', A.reducedMotion());
     document.querySelectorAll('[data-text-size]').forEach((b) => { const on = Number(b.dataset.textSize) === settings.textSize; b.setAttribute('aria-checked', on ? 'true' : 'false'); b.tabIndex = on ? 0 : -1; });
     document.querySelectorAll('[data-setting]:not([data-setting="aiSend"])').forEach((b) => {
@@ -125,7 +127,7 @@
     const i = A.cases.findIndex((x) => x.id === id);
     if (i >= 0) A.cases.splice(i, 1);
   };
-  A.newCount = () => A.todo.filter((t) => t.isNew).length;
+  A.newCount = () => A.todo.filter((t) => t.isNew).length + (A.ext && A.ext.unreadCount ? A.ext.unreadCount() : 0);
   A.openTodo = (id) => {
     const t = A.todo.find((x) => x.id === id);
     if (!t) return;
@@ -407,7 +409,8 @@
     let on = true;
     let pending = false; // trwa history.back() wywołane przez aplikację; jego popstate nie jest „wstecz” użytkownika
     const isGuard = () => !!(history.state && history.state.eob === 'wstecz');
-    const want = () => !gate && (stack.length > 1 || Env.isOpen() || Confirm.isOpen() || Msgs.isOpen() || !$('#voice').hidden);
+    const sheetOpen = () => !!(A.ui && A.ui.sheet && A.ui.sheet.isOpen());
+    const want = () => !gate && (stack.length > 1 || Env.isOpen() || Confirm.isOpen() || Msgs.isOpen() || sheetOpen() || !$('#voice').hidden);
     function sync() {
       if (!on || pending || !A.booted) return;
       try {
@@ -418,6 +421,7 @@
     // Najwyższa warstwa: ta sama kolejność co przy Escape.
     function closeTop() {
       if (Confirm.isOpen()) { Confirm.answer(false); return true; }
+      if (sheetOpen()) { A.ui.sheet.close(); return true; }
       if (Msgs.isOpen()) { Msgs.close(true); return true; }
       if (Env.isOpen()) { if (Env.isAnimating()) Env.skip(); Env.close(); return true; }
       if (!$('#voice').hidden) { Voice.close(); return true; }
@@ -687,7 +691,7 @@
       if (shown.root) tabState[shown.name] = { params: shown.route.params, scroll: old.scrollTop };
       else shown.route.scroll = old.scrollTop;
     }
-    const view = (SCREENS[r.name] || SCREENS.start)(r.params || {});
+    const view = ((A.ext && A.ext.screens[r.name]) || SCREENS[r.name] || SCREENS.start)(r.params || {});
     const moving = shown && A.booted && !gate && !A.reducedMotion();
     const tabSwitch = moving && shown.root && root && shown.name !== r.name;
     const hint = navHint;
@@ -825,7 +829,7 @@
     const ZONE = '#env-btn, #msgs';
 
     function list() {
-      const out = [];
+      const out = (A.ext && A.ext.notifications ? A.ext.notifications() : []).slice();
       A.todo.forEach((t) => {
         const L = t.letter && A.letters.find((x) => x.id === t.letter);
         out.push({ title: t.title, from: L ? t.from : 'Przypomnienie o terminie', when: L ? L.got : T.today, unread: !!t.isNew, icon: t.icon, attrs: 'data-act="item" data-id="' + t.id + '"' });
@@ -835,7 +839,7 @@
       // Odczyt danych: dwa pierwsze pola i ile jeszcze (pełna lista jest w „Kto ma dostęp do moich danych”).
       const fields = (w) => w.slice(0, 2).join(', ') + (w.length > 2 ? ' i ' + plural(w.length - 2, 'inna dana', 'inne dane', 'innych danych') : '');
       A.consents.forEach((c) => out.push({ title: 'Odczyt danych: ' + c.who, from: fields(c.what), when: c.last, unread: false, icon: c.icon, attrs: 'data-go="access"' }));
-      return out.sort((a, b) => (b.when - a.when) || (b.unread - a.unread));
+      return out.sort((a, b) => (b.unread - a.unread) || (b.when - a.when));
     }
     A.messages = list;
     const ago = (d) => { const n = -T.inDays(d); return n <= 0 ? 'dziś' : n === 1 ? 'wczoraj' : n < 7 ? n + ' dni temu' : T.fmtShort(d); };
@@ -849,11 +853,11 @@
       const all = list();
       const unread = all.filter((m) => m.unread).length;
       const rest = all.slice(MAX);
-      return '<div class="msgs-head"><h2 id="msgs-h">Wiadomości</h2><span class="msgs-n">' + (unread ? plural(unread, 'nowa', 'nowe', 'nowych') : 'brak nowych') + '</span></div>' +
+      return '<div class="msgs-head"><h2 id="msgs-h">Powiadomienia</h2><span class="msgs-n">' + (unread ? plural(unread, 'nowa', 'nowe', 'nowych') : 'brak nowych') + '</span></div>' +
         // Lista przewija się w środku panelu; „Zobacz wszystkie (N)” i link do spraw zostają zawsze widoczne na dole
         // (także przy 320 px i większym tekście).
         '<div class="msgs-scroll">' +
-          (all.length ? '<ul class="msgs-list">' + all.slice(0, MAX).map(row).join('') + '</ul>' : '<p class="msgs-empty">Nie masz wiadomości.</p>') +
+          (all.length ? '<ul class="msgs-list">' + all.slice(0, MAX).map(row).join('') + '</ul>' : '<p class="msgs-empty">Nie masz powiadomień.</p>') +
           (rest.length ? '<ul class="msgs-list" id="msgs-rest" hidden>' + rest.map(row).join('') + '</ul>' : '') +
         '</div>' +
         '<div class="msgs-foot">' +
@@ -933,7 +937,7 @@
         : '<button type="button" class="back-btn" data-act="back">' + ic('back', 24) + '<span>Wróć</span></button>') +
       '<span class="tb-gap"></span>' +
       '<button type="button" class="tb-btn" id="aa-btn" data-act="big-text" aria-pressed="' + (settings.bigText ? 'true' : 'false') + '" aria-label="Większy tekst"><span class="aa" aria-hidden="true">A<small>A</small></span></button>' +
-      '<button type="button" class="tb-btn" id="env-btn" data-act="msgs" aria-expanded="false" aria-controls="msgs">' + ic('mail', 24) + '<span class="badge" aria-hidden="true"' + (n ? '' : ' hidden') + '>' + n + '</span></button>' +
+      '<button type="button" class="tb-btn" id="env-btn" data-act="msgs" aria-expanded="false" aria-controls="msgs">' + ic('bell', 24) + '<span class="badge" aria-hidden="true"' + (n ? '' : ' hidden') + '>' + n + '</span></button>' +
       '<section class="peek msgs" id="msgs" hidden aria-labelledby="msgs-h"></section>' +
       (home ? '<button type="button" class="tb-avatar" data-act="me-peek" aria-expanded="false" aria-controls="me-peek" aria-label="Podgląd profilu: ' + esc(A.person.first + ' ' + A.person.last) + ', osoba fikcyjna"><span aria-hidden="true">' + esc(A.person.initials) + '</span></button>' +
         '<section class="peek sig" id="me-peek" data-id="me" hidden aria-labelledby="peek-name"></section>' : '');
@@ -944,7 +948,7 @@
     const n = A.newCount();
     const btn = document.getElementById('env-btn');
     if (btn) {
-      btn.setAttribute('aria-label', 'Wiadomości' + (n ? ', ' + plural(n, 'nowa', 'nowe', 'nowych') : ', brak nowych'));
+      btn.setAttribute('aria-label', 'Powiadomienia' + (n ? ', ' + plural(n, 'nowe', 'nowe', 'nowych') : ', brak nowych'));
       const b = btn.querySelector('.badge');
       b.textContent = n;
       b.hidden = !n;
@@ -1615,6 +1619,27 @@
   };
 
   A.showDone = (payload) => A.nav('done', payload);
+
+  // Spinka 2.0: moduły w osobnych plikach korzystają z tych samych elementów co rdzeń (ekran, podsumowanie, karty spraw).
+  A.coreScreens = SCREENS;
+  A.screen = screen;
+  A.confirm = (o) => Confirm.ask(o);
+  A.caseModel = caseModel;
+  A.progressItems = progressItems;
+  A.dueTone = dueTone;
+  A.plural = plural;
+  A.byDue = byDue;
+  A.walletDocs = walletDocs;
+  A.openEnvelope = (id, btn) => Env.openTodo(id, btn, false);
+  A.openCaseDetail = (id, btn) => Env.openCase(id, btn);
+  A.applySettings = () => { saveSettings(); applySettings(); };
+  A.cur = () => cur();
+  A.pushCarousel = (c) => { if (c) carousels.push(c); };
+  A.askOne = askOne;
+  A.caseTile = caseTile;
+  A.walletHtml = walletHtml;
+  A.stepRing = stepRing;
+  A.revealOnScroll = revealOnScroll;
 
   A.plainLetterHtml = (L) => {
     const P = L.plain;
@@ -2401,6 +2426,8 @@
       applySettings();
       if (d.setting === 'reduceMotion') A.toast(settings.reduceMotion ? 'Animacje ograniczone. Karty zmieniają się od razu.' : 'Animacje włączone.');
       if (d.setting === 'contrast') A.announce(settings.contrast ? 'Wyraźniejsze kontury włączone' : 'Wyraźniejsze kontury wyłączone');
+      if (d.setting === 'hc') A.toast(settings.hc ? 'Wysoki kontrast włączony.' : 'Wysoki kontrast wyłączony.');
+      if (d.setting === 'simple') { A.toast(settings.simple ? 'Tryb uproszczony: na Starcie tylko to, co najważniejsze.' : 'Tryb uproszczony wyłączony.'); if (cur().name === 'start' || cur().name === 'more') render(); }
       return;
     }
     if (d.seg) { segTo(t); return; }
@@ -2441,6 +2468,7 @@
       return;
     }
     if (e.key === 'Escape' && Confirm.isOpen()) { Confirm.answer(false); return; }
+    if (e.key === 'Escape' && A.ui && A.ui.sheet.isOpen()) { A.ui.sheet.close(); return; }
     if (e.key === 'Escape' && Msgs.isOpen()) { Msgs.close(true); return; }
     if (e.key === 'Escape' && Peek.isOpen()) { Peek.close(true); return; }
     if (e.key === 'Escape' && Env.isOpen()) { if (Env.isAnimating()) Env.skip(); else Env.close(); return; }
@@ -2487,6 +2515,7 @@
     A.state.scen = {};
     A.state.docIndex = 0;
     A.letters.forEach((l) => { l.unread = !!l.due; });
+    if (A.store) A.store.reset();
     A.chat.reset();
     seenEnv.clear();
     clearSess();
@@ -2631,7 +2660,10 @@
       case 'envd-close': Env.close(); break;
       case 'envd-go': Env.go(); break;
       case 'envd-more': Env.more(Number(t.dataset.i)); break;
-      default: break;
+      default:
+        if (A.ext && A.ext.acts[a]) A.ext.acts[a](t);
+        else console.warn('Nieznana akcja: ' + a);
+        break;
     }
   }
 
@@ -2653,6 +2685,7 @@
     let deepRun = null;
     if (deep[hash]) deepRun = () => A.chat.start(deep[hash], hash === 'dowod' ? { resume: true } : {});
     else if (hash === 'dokumenty') deepRun = () => A.nav('docs');
+    else if (A.ext && A.ext.deep[hash]) deepRun = () => A.ext.deep[hash]();
     Splash.run(() => afterSplash(deepRun));
   }
 
