@@ -73,5 +73,7 @@ Poprawka po przeglądzie zrzutów: na kroku „Dane” sześciu kreatorów fokus
 „Wstecz / Dalej” (6 z 29 pól całkowicie, 2 częściowo; WCAG 2.2, 2.4.11). `ds.js` mierzy teraz pasek po każdym przeniesieniu
 fokusu i dosuwa ekran; test procesów sprawdza to przy standardowym i największym tekście.
 
-Testy (build aplikacji `fe870d5d`): Spinka 2.0 58/58, godło 40/40, asystent z atrapą Workers AI 12/12. Pozostałe
-(regresja rundy 25, strona, otwarcie, ścieżki, stopka) dopisane w następnym commicie po zakończeniu przebiegu.
+Testy (build aplikacji `fe870d5d`): Spinka 2.0 58/58, regresja rundy 25 40/40, godło 40/40, asystent z atrapą Workers AI
+12/12, strona 83/83, otwarcie 28/28, ścieżki 12/12, stopka 14/14. Na buildzie `cb686642` (przed poprawką fokusu, bez zmian
+w asystencie i serwerze): serwer 35/35, rdzeń 17/17, test rundy 28 (atrapa Gemini) 32/35; te same 3 błędy są na buildzie
+sprzed Spinki 2.0 (`ea8db01`), więc nie wynikają z tej zmiany.
