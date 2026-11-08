@@ -141,7 +141,7 @@
       '<div class="pad stack">' +
         '<p class="eyebrow">' + ic(x.icon, 16) + ' ' + esc(x.kind) + ' · ' + esc(x.from) + '</p><h1>' + esc(x.title) + '</h1>' +
         '<div class="s2-scan" id="s2-scan"' + (p.fresh && !A.reducedMotion() ? '' : ' hidden') + ' role="status"><span class="s2-scan-l">Rozpoznaję tekst (symulacja OCR)…</span>' + U.progress(0, 4, 'Postęp analizy') + '</div>' +
-        '<div class="seg" role="tablist" aria-label="Warstwy dokumentu" style="--sel:' + ['sum', 'ocr', 'orig'].indexOf(seg) + '">' + tab('sum', 'Najważniejsze') + tab('ocr', 'Wynik OCR') + tab('orig', 'Oryginał') + '</div>' +
+        '<div class="seg seg3" role="tablist" aria-label="Warstwy dokumentu" style="--sel:' + ['sum', 'ocr', 'orig'].indexOf(seg) + '">' + tab('sum', 'Najważniejsze') + tab('ocr', 'Wynik OCR') + tab('orig', 'Oryginał') + '</div>' +
         '<div id="pane-sum" role="tabpanel" aria-labelledby="tab-sum" class="stack"' + (seg === 'sum' ? '' : ' hidden') + '>' +
           '<dl class="s2-qas">' +
             qa('Czego dotyczy?', esc(x.what), 'ai') +

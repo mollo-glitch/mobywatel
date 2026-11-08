@@ -83,6 +83,7 @@
       ['Płatności', 'symulacja, bez banku'], ['Rodzina', 'działa lokalnie, dane fikcyjne'], ['Portfel EU', 'koncepcja demonstracyjna'], ['Model AI', ai ? ai.statusText() : 'niepodłączony']];
     return A.screen('aktualizacje',
       '<div class="pad stack"><h1>Centrum aktualizacji</h1>' +
+        '<button type="button" class="btn secondary wide" data-act="up-check">' + ic('refresh', 20) + 'Sprawdź, czy jest nowsza wersja</button>' +
         '<dl class="s2-sum"><div><dt>Wersja prototypu</dt><dd><b>' + WERSJA + '</b> ' + U.pill('najnowsza w tym buildzie', 'ok') + '</dd></div><div><dt>Data w prototypie</dt><dd>' + esc(A.demo.label) + '</dd></div><div><dt>Dane</dt><dd>Fikcyjne, zapisane tylko w tej przeglądarce</dd></div></dl>' +
         '<section aria-labelledby="up-n"><h2 id="up-n">Co nowego w wersji 2.0</h2><ul class="ticks">' +
           ['Centrum spraw: „Wymaga Twojej uwagi” z kolejnością według skutków i terminu, szybkie działania, sprawy z postępem.', 'Załatw za mnie: 10 spraw krok po kroku, z wersjami roboczymi i walidacją.',
@@ -96,6 +97,11 @@
       '</div>');
   };
 
+  A.ext.acts['up-check'] = (t) => {
+    t.disabled = true; t.setAttribute('aria-busy', 'true');
+    const lbl = t.innerHTML; t.innerHTML = ic('refresh', 20) + 'Sprawdzam…';
+    setTimeout(() => { t.disabled = false; t.removeAttribute('aria-busy'); t.innerHTML = lbl; A.toast('Masz najnowszą wersję tego prototypu (' + WERSJA + '). Prototyp nie łączy się ze sklepem z aplikacjami.', 'ok'); }, A.reducedMotion() ? 0 : 700);
+  };
   A.ext.acts['sec-ack'] = (t) => { A.store.update((s) => { s.ack[t.dataset.id] = true; s.read['n-sesja'] = true; }); A.toast('Zapisano: to Twoje urządzenie. Ostrzeżenie zniknęło.', 'ok'); A.render(); };
   A.ext.acts['sec-end'] = (t) => {
     const x = S.sessions.find((y) => y.id === t.dataset.id);

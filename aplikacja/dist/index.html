@@ -1165,6 +1165,9 @@ button.row:active { background: var(--neutral-soft); }
 .reduce-motion { --t-fast: 0ms; --t-panel: 0ms; }
 
 /* ---------- drobne elementy ---------- */
+.seg.seg3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.seg.seg3::before { width: calc((100% - 16px) / 3); }
+.seg.seg3 button { padding: 0 4px; font-size: .9375rem; }
 .sim-badge { display: inline-flex; align-items: center; gap: 4px; flex: none; padding: 2px 9px 2px 6px; min-height: 24px; border-radius: 12px; border: 1.5px dashed var(--info); color: var(--info); background: var(--info-soft); font-size: .75rem; font-weight: 800; letter-spacing: .02em; text-transform: uppercase; white-space: nowrap; }
 .sim-badge .ic { flex: none; }
 .pill-accent { background: var(--accent-soft); color: var(--accent-text); }
@@ -3917,7 +3920,9 @@ A.kontekstSeed = {"dzis":"2026-10-26","dzis_slownie":"poniedziałek, 26 paździe
       if (n !== asked) return;
       // Spinka 2.0: bez modelu AI odpowiada tryb demonstracyjny (src/spinka-demo.js): tylko dane aplikacji i opisy
       // procesów, ze źródłem i z tym, czego nie wiadomo. Gdy go nie ma, zostaje uczciwy komunikat „model niepodłączony”.
-      if (!AI.active()) { if (A.ext && A.ext.demoAnswer) A.ext.demoAnswer(q, API); else offline(q); return; }
+      // Gdy serwer z modelem jest, ale wysyłanie jest wyłączone albo wstrzymane (limit), mówimy to wprost (offline):
+      // użytkownik sam zdecydował, że pytania nie idą do modelu, więc nie zastępujemy tego cichym trybem demonstracyjnym.
+      if (!AI.active()) { if (!AI.available() && A.ext && A.ext.demoAnswer) A.ext.demoAnswer(q, API); else offline(q); return; }
       const go = () => {
         if (n !== asked) return;
         whileWaiting(AI.answer(q, mine), M.imie + ' pyta model AI…').then((r) => {
@@ -4209,7 +4214,7 @@ A.kontekstSeed = {"dzis":"2026-10-26","dzis_slownie":"poniedziałek, 26 paździe
     botNow('Dzień dobry, tu ' + esc(M.imie) + '.' + (M.haslo ? ' ' + esc(M.haslo) : '') + ' Pomagam zrozumieć sprawy w tej demonstracji: pisma, terminy i dokumenty. Dane są fikcyjne.');
     if (AI.active()) botNow('Na pytania wpisane własnymi słowami odpowiada model AI (' + esc(AI.statusText().split(' przez')[0]) + '), tylko na podstawie danych z tej aplikacji. Czego w nich nie ma, tego nie wiem. Zanim cokolwiek zmienię, pokażę podsumowanie; decyzja należy do Ciebie.');
     else if (AI.checking()) { const c = botNow('Sprawdzam, czy model AI jest podłączony. Do tego czasu nic nie wysyłam.'); c.setAttribute('data-checking', ''); AI.ready.then(() => { if (!c.isConnected) return; c.removeAttribute('data-checking'); c.querySelector('.bubble').innerHTML = AI.active() ? 'Model AI jest podłączony (' + esc(AI.statusText().split(' przez')[0]) + '). Na pytania własnymi słowami odpowiada na podstawie danych z tej aplikacji; przed pierwszym pytaniem zapytam o zgodę.' : 'Model AI nie jest podłączony (' + esc(AI.reasonText()) + '), więc na pytania własnymi słowami nie odpowiadam i nic nie wysyłam. Możesz przejść scenariusz demonstracyjny.'; }); }
-    else if (A.ext && A.ext.demoIntro) A.ext.demoIntro(API, AI.available());
+    else if (A.ext && A.ext.demoIntro && !AI.available()) A.ext.demoIntro(API, false);
     else botNow('W tej wersji model AI ' + (AI.available() ? 'jest wyłączony' : 'nie jest podłączony') + ', więc na pytania własnymi słowami nie odpowiadam i nic nie wysyłam. Możesz przejść scenariusz demonstracyjny: prowadzę go krok po kroku i przed każdą zmianą pokazuję podsumowanie.');
     freeChips(A.suggestions);
     mood('slucha');
@@ -4348,7 +4353,7 @@ window.APP = window.APP || {};
         f.options.map((o) => '<option value="' + esc(o.v) + '"' + (o.v === val ? ' selected' : '') + '>' + esc(o.l) + '</option>').join('') + '</select>';
     } else if (f.type === 'radio') {
       return '<fieldset class="s2-field s2-fieldset" id="' + id + '" data-field="' + f.id + '" aria-describedby="' + desc + '"' + (f.required ? ' data-required="1"' : '') + '>' +
-        '<legend class="s2-label">' + esc(f.label) + '</legend>' + hint +
+        '<legend class="s2-label">' + esc(f.label) + '</legend>' + auto + hint +
         '<div class="s2-radios">' + f.options.map((o, i) =>
           '<label class="s2-radio"><input type="radio" name="' + f.id + '" value="' + esc(o.v) + '"' + (o.v === val ? ' checked' : '') + (i === 0 && f.required ? ' required' : '') + '>' +
           '<span class="s2-radio-box" aria-hidden="true"></span><span class="s2-radio-l"><b>' + esc(o.l) + '</b>' + (o.d ? '<span>' + esc(o.d) + '</span>' : '') + '</span></label>').join('') +
@@ -4432,6 +4437,19 @@ window.APP = window.APP || {};
     const el = document.getElementById(a.dataset.focus);
     const target = el && (el.matches('fieldset') ? el.querySelector('input') : el);
     if (target) { target.focus(); target.scrollIntoView({ block: 'center', behavior: A.reducedMotion() ? 'auto' : 'smooth' }); }
+  });
+  // Pasek „Wstecz / Dalej” kreatora jest przyklejony do dołu ekranu. Pole, na które trafia fokus (np. klawiszem Tab),
+  // nie może się pod nim schować (WCAG 2.2, 2.4.11): po przewinięciu przez przeglądarkę mierzymy oba prostokąty
+  // i dosuwamy ekran. Wysokość paska jest mierzona, więc działa też przy największym rozmiarze tekstu.
+  document.addEventListener('focusin', (e) => {
+    const t = e.target; const scr = t.closest && t.closest('.screen');
+    const bar = scr && scr.querySelector('.s2-wnav');
+    if (!bar || bar.contains(t)) return;
+    requestAnimationFrame(() => {
+      if (document.activeElement !== t) return;
+      const a = t.getBoundingClientRect(), n = bar.getBoundingClientRect();
+      if (a.height && a.bottom > n.top - 8) scr.scrollTop += Math.ceil(a.bottom - n.top + 16);
+    });
   });
 
   /* ---------- arkusz dolny (bottom sheet) ---------- */
@@ -6269,6 +6287,7 @@ window.APP = window.APP || {};
             '<dl class="me-rows">' +
               '<div><dt>Sprawy, pisma, dokumenty</dt><dd>Wbudowane w aplikację. Twoje zmiany, np. ustawione przypomnienia, są tylko w pamięci tej karty i znikają po jej odświeżeniu.</dd></div>' +
               '<div><dt>Rozmowa ze Spinką</dt><dd>Tylko na ekranie. Nie jest nigdzie zapisywana ani wysyłana w całości.</dd></div>' +
+              '<div><dt>Wersje robocze, przypomnienia, płatności i dokumenty ze skrzynki</dt><dd>W pamięci tej przeglądarki (pamięć lokalna), do „Zacznij demonstrację od nowa”. Z dodanych plików zapisuje się tylko nazwa, typ i rozmiar, nigdy treść.</dd></div>' +
               '<div><dt>Wygoda i dostępność</dt><dd>Zapisane w tej przeglądarce (pamięć lokalna), żeby działały po powrocie.</dd></div>' +
               '<div><dt>Wybór i zgoda dla asystenta AI</dt><dd>Tylko w tej karcie (pamięć sesji), do jej zamknięcia.</dd></div>' +
             '</dl>') +
@@ -8369,8 +8388,7 @@ window.APP = window.APP || {};
     let body = '';
     if (step === 0) {
       const due = P.due ? P.due() : null;
-      body = (W.fromDraft ? '<div class="s2-banner info">' + ic('edit', 20) + '<p>Masz wersję roboczą tej sprawy. Kontynuujesz od kroku ' + (st().drafts[P.id] ? st().drafts[P.id].step + 1 : 1) + '. <button type="button" class="btn-text sm" data-act="w-restart">Zacznij od nowa</button></p></div>' : '') +
-        '<p class="lead">' + esc(P.lead) + '</p>' +
+      body = '<p class="lead">' + esc(P.lead) + '</p>' +
         '<ol class="s2-explain">' + P.explain.map((x) => '<li>' + esc(x) + '</li>').join('') + '</ol>' +
         (due ? '<p class="s2-due-box">' + ic('clock', 20) + '<span>Termin w tej sprawie: <b>' + esc(T.fmtLong(due)) + '</b> ' + U.pill(U.dueText(due), U.dueTone(due)) + '</span></p>' : '') +
         '<p class="s2-rule">' + ic('info', 16) + '<span>' + esc(P.rule) + '</span></p>' +
@@ -8414,8 +8432,10 @@ window.APP = window.APP || {};
         (step >= 1 && step <= 4 ? '<button type="button" class="btn ghost" data-act="w-save">' + ic('edit', 20) + 'Zapisz wersję roboczą</button>' : '') +
         '<button type="button" class="btn primary" data-act="w-next">' + (step === 4 ? ic('shieldCheck', 20) + 'Potwierdź' : 'Dalej' + ic('chevronRight', 20)) + '</button>' +
       '</div>';
+    // Powrót do wersji roboczej: informacja na kroku, od którego kontynuujesz, z możliwością rozpoczęcia od nowa.
+    const resume = W.fromDraft && step < 5 ? '<div class="s2-banner info" role="status">' + ic('edit', 20) + '<p>Wracasz do wersji roboczej zapisanej ' + esc(T.fmtShort(A.store.fromIso((st().drafts[P.id] || {}).saved) || T.today)) + '. Kontynuujesz od kroku ' + (step + 1) + ': ' + KROKI[step] + '. <button type="button" class="btn-text sm" data-act="w-restart">Zacznij od nowa</button></p></div>' : '';
     const s = A.screen('proces',
-      '<div class="pad stack">' + head + (step < 5 ? stepper(step) : '') + '<div class="s2-wbody">' + body + '</div>' + nav + '</div>');
+      '<div class="pad stack">' + head + resume + (step < 5 ? stepper(step) : '') + '<div class="s2-wbody">' + body + '</div>' + nav + '</div>');
     s._after = () => {
       // Zmiany w polach od razu trafiają do stanu kreatora (wersja robocza zapisuje się przy „Dalej” i przycisku).
       const f = s.querySelector('#w-form');
@@ -8664,7 +8684,7 @@ window.APP = window.APP || {};
       '<div class="pad stack">' +
         '<p class="eyebrow">' + ic(x.icon, 16) + ' ' + esc(x.kind) + ' · ' + esc(x.from) + '</p><h1>' + esc(x.title) + '</h1>' +
         '<div class="s2-scan" id="s2-scan"' + (p.fresh && !A.reducedMotion() ? '' : ' hidden') + ' role="status"><span class="s2-scan-l">Rozpoznaję tekst (symulacja OCR)…</span>' + U.progress(0, 4, 'Postęp analizy') + '</div>' +
-        '<div class="seg" role="tablist" aria-label="Warstwy dokumentu" style="--sel:' + ['sum', 'ocr', 'orig'].indexOf(seg) + '">' + tab('sum', 'Najważniejsze') + tab('ocr', 'Wynik OCR') + tab('orig', 'Oryginał') + '</div>' +
+        '<div class="seg seg3" role="tablist" aria-label="Warstwy dokumentu" style="--sel:' + ['sum', 'ocr', 'orig'].indexOf(seg) + '">' + tab('sum', 'Najważniejsze') + tab('ocr', 'Wynik OCR') + tab('orig', 'Oryginał') + '</div>' +
         '<div id="pane-sum" role="tabpanel" aria-labelledby="tab-sum" class="stack"' + (seg === 'sum' ? '' : ' hidden') + '>' +
           '<dl class="s2-qas">' +
             qa('Czego dotyczy?', esc(x.what), 'ai') +
@@ -9079,6 +9099,7 @@ window.APP = window.APP || {};
       ['Płatności', 'symulacja, bez banku'], ['Rodzina', 'działa lokalnie, dane fikcyjne'], ['Portfel EU', 'koncepcja demonstracyjna'], ['Model AI', ai ? ai.statusText() : 'niepodłączony']];
     return A.screen('aktualizacje',
       '<div class="pad stack"><h1>Centrum aktualizacji</h1>' +
+        '<button type="button" class="btn secondary wide" data-act="up-check">' + ic('refresh', 20) + 'Sprawdź, czy jest nowsza wersja</button>' +
         '<dl class="s2-sum"><div><dt>Wersja prototypu</dt><dd><b>' + WERSJA + '</b> ' + U.pill('najnowsza w tym buildzie', 'ok') + '</dd></div><div><dt>Data w prototypie</dt><dd>' + esc(A.demo.label) + '</dd></div><div><dt>Dane</dt><dd>Fikcyjne, zapisane tylko w tej przeglądarce</dd></div></dl>' +
         '<section aria-labelledby="up-n"><h2 id="up-n">Co nowego w wersji 2.0</h2><ul class="ticks">' +
           ['Centrum spraw: „Wymaga Twojej uwagi” z kolejnością według skutków i terminu, szybkie działania, sprawy z postępem.', 'Załatw za mnie: 10 spraw krok po kroku, z wersjami roboczymi i walidacją.',
@@ -9092,6 +9113,11 @@ window.APP = window.APP || {};
       '</div>');
   };
 
+  A.ext.acts['up-check'] = (t) => {
+    t.disabled = true; t.setAttribute('aria-busy', 'true');
+    const lbl = t.innerHTML; t.innerHTML = ic('refresh', 20) + 'Sprawdzam…';
+    setTimeout(() => { t.disabled = false; t.removeAttribute('aria-busy'); t.innerHTML = lbl; A.toast('Masz najnowszą wersję tego prototypu (' + WERSJA + '). Prototyp nie łączy się ze sklepem z aplikacjami.', 'ok'); }, A.reducedMotion() ? 0 : 700);
+  };
   A.ext.acts['sec-ack'] = (t) => { A.store.update((s) => { s.ack[t.dataset.id] = true; s.read['n-sesja'] = true; }); A.toast('Zapisano: to Twoje urządzenie. Ostrzeżenie zniknęło.', 'ok'); A.render(); };
   A.ext.acts['sec-end'] = (t) => {
     const x = S.sessions.find((y) => y.id === t.dataset.id);

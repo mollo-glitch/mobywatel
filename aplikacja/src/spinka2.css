@@ -4,6 +4,9 @@
 .reduce-motion { --t-fast: 0ms; --t-panel: 0ms; }
 
 /* ---------- drobne elementy ---------- */
+.seg.seg3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.seg.seg3::before { width: calc((100% - 16px) / 3); }
+.seg.seg3 button { padding: 0 4px; font-size: .9375rem; }
 .sim-badge { display: inline-flex; align-items: center; gap: 4px; flex: none; padding: 2px 9px 2px 6px; min-height: 24px; border-radius: 12px; border: 1.5px dashed var(--info); color: var(--info); background: var(--info-soft); font-size: .75rem; font-weight: 800; letter-spacing: .02em; text-transform: uppercase; white-space: nowrap; }
 .sim-badge .ic { flex: none; }
 .pill-accent { background: var(--accent-soft); color: var(--accent-text); }

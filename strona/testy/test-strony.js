@@ -5,7 +5,7 @@ const { chromium } = require('playwright'); const fs = require('fs'); const cryp
 const [, , P1, P2, AXE_PATH] = process.argv;
 const A = 'http://127.0.0.1:' + P1; const B = 'http://127.0.0.1:' + P2;
 const AXE = fs.readFileSync(AXE_PATH || require.resolve('axe-core/axe.min.js'), 'utf8');
-const APLIKACJA_MD5 = '5a17aa7e25fe84d66fe424700b0b66ce'; // runda 34: korona spada po zatrzymaniu orła (poprzednio e7d2fffc, runda 32)
+const APLIKACJA_MD5 = 'fe870d5d304babce8a905b8f6363e628'; // Spinka 2.0 (poprzednio cb686642 przed poprawką fokusu, 5a17aa7e runda 34: korona)
 const R = []; const ok = (co, w, sz) => R.push({ co, ok: !!w, sz });
 const H = { 320: 568, 390: 844, 1280: 800 };
 // Elementy jeszcze nieodsłonięte (30% krycia do chwili wejścia w widok: .odslona i etapy sekwencji .stan) pomijamy; po odsłonięciu axe sprawdza je w pełnym kolorze.
@@ -161,7 +161,7 @@ const czekaj = (p, fn, ms) => p.waitForFunction(fn, null, { timeout: ms || 20000
     const s = await p.evaluate(() => ({ h1: (document.querySelector('#main h1') || {}).textContent, przewodnik: getComputedStyle(document.querySelector('.guide')).display }));
     await p.click('.tabbar [data-tab=chat]'); await p.waitForTimeout(900);
     const c = await p.evaluate(() => document.querySelector('#chat-h').textContent);
-    ok(w + ' px: bezpośredni adres /aplikacja/: wejście, Start, rozmowa „Zapytaj Spinkę”' + (w === 1280 ? ', przewodnik obok telefonu' : ''), s.h1 === 'Start' && c === 'Zapytaj Spinkę' && (w === 390 || s.przewodnik === 'block') && log.bledy.length === 0, { ...s, c, bledy: log.bledy });
+    ok(w + ' px: bezpośredni adres /aplikacja/: wejście, Centrum spraw (Spinka 2.0), rozmowa „Zapytaj Spinkę”' + (w === 1280 ? ', przewodnik obok telefonu' : ''), s.h1 === 'Centrum spraw' && c === 'Zapytaj Spinkę' && (w === 390 || s.przewodnik === 'block') && log.bledy.length === 0, { ...s, c, bledy: log.bledy });
     await ctx.close(); }
 
   // 5b. Demonstracja: prawdziwe ekrany aplikacji; na dużym ekranie wskazanie kroku (mysz, Tab) wysuwa jego ekran na wierzch.

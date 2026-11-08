@@ -4,6 +4,65 @@ Klikalny prototyp koncepcyjny. Aplikacja zaczyna od pytania „Co chcesz załatw
 
 > Nazwa mObywatel i wizerunek godła RP są użyte wyłącznie do prezentacji koncepcji na mObywatel Challenge. To nie jest oficjalna aplikacja mObywatel ani usługa administracji publicznej. Osoby, dokumenty, pisma i instytucje są fikcyjne. Prototyp nie łączy się z żadnym rejestrem, niczego nie wysyła i nie ma prawdziwego logowania.
 
+## Spinka 2.0: centrum spraw obywatelskich (8.11.2026)
+
+Zasada: **jeden problem → jedno miejsce → jasny proces → rozwiązanie**. Audyt i plan: `docs/spinka-2-plan.md`.
+Stos bez zmian: HTML, CSS i JavaScript bez frameworka, składane przez `build.mjs` w jeden plik. Nowe moduły to osobne pliki
+w `src/`, które rejestrują ekrany, akcje przycisków (`data-act`), powiadomienia, wyszukiwanie i głębokie linki w `A.ext`
+(`src/ds.js`); rdzeń (`src/app.js`) pyta rejestr przy każdym renderze.
+
+| Plik | Co robi |
+|---|---|
+| `src/ds.js` | rejestr modułów i komponenty: pigułka, znak „Symulacja”, pasek postępu (`role=progressbar`), kafelek, filtry (`aria-pressed`), pole z walidacją i podsumowaniem błędów, arkusz dolny z fokusem i `inert`, animacja sukcesu, wyszukiwanie |
+| `src/stan.js` | stan modułów w `localStorage` (`spinka2-stan`): wersje robocze, sprawy z kreatorów, przypomnienia, płatności, skrzynka, sesje, uprawnienia, historia zgód; dane demonstracyjne (płatności, rodzina, sesje, historia dostępu); kolejność „Wymaga Twojej uwagi” i terminy kalendarza |
+| `src/centrum.js` | Start jako Centrum spraw, „Więcej” z modułami, wyszukiwarka, płatności (symulacja) |
+| `src/spinka-demo.js` | tryb demonstracyjny Spinki bez modelu AI i 9 nazwanych stanów |
+| `src/uslugi.js` | „Załatw za mnie”: katalog z filtrami i silnik kreatora dla 10 spraw |
+| `src/skrzynka.js` | skrzynka dokumentów: zdjęcie lub PDF, symulacja OCR na przykładowych pismach, analiza |
+| `src/kalendarz.js` | kalendarz obywatela: miesiąc, filtry, nadchodzące, szczegóły, przypomnienia |
+| `src/bezpieczenstwo.js` | centrum bezpieczeństwa i centrum aktualizacji |
+| `src/rodzina.js` | tryb rodzinny: profile, dokumenty, zgody rodzica, uprawnienia |
+| `src/portfel-eu.js` | koncepcja Europejskiego Portfela Tożsamości Cyfrowej (eIDAS 2.0) |
+| `src/spinka2.css` | style modułów, tokeny ruchu, tryb uproszczony, wysoki kontrast |
+
+**Centrum spraw (Start).** Pasek z datą w prototypie i wskaźnikiem bezpieczeństwa (tekst i ikona). „Wymaga Twojej uwagi”:
+terminy, pisma, płatności, zgody, nieukończone sprawy, wersje robocze i ważne komunikaty w jednej liście, ułożone według
+**skutku** (wysoki: kara, brak aktu, dostęp do konta; średni: odsetki, dopłata; niski: upomnienie, wygoda) i **terminu**
+(wynik = pilność + 2 × skutek); przy każdej pozycji „Dlaczego tutaj?”. Szybkie działania (6), „Twoje sprawy” z instytucją,
+statusem, terminem, paskiem postępu i następnym krokiem, „Twoje dokumenty” pogrupowane i powiązane ze sprawami.
+Dzwonek to centrum powiadomień (koperty, odczyty danych i powiadomienia modułów; otwarcie oznacza jako przeczytane).
+
+**Spinka.** Z modelem AI (serwer projektu) bez zmian. Bez serwera: tryb demonstracyjny rozpoznaje sprawę po słowach
+kluczowych i odpowiada **wyłącznie z danych aplikacji i opisów spraw**: co wiadomo (ze źródłem), czego nie wiadomo,
+ostrzeżenie o skutkach, proponowane kroki z przejściem do formularza. Pytanie spoza danych dostaje „nie wiem”, bez
+zgadywania. Gdy serwer jest, ale wysyłanie jest wyłączone lub wstrzymane, Spinka mówi to wprost (jak dotąd).
+Stany: Gotowa, Słucha, Analizuje, Odczytuje dane, Wyjaśnia, Ostrzega, Proponuje rozwiązanie, Czeka na Twoją decyzję,
+Zakończono (pasek pod imieniem, `role=status`, znak zmienia postać).
+
+**Załatw za mnie.** Zgłoszenie narodzin dziecka, świadczenie wychowawcze, zmiana danych kontaktowych, sprawy z dowodem
+(prowadzą do rozpoczętych scenariuszy), paszport, jednoosobowa działalność, zaświadczenie o niezaleganiu, opłata
+należności, zgłoszenie problemu w okolicy, wypowiedzenie OC (wzór). Każda: wyjaśnienie, dokumenty, autouzupełnianie
+(oznaczone), formularz z walidacją, koszty, wersja robocza (także po odświeżeniu), podsumowanie z „Zmień”, potwierdzenie,
+status symulacji, sprawa w „Sprawach”, termin szacunkowy w kalendarzu. Ekran końcowy nie udaje urzędowego potwierdzenia.
+
+**Moduły.** Skrzynka (własny plik: tylko podgląd, treść nie jest odczytywana; przykładowe pisma: OCR z pewnością i
+różnicami, warstwy „Z dokumentu / Wynik OCR / Dane z aplikacji / Interpretacja Spinki”, termin do kalendarza,
+przypisanie do sprawy). Kalendarz (rodzaje: termin z danych, ważność, przypomnienie, szacunek niewiążący). Płatności
+(symulacja, bez danych karty i banku). Centrum bezpieczeństwa (sesje, historia dostępu, zgody, porady, odzyskiwanie)
+i aktualizacji (wersja i moduły prototypu; bez komunikatów o prawdziwych usługach i certyfikatach). Rodzina (rodzic
+widzi sprawy dziecka; dorosły decyduje sam; dziecko nie widzi danych rodzica). Portfel EU (koncepcja: selektywne
+udostępnianie, weryfikacja w symulacji, scenariusz wynajmu auta w Lizbonie, historia zgód).
+
+**Dostępność.** W „Więcej → Wygoda i dostępność”: wysoki kontrast (czarne tło, biały tekst, żółty fokus) i tryb
+uproszczony (na Starcie tylko najważniejsze). Pola mają etykiety, błędy pod polem i w podsumowaniu z linkami do pól.
+Pole, na które trafia fokus, nie chowa się pod przyklejonym paskiem „Wstecz / Dalej” kreatora (WCAG 2.2, 2.4.11): `ds.js`
+mierzy pasek po każdym przeniesieniu fokusu i dosuwa ekran, więc działa też przy największym tekście.
+
+**Testy.** `testy/spinka-2/procesy-test.js <port dist/> <axe.min.js>`: 58 sprawdzeń (Centrum, kreatory z walidacją i
+wersją roboczą, płatności, skrzynka, kalendarz, bezpieczeństwo, rodzina, portfel EU, 6 pytań do Spinki, wyszukiwarka,
+wysoki kontrast, tryb uproszczony, axe na 14 ekranach i formularzu z błędami, przyciski bez działania, fokus
+niezasłonięty przez pasek kreatora przy standardowym i największym tekście, 320 px).
+
 ## Ekran startowy (przy każdym wejściu)
 
 Sekwencja, około 2,4 s animacji i chwila na odczyt; od czerwonego ekranu do wyboru osoby około 3,2 s:

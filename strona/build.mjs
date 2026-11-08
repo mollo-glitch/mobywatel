@@ -1,7 +1,7 @@
 // Składa stronę projektu w katalogu public/ (statyczne pliki dla dowolnego hostingu).
 //   node build.mjs [--film film-web] [--aplikacja ../aplikacja/dist/index.html]
 //                  [--znak ../aplikacja/docs/znak-spinki] [--bez-filmu]
-// Aplikacja trafia do public/aplikacja/index.html bajt w bajt (MD5 sprawdzane niżej; ostatnia zmiana: ruch korony w rundzie 34).
+// Aplikacja trafia do public/aplikacja/index.html bajt w bajt (MD5 sprawdzane niżej; ostatnia zmiana: Spinka 2.0).
 // Film: pliki z katalogu --film (wersja webowa, nie master): spinka-film-<wersja>.mp4, -plakat.jpg, .pl.vtt, .tekst.txt (domyślnie v9).
 import fs from 'node:fs'; import path from 'node:path'; import crypto from 'node:crypto';
 
@@ -12,9 +12,9 @@ const APLIKACJA = path.resolve(ROOT, arg('aplikacja', '../aplikacja/dist/index.h
 const ZNAK = path.resolve(ROOT, arg('znak', '../aplikacja/docs/znak-spinki'));
 const FILM = path.resolve(ROOT, arg('film', 'film-web'));
 const OUT = path.join(ROOT, 'public');
-// Runda 34: korona spada dopiero, gdy orzeł stanie, i osiada z lekkim odbiciem (zmiana tylko w src/app.js, build powtarzalny).
-// Poprzednio: e7d2fffc2a86e10bc4146c91cdf97e0b (runda 32: korona spadała w czasie hamowania orła).
-const APLIKACJA_MD5 = process.env.APLIKACJA_MD5 || '5a17aa7e25fe84d66fe424700b0b66ce';
+// Spinka 2.0: centrum spraw, Załatw za mnie, skrzynka, kalendarz, bezpieczeństwo, rodzina, portfel EU, tryb demonstracyjny
+// asystenta (build powtarzalny, sprawdzony dwukrotnym budowaniem). Poprzednio: 5a17aa7e25fe84d66fe424700b0b66ce (runda 34: korona).
+const APLIKACJA_MD5 = process.env.APLIKACJA_MD5 || 'fe870d5d304babce8a905b8f6363e628';
 // Wersja filmu: v9 (prawdziwy ekran aktualnej aplikacji, napisy plansz) domyślnie; v8 zostaje do porównania (--wersja-filmu v8).
 const WERSJA = /^v\d+$/.test(arg('wersja-filmu', 'v9')) ? arg('wersja-filmu', 'v9') : 'v9';
 const PLIKI = { mp4: 'spinka-film-' + WERSJA + '.mp4', plakat: 'spinka-film-' + WERSJA + '-plakat.jpg', vtt: 'spinka-film-' + WERSJA + '.pl.vtt' };

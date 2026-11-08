@@ -19,17 +19,18 @@ const axe = async (p) => { await p.addScriptTag({ content: AXE }); return p.eval
   const zapytaj = async (p, q, ms) => { await p.fill('#chat-input', q); await p.keyboard.press('Enter'); await p.waitForTimeout(ms || 1300); };
   const ostatnie = (p, n) => p.evaluate((n) => [...document.querySelectorAll('#chat-log > *')].slice(-n).map((x) => x.className + ' | ' + x.innerText.replace(/\s+/g, ' ')), n || 6);
 
-  // 1. Bez serwera: asystent nie udaje odpowiedzi, mówi wprost, czego brakuje, i prowadzi do danych i scenariuszy.
+  // 1. Bez serwera (Spinka 2.0): tryb demonstracyjny odpowiada tylko z danych aplikacji, ze źródłem; nie wysyła niczego.
   { const { c, p, log } = await nowa(ST); await czat(p);
     const sub = await p.textContent('#chat-sub');
-    await zapytaj(p, 'Kiedy kończy się moja polisa?');
-    const l = await ostatnie(p, 3);
-    const off = l.find((x) => /st-off/.test(x)) || '';
-    ok('bez serwera: nagłówek „Model AI niepodłączony”, odpowiedź to jasny stan „nie odpowiem, AI nie jest podłączone”, bez treści udającej odpowiedź',
-      /Model AI niepodłączony/.test(sub) && /Nie odpowiem na to pytanie: model AI nie jest podłączony/.test(off) && /Nie podaję gotowych odpowiedzi/.test(off) && !l.some((x) => /^msg bot \|.*04\.11\.2026/.test(x)), { sub, l });
-    ok('bez serwera: przyciski do „Do załatwienia”, „Dokumenty” i pasującego scenariusza OC', /Do załatwienia.*Dokumenty.*Zacznij: Koniec polisy OC/.test(l[l.length - 1]), l[l.length - 1]);
+    // Spinka 2.0: bez modelu AI odpowiada tryb demonstracyjny, wyłącznie z danych aplikacji, ze źródłem i z tym, czego nie wiadomo.
+    await zapytaj(p, 'Kiedy kończy się moja polisa?', 2800);
+    const l = await ostatnie(p, 7);
+    const txt = l.join(' || ');
+    ok('bez serwera: nagłówek „Model AI niepodłączony”; odpowiedź w trybie demonstracyjnym tylko z danych aplikacji, z tym, czego nie wiadomo, i ze źródłem',
+      /Model AI niepodłączony/.test(sub) && /Tryb demonstracyjny bez modelu AI/i.test(txt) && /Z danych aplikacji/i.test(txt) && /Tego w danych nie ma/i.test(txt) && /src-list/.test(txt), { sub, l });
+    ok('bez serwera: proponowane kroki prowadzą do scenariusza OC i wzoru wypowiedzenia', /Zobacz możliwości \(scenariusz\).*Wzór wypowiedzenia OC/.test(l[l.length - 1]), l[l.length - 1]);
     ok('bez serwera: żadnego zapytania do /api ani do Google poza czcionkami', !log.zad.some((u) => /\/api\/|generativelanguage/.test(u)), log.zad.filter((u) => !u.startsWith(ST)).slice(0, 5));
-    await p.tap('.quick .chip >> text=Zacznij: Koniec polisy OC'); await p.waitForTimeout(1500);
+    await p.tap('.s2-next .chip >> text=Zobacz możliwości (scenariusz)'); await p.waitForTimeout(1500);
     ok('bez serwera: scenariusz OC działa (krok 1 z 3) — scenariusze są lokalne, bez AI', /Koniec polisy OC/.test(await p.textContent('#stepper')), await p.textContent('#stepper'));
     await p.tap('.quick.bound .chip'); await p.waitForTimeout(800); await p.locator('.opt-btn', { hasText: 'Chcę zmienić ubezpieczyciela' }).tap(); await p.waitForTimeout(1200);
     const sum = await p.evaluate(() => { const s = document.querySelector('.qcard.summary'); return s ? s.innerText.replace(/\s+/g, ' ').slice(0, 200) : null; });

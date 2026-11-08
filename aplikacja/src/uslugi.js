@@ -285,8 +285,7 @@
     let body = '';
     if (step === 0) {
       const due = P.due ? P.due() : null;
-      body = (W.fromDraft ? '<div class="s2-banner info">' + ic('edit', 20) + '<p>Masz wersję roboczą tej sprawy. Kontynuujesz od kroku ' + (st().drafts[P.id] ? st().drafts[P.id].step + 1 : 1) + '. <button type="button" class="btn-text sm" data-act="w-restart">Zacznij od nowa</button></p></div>' : '') +
-        '<p class="lead">' + esc(P.lead) + '</p>' +
+      body = '<p class="lead">' + esc(P.lead) + '</p>' +
         '<ol class="s2-explain">' + P.explain.map((x) => '<li>' + esc(x) + '</li>').join('') + '</ol>' +
         (due ? '<p class="s2-due-box">' + ic('clock', 20) + '<span>Termin w tej sprawie: <b>' + esc(T.fmtLong(due)) + '</b> ' + U.pill(U.dueText(due), U.dueTone(due)) + '</span></p>' : '') +
         '<p class="s2-rule">' + ic('info', 16) + '<span>' + esc(P.rule) + '</span></p>' +
@@ -330,8 +329,10 @@
         (step >= 1 && step <= 4 ? '<button type="button" class="btn ghost" data-act="w-save">' + ic('edit', 20) + 'Zapisz wersję roboczą</button>' : '') +
         '<button type="button" class="btn primary" data-act="w-next">' + (step === 4 ? ic('shieldCheck', 20) + 'Potwierdź' : 'Dalej' + ic('chevronRight', 20)) + '</button>' +
       '</div>';
+    // Powrót do wersji roboczej: informacja na kroku, od którego kontynuujesz, z możliwością rozpoczęcia od nowa.
+    const resume = W.fromDraft && step < 5 ? '<div class="s2-banner info" role="status">' + ic('edit', 20) + '<p>Wracasz do wersji roboczej zapisanej ' + esc(T.fmtShort(A.store.fromIso((st().drafts[P.id] || {}).saved) || T.today)) + '. Kontynuujesz od kroku ' + (step + 1) + ': ' + KROKI[step] + '. <button type="button" class="btn-text sm" data-act="w-restart">Zacznij od nowa</button></p></div>' : '';
     const s = A.screen('proces',
-      '<div class="pad stack">' + head + (step < 5 ? stepper(step) : '') + '<div class="s2-wbody">' + body + '</div>' + nav + '</div>');
+      '<div class="pad stack">' + head + resume + (step < 5 ? stepper(step) : '') + '<div class="s2-wbody">' + body + '</div>' + nav + '</div>');
     s._after = () => {
       // Zmiany w polach od razu trafiają do stanu kreatora (wersja robocza zapisuje się przy „Dalej” i przycisku).
       const f = s.querySelector('#w-form');

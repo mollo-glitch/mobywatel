@@ -95,7 +95,7 @@ window.APP = window.APP || {};
         f.options.map((o) => '<option value="' + esc(o.v) + '"' + (o.v === val ? ' selected' : '') + '>' + esc(o.l) + '</option>').join('') + '</select>';
     } else if (f.type === 'radio') {
       return '<fieldset class="s2-field s2-fieldset" id="' + id + '" data-field="' + f.id + '" aria-describedby="' + desc + '"' + (f.required ? ' data-required="1"' : '') + '>' +
-        '<legend class="s2-label">' + esc(f.label) + '</legend>' + hint +
+        '<legend class="s2-label">' + esc(f.label) + '</legend>' + auto + hint +
         '<div class="s2-radios">' + f.options.map((o, i) =>
           '<label class="s2-radio"><input type="radio" name="' + f.id + '" value="' + esc(o.v) + '"' + (o.v === val ? ' checked' : '') + (i === 0 && f.required ? ' required' : '') + '>' +
           '<span class="s2-radio-box" aria-hidden="true"></span><span class="s2-radio-l"><b>' + esc(o.l) + '</b>' + (o.d ? '<span>' + esc(o.d) + '</span>' : '') + '</span></label>').join('') +
@@ -179,6 +179,19 @@ window.APP = window.APP || {};
     const el = document.getElementById(a.dataset.focus);
     const target = el && (el.matches('fieldset') ? el.querySelector('input') : el);
     if (target) { target.focus(); target.scrollIntoView({ block: 'center', behavior: A.reducedMotion() ? 'auto' : 'smooth' }); }
+  });
+  // Pasek „Wstecz / Dalej” kreatora jest przyklejony do dołu ekranu. Pole, na które trafia fokus (np. klawiszem Tab),
+  // nie może się pod nim schować (WCAG 2.2, 2.4.11): po przewinięciu przez przeglądarkę mierzymy oba prostokąty
+  // i dosuwamy ekran. Wysokość paska jest mierzona, więc działa też przy największym rozmiarze tekstu.
+  document.addEventListener('focusin', (e) => {
+    const t = e.target; const scr = t.closest && t.closest('.screen');
+    const bar = scr && scr.querySelector('.s2-wnav');
+    if (!bar || bar.contains(t)) return;
+    requestAnimationFrame(() => {
+      if (document.activeElement !== t) return;
+      const a = t.getBoundingClientRect(), n = bar.getBoundingClientRect();
+      if (a.height && a.bottom > n.top - 8) scr.scrollTop += Math.ceil(a.bottom - n.top + 16);
+    });
   });
 
   /* ---------- arkusz dolny (bottom sheet) ---------- */

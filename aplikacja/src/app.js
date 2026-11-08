@@ -1549,6 +1549,7 @@
             '<dl class="me-rows">' +
               '<div><dt>Sprawy, pisma, dokumenty</dt><dd>Wbudowane w aplikację. Twoje zmiany, np. ustawione przypomnienia, są tylko w pamięci tej karty i znikają po jej odświeżeniu.</dd></div>' +
               '<div><dt>Rozmowa ze Spinką</dt><dd>Tylko na ekranie. Nie jest nigdzie zapisywana ani wysyłana w całości.</dd></div>' +
+              '<div><dt>Wersje robocze, przypomnienia, płatności i dokumenty ze skrzynki</dt><dd>W pamięci tej przeglądarki (pamięć lokalna), do „Zacznij demonstrację od nowa”. Z dodanych plików zapisuje się tylko nazwa, typ i rozmiar, nigdy treść.</dd></div>' +
               '<div><dt>Wygoda i dostępność</dt><dd>Zapisane w tej przeglądarce (pamięć lokalna), żeby działały po powrocie.</dd></div>' +
               '<div><dt>Wybór i zgoda dla asystenta AI</dt><dd>Tylko w tej karcie (pamięć sesji), do jej zamknięcia.</dd></div>' +
             '</dl>') +
